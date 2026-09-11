@@ -39,11 +39,11 @@ interface QuickAction {
 const QUICK_ACTIONS: QuickAction[] = [
   { label: "الدروس", desc: "منظمة حسب المستوى والدورتين", icon: BookOpenCheck, route: { view: "lessons" } },
   { label: "التمارين", desc: "تطبيقات بتصحيح نموذجي", icon: FlaskConical, route: { view: "apps" } },
-  { label: "الفروض", desc: "نماذج الفروض المحروسة", icon: ClipboardList, route: { view: "resources" }, soon: true },
-  { label: "الامتحانات الجهوية", desc: "نماذج مصححة", icon: FileText, route: { view: "resources" }, soon: true },
+  { label: "الفروض", desc: "تقويمات محروسة ونماذج فروض", icon: ClipboardList, route: { view: "resources", type: "exam" } },
+  { label: "الامتحانات الوطنية", desc: "مواضيع رسمية مع التصحيح", icon: FileText, route: { view: "resources", type: "national" } },
   { label: "المنهجيات", desc: "تحليل الوثائق والكتابة", icon: PenLine, route: { view: "methods" } },
   { label: "المصطلحات", desc: "معجم مفاهيم دروس المادة", icon: Library, search: true },
-  { label: "الخرائط والخطاطات", desc: "أدوات مجالية مركزة", icon: Globe2, route: { view: "resources" }, soon: true },
+  { label: "الخرائط والخطاطات", desc: "خرائط تخطيطية وخطاطات تفاعلية", icon: Globe2, route: { view: "resources", type: "map" } },
   { label: "التقويم الذاتي", desc: "8 تقويمات تفاعلية حسب المستوى", icon: Target, route: { view: "test" } },
   { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, search: true },
 ];

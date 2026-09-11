@@ -7,7 +7,7 @@ export type Route =
   | { view: "methods"; id?: string }
   | { view: "apps"; id?: string; level?: string }
   | { view: "lesson"; id: string }
-  | { view: "resources" };
+  | { view: "resources"; type?: string; open?: string };
 
 export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "الرئيسية", route: { view: "home" } },

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BookOpenCheck, FileText, FlaskConical, LayoutGrid, Search, Target, X } from "lucide-react";
+import { ArrowLeft, BookOpenCheck, FileText, FlaskConical, FolderOpen, LayoutGrid, Search, Target, X } from "lucide-react";
 import { normalizeArabic } from "../lib/arabic";
 import { METHODOLOGIES } from "../data/methodologies";
 import { APPLICATIONS } from "../data/applications";
@@ -7,11 +7,12 @@ import { LEVELS } from "../data/curriculum";
 import { QUESTIONS } from "../data/questions";
 import { LESSON_CONTENT } from "../data/lessonContent";
 import { TEST_BANKS } from "../data/testBanks";
+import { RESOURCES, typeMeta } from "../data/resources";
 import type { Route } from "../routes";
 
 interface SearchResult {
   id: string;
-  group: "منهجيات" | "تطبيقات" | "دروس ومحاور" | "أسئلة التقويم" | "صفحات";
+  group: "منهجيات" | "تطبيقات" | "دروس ومحاور" | "أسئلة التقويم" | "موارد" | "صفحات";
   title: string;
   hint: string;
   action: Route;
@@ -37,6 +38,7 @@ const GROUP_ICONS = {
   تطبيقات: FlaskConical,
   "دروس ومحاور": BookOpenCheck,
   "أسئلة التقويم": Target,
+  موارد: FolderOpen,
   صفحات: LayoutGrid,
 } as const;
 
@@ -111,6 +113,21 @@ export default function SearchOverlay({ open, onClose, go }: SearchOverlayProps)
             });
           });
         }
+      }
+    }
+
+    /* موارد المكتبة (جداول، مبيانات، خرائط، امتحانات وطنية، ملفات الأستاذ) — دروس PDF والتطبيقات والتقويمات مغطاة في مجموعاتها */
+    for (const r of RESOURCES) {
+      if (r.type === "pdf" || r.type === "exercise" || r.type === "exam") continue;
+      const hay = normalizeArabic(`${r.title} ${r.desc} ${(r.tags ?? []).join(" ")} ${r.year ?? ""} ${typeMeta(r.type).plural}`);
+      if (hay.includes(qNorm)) {
+        out.push({
+          id: `r-${r.id}`,
+          group: "موارد",
+          title: r.title,
+          hint: `${typeMeta(r.type).label} · ${r.level} · ${r.subject}`,
+          action: r.action.kind === "data" ? { view: "resources", open: r.id } : { view: "resources", type: r.type },
+        });
       }
     }
 

@@ -65,7 +65,9 @@ export default function App() {
               />
             );
           })()}
-        {route.view === "resources" && <Resources go={go} />}
+        {route.view === "resources" && (
+          <Resources key={`${route.type ?? "all"}-${route.open ?? ""}`} go={go} initialType={route.type} openId={route.open} />
+        )}
       </main>
       <Footer go={go} />
       <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} go={go} />
