@@ -40,7 +40,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   { label: "الدروس", desc: "منظمة حسب المستوى والدورتين", icon: BookOpenCheck, route: { view: "lessons" } },
   { label: "التمارين", desc: "تطبيقات بتصحيح نموذجي", icon: FlaskConical, route: { view: "apps" } },
   { label: "الفروض", desc: "تقويمات محروسة ونماذج فروض", icon: ClipboardList, route: { view: "resources", type: "exam" } },
-  { label: "الامتحانات الوطنية", desc: "مواضيع رسمية مع التصحيح", icon: FileText, route: { view: "resources", type: "national" } },
+  { label: "الامتحانات الجهوية", desc: "مواضيع رسمية مع عناصر الإجابة", icon: FileText, route: { view: "resources", type: "regional" } },
   { label: "المنهجيات", desc: "تحليل الوثائق والكتابة", icon: PenLine, route: { view: "methods" } },
   { label: "المصطلحات", desc: "معجم مفاهيم دروس المادة", icon: Library, search: true },
   { label: "الخرائط والخطاطات", desc: "خرائط تخطيطية وخطاطات تفاعلية", icon: Globe2, route: { view: "resources", type: "map" } },

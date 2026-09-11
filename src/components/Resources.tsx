@@ -10,6 +10,7 @@ import {
   Globe2,
   Image,
   Landmark,
+  ScrollText,
   Link2,
   Presentation,
   Printer,
@@ -25,6 +26,7 @@ import { RESOURCES, RESOURCE_LEVELS, RESOURCE_TYPES, countByType, getResource, t
 import { normalizeArabic } from "../lib/arabic";
 import Reveal from "./Reveal";
 import DataDocView from "./resources/DataDocView";
+import ExamsArchive from "./resources/ExamsArchive";
 import type { Route } from "../routes";
 
 const USEFUL_SITES = [
@@ -45,6 +47,7 @@ const TYPE_ICONS: Record<ResourceType, typeof FileText> = {
   exercise: ClipboardList,
   exam: Target,
   national: Landmark,
+  regional: ScrollText,
   image: Image,
 };
 
@@ -61,7 +64,7 @@ interface ResourcesProps {
 const isResourceType = (t: string | undefined): t is ResourceType => RESOURCE_TYPES.some((x) => x.id === t);
 
 export default function Resources({ go, initialType, openId }: ResourcesProps) {
-  const [type, setType] = useState<ResourceType | "all">(isResourceType(initialType) ? initialType : "all");
+  const [type, setType] = useState<ResourceType | "all">(isResourceType(initialType) && initialType !== "regional" ? initialType : "all");
   const [level, setLevel] = useState<string>("الكل");
   const [subject, setSubject] = useState<(typeof SUBJECTS)[number]>("الكل");
   const [query, setQuery] = useState("");
@@ -74,7 +77,8 @@ export default function Resources({ go, initialType, openId }: ResourcesProps) {
 
   useEffect(() => {
     if (isResourceType(initialType)) {
-      const t = window.setTimeout(() => document.getElementById("library")?.scrollIntoView({ behavior: "smooth", block: "start" }), 250);
+      const target = initialType === "regional" ? "exams" : "library";
+      const t = window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" }), 250);
       return () => window.clearTimeout(t);
     }
   }, [initialType]);
@@ -82,6 +86,7 @@ export default function Resources({ go, initialType, openId }: ResourcesProps) {
   const filtered = useMemo(() => {
     const q = normalizeArabic(query);
     return RESOURCES.filter((r) => {
+      if (r.type === "regional" && type !== "regional" && q.length < 2) return false;
       if (type !== "all" && r.type !== type) return false;
       if (level !== "الكل" && r.level !== level && r.level !== "جميع المستويات") return false;
       if (subject !== "الكل" && r.subject !== subject && r.subject !== "مشترك") return false;
@@ -105,6 +110,10 @@ export default function Resources({ go, initialType, openId }: ResourcesProps) {
   };
 
   const pickType = (t: ResourceType) => {
+    if (t === "regional") {
+      document.getElementById("exams")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     setType(t);
     setVisible(24);
     document.getElementById("library")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -120,7 +129,15 @@ export default function Resources({ go, initialType, openId }: ResourcesProps) {
     const a = r.action;
     if (a.kind === "route") go(a.route);
     else if (a.kind === "data") setOpenDoc(r);
-    else if (a.kind === "url" || a.kind === "file") window.open(a.url, "_blank", "noopener,noreferrer");
+    else if (a.kind === "url") window.open(a.url, "_blank", "noopener,noreferrer");
+    else if (a.kind === "file") {
+      const el = document.createElement("a");
+      el.href = a.url;
+      el.download = "";
+      el.target = "_blank";
+      el.rel = "noopener noreferrer";
+      el.click();
+    }
   };
 
   const actionLabel = (r: ResourceItem) => {
@@ -325,6 +342,7 @@ export default function Resources({ go, initialType, openId }: ResourcesProps) {
                       <p className="mt-1.5 line-clamp-2 flex-1 text-[12px] leading-relaxed text-ink-500">{r.desc}</p>
                       <p className="mt-3 text-[10px] font-bold text-ink-400">
                         {r.level} · {r.subject}
+                        {r.region ? ` · ${r.region}` : ""}
                       </p>
                       <button
                         type="button"
@@ -339,6 +357,18 @@ export default function Resources({ go, initialType, openId }: ResourcesProps) {
                         {actionLabel(r)}
                         {!external && !isFile && <span aria-hidden="true">←</span>}
                       </button>
+                      {r.action.kind === "file" && r.action.correctionUrl && (
+                        <a
+                          href={r.action.correctionUrl}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1.5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white px-4 py-2 text-[11px] font-extrabold text-brand-700 transition-all hover:-translate-y-0.5 hover:border-brand-400"
+                        >
+                          <Download className="size-3.5" aria-hidden="true" />
+                          عناصر الإجابة {r.action.correctionSize ? `(${r.action.correctionSize})` : ""}
+                        </a>
+                      )}
                     </article>
                   </Reveal>
                 );
@@ -358,6 +388,9 @@ export default function Resources({ go, initialType, openId }: ResourcesProps) {
             </div>
           )}
         </div>
+
+        {/* أرشيف الامتحانات الجهوية */}
+        <ExamsArchive />
 
         {/* مكتبة PDF حسب المستوى */}
         <Reveal delay={150}>

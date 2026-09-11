@@ -20,7 +20,8 @@ import type { ResourceItem } from "./resources";
  *    "chart"    مبيان
  *    "exercise" تمرين / سلسلة
  *    "exam"     فرض محروس
- *    "national" امتحان وطني أو جهوي
+ *    "national" امتحان وطني (2 باك)
+ *    "regional" امتحان جهوي (1 باك) — أضف region: "اسم الجهة"
  *    "image"    صورة أو وثيقة بصرية
  *
  *  المستويات (level): "الجذع المشترك" | "الأولى باكالوريا" | "الثانية باكالوريا" | "جميع المستويات"
@@ -36,7 +37,8 @@ import type { ResourceItem } from "./resources";
  *    subject: "مشترك",
  *    year: 2024,
  *    tags: ["امتحان وطني", "آداب"],
- *    action: { kind: "file", url: "/files/bac2/examen-national-2024-lettres.pdf", size: "1.2 MB" },
+ *    action: { kind: "file", url: "/files/bac2/examen-national-2024-lettres-sujet.pdf", size: "1.2 MB",
+ *              correctionUrl: "/files/bac2/examen-national-2024-lettres-correction.pdf", correctionSize: "0.8 MB" },
  *  },
  */
 export const TEACHER_FILES: ResourceItem[] = [

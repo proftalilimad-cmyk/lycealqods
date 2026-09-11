@@ -4,6 +4,7 @@ import { getLessonContent, hasLessonContent, lessonKey } from "./lessonContent";
 import { APPLICATIONS } from "./applications";
 import { TEST_BANKS } from "./testBanks";
 import { TEACHER_FILES } from "./teacherFiles";
+import { REFERENCE_FRAMEWORKS, REGIONAL_EXAMS } from "./regionalExams";
 
 /* ============================================================
    مكتبة الموارد التعليمية — طبقة البيانات
@@ -14,7 +15,7 @@ import { TEACHER_FILES } from "./teacherFiles";
    3) ملفات الأستاذ (src/data/teacherFiles.ts) وروابط خارجية موثوقة
    ============================================================ */
 
-export type ResourceType = "pdf" | "slides" | "map" | "table" | "chart" | "exercise" | "exam" | "national" | "image";
+export type ResourceType = "pdf" | "slides" | "map" | "table" | "chart" | "exercise" | "exam" | "national" | "regional" | "image";
 
 export type ResourceLevel = "الجذع المشترك" | "الأولى باكالوريا" | "الثانية باكالوريا" | "جميع المستويات";
 export type ResourceSubject = "التاريخ" | "الجغرافيا" | "مشترك";
@@ -53,7 +54,7 @@ export type DataDoc = TableDataDoc | ChartDataDoc | MapDataDoc;
 export type ResourceAction =
   | { kind: "route"; route: Route; label?: string }
   | { kind: "url"; url: string; site?: string; label?: string }
-  | { kind: "file"; url: string; size?: string; label?: string }
+  | { kind: "file"; url: string; size?: string; label?: string; correctionUrl?: string; correctionSize?: string }
   | { kind: "data"; data: DataDoc; methodId?: string; label?: string };
 
 export interface ResourceItem {
@@ -68,6 +69,8 @@ export interface ResourceItem {
   year?: number;
   /** مفتاح الدرس المرتبط إن وُجد */
   lessonKey?: string;
+  /** الجهة (للامتحانات الجهوية) */
+  region?: string;
   action: ResourceAction;
 }
 
@@ -79,7 +82,8 @@ export const RESOURCE_TYPES: { id: ResourceType; label: string; plural: string; 
   { id: "chart", label: "مبيان", plural: "مبيانات", desc: "مبيانات بالأعمدة والمنحنيات والدوائر للتحليل" },
   { id: "exercise", label: "تمرين", plural: "تمارين وتطبيقات", desc: "تطبيقات مصححة حسب المهارة والمستوى" },
   { id: "exam", label: "فرض", plural: "فروض وتقويمات", desc: "تقويمات محروسة بمؤقت وتصحيح آلي" },
-  { id: "national", label: "امتحان وطني", plural: "امتحانات وطنية وجهوية", desc: "مواضيع الامتحانات الرسمية مع عناصر الإجابة" },
+  { id: "national", label: "امتحان وطني", plural: "امتحانات وطنية", desc: "مواضيع الامتحان الوطني الموحد (2 باك) مع عناصر الإجابة" },
+  { id: "regional", label: "امتحان جهوي", plural: "امتحانات جهوية", desc: "مواضيع الامتحان الجهوي الموحد (1 باك) مع عناصر الإجابة — حسب الجهة والسنة" },
   { id: "image", label: "صورة", plural: "صور ووثائق بصرية", desc: "صور تاريخية ووثائق مرئية" },
 ];
 
@@ -634,6 +638,8 @@ export const RESOURCES: ResourceItem[] = [
   ...DATA_DOCS,
   ...generatedExercises(),
   ...generatedExams(),
+  ...REFERENCE_FRAMEWORKS,
+  ...REGIONAL_EXAMS,
   ...EXTERNAL_LINKS,
   ...TEACHER_FILES,
 ];
