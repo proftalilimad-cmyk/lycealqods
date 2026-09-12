@@ -5,7 +5,7 @@
 # ينتج أرشيفين داخل dist/exports/ (مجلد مُتجاهَل في جيت وفي لقطات العمل):
 #   1) lycealqods-site-YYYY-MM-DD.zip    الموقع الجاهز للنشر:
 #      يُفكّ محتواه في جذر أي استضافة statique (index.html + decks/ + files/
-#      + og-cover.png). لا يحتاج خادمًا: كل شيء ملفات ثابتة.
+#      + og-cover.png + images/). لا يحتاج خادمًا: كل شيء ملفات ثابتة.
 #   2) lycealqods-source-YYYY-MM-DD.zip  مصدر المشروع كاملًا بدون
 #      node_modules ولا dist، لفتحه ومتابعة التطوير في مكان آخر.
 #
@@ -34,7 +34,7 @@ rm -f "$OUT"/*.zip
 echo "→ أرشفة الموقع المنشور (dist)…"
 (
   cd "$ROOT/dist"
-  zip -qrX "$SITE_ZIP" index.html decks files og-cover.png
+  zip -qrX "$SITE_ZIP" index.html decks files images og-cover.png
 )
 
 echo "→ أرشفة مصدر المشروع…"

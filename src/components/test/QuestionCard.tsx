@@ -21,59 +21,136 @@ const KIND_META: Record<string, { label: string; icon: typeof ListChecks }> = {
 };
 
 /** الرسم التخطيطي لوثيقة الخريطة (السؤال 12) */
-function MapSketch() {
+/** شارة تسمية فوق الخريطة/الصورة القمرية */
+function MapChip({ x, y, w, text, color }: { x: number; y: number; w: number; text: string; color: string }) {
   return (
-    <svg viewBox="0 0 340 210" className="w-full rounded-xl border border-ink-900/10 bg-[#f4efe3]" role="img" aria-label="رسم تخطيطي لحي سكني: مدرسة في الوسط، نهر جنوبًا شرقًا، مسجد شمالًا غربًا">
-      {/* شبكة خفيفة */}
-      <g stroke="#d8d0bb" strokeWidth="1">
-        {[40, 80, 120, 160, 200, 240, 280].map((x) => <line key={x} x1={x} y1="0" x2={x} y2="210" />)}
-        {[35, 70, 105, 140, 175].map((y) => <line key={y} x1="0" y1={y} x2="340" y2={y} />)}
-      </g>
+    <g>
+      <rect x={x - w / 2} y={y - 21} width={w} height={36} rx={11} fill="#ffffff" opacity="0.95" stroke={color} strokeWidth="2.5" />
+      <text x={x} y={y + 4} textAnchor="middle" fontSize="19" fontWeight="800" fill="#0b1d17">
+        {text}
+      </text>
+    </g>
+  );
+}
 
-      {/* الشارع الرئيسي */}
-      <line x1="8" y1="92" x2="332" y2="92" stroke="#8a8168" strokeWidth="7" />
-      <line x1="8" y1="92" x2="332" y2="92" stroke="#f4efe3" strokeWidth="1.5" strokeDasharray="10 8" />
-      <text x="14" y="86" fontSize="9" fill="#6b6350" fontWeight="700">الشارع الرئيسي</text>
+/**
+ * وثيقة خريطة حي ميموزا — القنيطرة (نمط Google Maps / Google Earth):
+ * طبقتان قابلتان للتبديل (خريطة شارع + صورة قمرية) بنفس المعالم والمواضع،
+ * مع مفتاح ومؤشر شمال ومقياس: ثانوية القدس هي المدرسة وسط المخطط.
+ * المحاكاة بصرية لأغراض التمرين، والمواضع تقريبية.
+ */
+function MapSketch() {
+  const [layer, setLayer] = useState<"map" | "aerial">("map");
+  return (
+    <figure className="overflow-hidden rounded-xl border border-ink-900/10 bg-white">
+      {/* مبدّل الطبقتين */}
+      <div className="flex items-center justify-between gap-2 border-b border-ink-900/8 bg-cream px-3 py-2">
+        <span className="text-[10px] font-extrabold text-ink-500">حي ميموزا — القنيطرة</span>
+        <div className="flex overflow-hidden rounded-lg border border-ink-900/12" role="group" aria-label="اختيار طبقة الخريطة">
+          <button
+            type="button"
+            onClick={() => setLayer("map")}
+            aria-pressed={layer === "map"}
+            className={`px-3 py-1.5 text-[10px] font-extrabold transition-colors ${layer === "map" ? "bg-brand-600 text-white" : "bg-white text-ink-700 hover:bg-brand-50"}`}
+          >
+            خريطة (نمط Google Maps)
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayer("aerial")}
+            aria-pressed={layer === "aerial"}
+            className={`px-3 py-1.5 text-[10px] font-extrabold transition-colors ${layer === "aerial" ? "bg-brand-600 text-white" : "bg-white text-ink-700 hover:bg-brand-50"}`}
+          >
+            صورة قمرية
+          </button>
+        </div>
+      </div>
 
-      {/* مؤشر الشمال */}
-      <g transform="translate(30,32)">
-        <circle r="14" fill="#ffffff" stroke="#0f7c5b" strokeWidth="1.5" />
-        <polygon points="0,-9 4,4 0,1 -4,4" fill="#0f7c5b" />
-        <text y="-18" textAnchor="middle" fontSize="10" fontWeight="800" fill="#0f7c5b">شمال</text>
-      </g>
+      <div className="relative" style={{ aspectRatio: "1408 / 768" }}>
+        <img
+          src="/images/mimosa-map.jpg"
+          alt="خريطة رقمية تعليمية لحي ميموزا بالقنيطرة: ثانوية القدس وسط المخطط، مسجد في الشمال الغربي، مجرى مائي في الجنوب الشرقي، شارع رئيسي من الشرق إلى الغرب وحديقة في الجنوب الغربي"
+          className={`absolute inset-0 size-full object-cover transition-opacity duration-500 ${layer === "map" ? "opacity-100" : "opacity-0"}`}
+        />
+        <img
+          src="/images/mimosa-aerial.jpg"
+          alt="صورة قمرية تعليمية لحي ميموزا بالقنيطرة بنفس المعالم: ثانوية القدس وسط المخطط، مسجد في الشمال الغربي، مجرى مائي في الجنوب الشرقي، شارع رئيسي وحديقة"
+          className={`absolute inset-0 size-full object-cover transition-opacity duration-500 ${layer === "aerial" ? "opacity-100" : "opacity-0"}`}
+          loading="lazy"
+        />
+        <svg viewBox="0 0 1408 768" preserveAspectRatio="none" className="absolute inset-0 size-full" aria-hidden="true">
+          {/* إطار ثانوية القدس */}
+          <rect x="340" y="228" width="292" height="314" rx="14" fill="none" stroke="#d99e37" strokeWidth="4" strokeDasharray="14 10" />
+          <circle cx="432" cy="386" r="11" fill="#d99e37" stroke="#ffffff" strokeWidth="4" />
+          <MapChip x={486} y={206} w={216} text="ثانوية القدس" color="#d99e37" />
 
-      {/* المدرسة (الوسط) */}
-      <g transform="translate(170,108)">
-        <rect x="-17" y="-8" width="34" height="20" rx="2" fill="#0f7c5b" />
-        <polygon points="-20,-8 0,-22 20,-8" fill="#0c6147" />
-        <rect x="-4" y="2" width="8" height="10" fill="#f4efe3" />
-        <text y="26" textAnchor="middle" fontSize="10" fontWeight="800" fill="#0b1d17">المدرسة</text>
-      </g>
+          {/* المسجد */}
+          <circle cx="182" cy="152" r="10" fill="#0f7c5b" stroke="#ffffff" strokeWidth="4" />
+          <MapChip x={200} y={106} w={140} text="مسجد الحي" color="#0f7c5b" />
 
-      {/* المسجد (أعلى اليسار) */}
-      <g transform="translate(76,48)">
-        <rect x="-12" y="-2" width="24" height="14" rx="2" fill="#b97f26" />
-        <circle cy="-6" r="5" fill="#d99e37" />
-        <text y="24" textAnchor="middle" fontSize="10" fontWeight="800" fill="#6b4a10">المسجد</text>
-      </g>
+          {/* المجرى المائي */}
+          <circle cx="1188" cy="597" r="10" fill="#0284c7" stroke="#ffffff" strokeWidth="4" />
+          <MapChip x={1180} y={548} w={150} text="مجرى مائي" color="#0284c7" />
 
-      {/* النهر (أسفل اليمين) */}
-      <path d="M 232 210 C 240 190, 226 178, 244 162 C 262 146, 252 130, 278 118 C 300 108, 310 96, 332 88" fill="none" stroke="#3b82c4" strokeWidth="7" strokeLinecap="round" opacity="0.85" />
-      <path d="M 232 210 C 240 190, 226 178, 244 162 C 262 146, 252 130, 278 118 C 300 108, 310 96, 332 88" fill="none" stroke="#dcecf7" strokeWidth="1.6" strokeDasharray="8 7" />
-      <text x="258" y="180" fontSize="10" fontWeight="800" fill="#1e4f7c">النهر</text>
+          {/* الحديقة */}
+          <circle cx="156" cy="630" r="10" fill="#16a34a" stroke="#ffffff" strokeWidth="4" />
+          <MapChip x={186} y={582} w={150} text="حديقة الحي" color="#16a34a" />
 
-      {/* مقياس الرسم */}
-      <g transform="translate(18,190)">
-        <rect x="0" y="-4" width="30" height="6" fill="#0b1d17" />
-        <rect x="30" y="-4" width="30" height="6" fill="#ffffff" stroke="#0b1d17" strokeWidth="1" />
-        <text x="30" y="12" textAnchor="middle" fontSize="8" fontWeight="700" fill="#4a4438">0 ——— 100 متر</text>
-      </g>
+          {/* الشارع الرئيسي شرق-غرب */}
+          <line x1="648" y1="406" x2="1330" y2="406" stroke={layer === "map" ? "#33473f" : "#ffffff"} strokeWidth="5" strokeDasharray="26 18" opacity="0.85" />
+          <MapChip x={985} y={368} w={300} text="الشارع الرئيسي (شرق – غرب)" color="#33473f" />
 
-      {/* وسيلة */}
-      <g transform="translate(322,16)" fontSize="8" fontWeight="700" fill="#4a4438">
-        <text textAnchor="end">وسيلة الرسم</text>
-      </g>
-    </svg>
+          {/* مؤشر الشمال */}
+          <g>
+            <circle cx="1330" cy="66" r="34" fill="#ffffff" opacity="0.95" stroke="#33473f" strokeWidth="2.5" />
+            <polygon points="1330,40 1342,74 1330,65 1318,74" fill="#0f7c5b" />
+            <text x="1330" y="92" textAnchor="middle" fontSize="16" fontWeight="800" fill="#0b1d17">
+              شمال
+            </text>
+          </g>
+
+          {/* مقياس الرسم */}
+          <g>
+            <rect x="46" y="684" width="248" height="58" rx="12" fill="#ffffff" opacity="0.95" stroke="#33473f" strokeWidth="2" />
+            <rect x="66" y="712" width="80" height="9" fill="#0b1d17" />
+            <rect x="146" y="712" width="80" height="9" fill="#ffffff" stroke="#0b1d17" strokeWidth="1.5" />
+            <text x="66" y="706" textAnchor="middle" fontSize="14" fontWeight="700" fill="#0b1d17">0</text>
+            <text x="146" y="706" textAnchor="middle" fontSize="14" fontWeight="700" fill="#0b1d17">50</text>
+            <text x="226" y="706" textAnchor="middle" fontSize="14" fontWeight="700" fill="#0b1d17">100 م</text>
+            <text x="270" y="722" textAnchor="middle" fontSize="13" fontWeight="700" fill="#5b6e66">مقياس تقريبي</text>
+          </g>
+        </svg>
+      </div>
+
+      <figcaption className="space-y-2 border-t border-ink-900/8 bg-cream p-4">
+        <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] font-bold text-ink-700">
+          <li className="flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full bg-gold-500" aria-hidden="true" />
+            ثانوية القدس (المدرسة)
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full bg-brand-600" aria-hidden="true" />
+            مسجد الحي
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full bg-sky-600" aria-hidden="true" />
+            مجرى مائي
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full bg-green-600" aria-hidden="true" />
+            حديقة الحي
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span className="w-4 border-t-2 border-dashed border-ink-700" aria-hidden="true" />
+            الشارع الرئيسي
+          </li>
+        </ul>
+        <p className="text-[10px] leading-relaxed text-ink-500">
+          محاكاة تعليمية لنمط خرائط Google (خريطة شارع وصورة قمرية) لحي ميموزا — القنيطرة؛ المواضع تقريبية لأغراض التمرين.
+          بدّل الطبقة لتدريب التلاميذ على قراءة الخريطة والصورة القمرية، ووجِّه الوثيقة دائمًا بمؤشر الشمال قبل تحديد الجهات.
+        </p>
+      </figcaption>
+    </figure>
   );
 }
 
