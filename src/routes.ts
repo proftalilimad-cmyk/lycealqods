@@ -2,6 +2,7 @@ export type Route =
   | { view: "home" }
   | { view: "about" }
   | { view: "test"; bank?: string }
+  | { view: "battle"; bank?: string }
   | { view: "dashboard" }
   | { view: "lessons"; level?: string }
   | { view: "methods"; id?: string }
@@ -14,6 +15,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "الرئيسية", route: { view: "home" } },
   { label: "نبذة عن الأستاذ", route: { view: "about" } },
   { label: "التقويم التشخيصي", route: { view: "test" } },
+  { label: "المبارزة", route: { view: "battle" } },
   { label: "الدروس", route: { view: "lessons" } },
   { label: "التطبيقات", route: { view: "apps" } },
   { label: "العروض", route: { view: "decks" } },
@@ -32,6 +34,8 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/about                  نبذة عن الأستاذ
      #/test                   التقويم التشخيصي
      #/test/<bank>            تقويم بنك معيّن (tc / bac1 / bac2)
+     #/battle                 وضع المبارزة
+     #/battle/<bank>          مبارزة ببنك معيّن
      #/dashboard              لوحة التتبع
      #/lessons                الدروس
      #/lessons/<level>        دروس مستوى (tc / bac1 / bac2)
@@ -57,6 +61,7 @@ export const VIEW_LABELS: Record<Route["view"], string> = {
   home: "الرئيسية",
   about: "نبذة عن الأستاذ",
   test: "التقويم التشخيصي",
+  battle: "المبارزة",
   dashboard: "لوحة التتبع",
   lessons: "الدروس",
   lesson: "الدرس",
@@ -71,6 +76,7 @@ const SEGMENTS: Record<string, Route["view"]> = {
   home: "home",
   about: "about",
   test: "test",
+  battle: "battle",
   dashboard: "dashboard",
   lessons: "lessons",
   lesson: "lesson",
@@ -103,6 +109,8 @@ export function routeToPath(route: Route): string {
       return "/dashboard";
     case "test":
       return route.bank ? `/test/${encodeSegment(route.bank)}` : "/test";
+    case "battle":
+      return route.bank ? `/battle/${encodeSegment(route.bank)}` : "/battle";
     case "lessons":
       return route.level ? `/lessons/${encodeSegment(route.level)}` : "/lessons";
     case "lesson":
@@ -139,6 +147,8 @@ export function routeFromPath(rawPath: string): Route {
       return { view };
     case "test":
       return parts[1] ? { view: "test", bank: parts[1] } : { view: "test" };
+    case "battle":
+      return parts[1] ? { view: "battle", bank: parts[1] } : { view: "battle" };
     case "lessons":
       return parts[1] ? { view: "lessons", level: parts[1] } : { view: "lessons" };
     case "lesson":

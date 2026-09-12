@@ -4,6 +4,7 @@ import Footer from "./components/Footer";
 import Home from "./components/Home";
 import About from "./components/About";
 import TestFlow from "./components/test/TestFlow";
+import Battle from "./components/battle/Battle";
 import Dashboard from "./components/Dashboard";
 import Lessons from "./components/Lessons";
 import Methodologies from "./components/Methodologies";
@@ -85,6 +86,7 @@ export default function App() {
         {route.view === "home" && <Home go={go} onSearch={() => setSearchOpen(true)} />}
         {route.view === "about" && <About />}
         {route.view === "test" && <TestFlow initialBank={route.bank} onHome={() => go({ view: "home" })} />}
+        {route.view === "battle" && <Battle key={route.bank ?? "all"} initialBank={route.bank} go={go} />}
         {route.view === "dashboard" && <Dashboard />}
         {route.view === "lessons" && <Lessons key={route.level ?? "default"} go={go} initialLevel={route.level} />}
         {route.view === "methods" && (
