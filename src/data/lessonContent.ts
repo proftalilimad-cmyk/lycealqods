@@ -5,6 +5,8 @@ import { TC_SCI_GEO } from "./lessons/tcSciGeo";
 import { TC_ARTS } from "./lessons/tcArts";
 import { BAC1_SCI_HISTORY } from "./lessons/bac1SciHistory";
 import { BAC_ARTS_HISTORY } from "./lessons/bacArtsHistory";
+import { BAC2_SCI_HISTORY } from "./lessons/bac2SciHistory";
+import { BAC2_SCI_GEO } from "./lessons/bac2SciGeo";
 
 /**
  * مكتبة محتوى الدروس.
@@ -245,7 +247,7 @@ export const LESSON_CONTENT: Record<string, LessonContent> = {
 };
 
 // دمج سجلات المحتوى المفصلة لكل المستويات والمسالك
-Object.assign(LESSON_CONTENT, TC_SCI_HISTORY, TC_SCI_GEO, TC_ARTS, BAC1_SCI_HISTORY, BAC_ARTS_HISTORY);
+Object.assign(LESSON_CONTENT, TC_SCI_HISTORY, TC_SCI_GEO, TC_ARTS, BAC1_SCI_HISTORY, BAC_ARTS_HISTORY, BAC2_SCI_HISTORY, BAC2_SCI_GEO);
 
 /**
  * ربط المحتوى المشترك بين المسالك:
@@ -279,6 +281,25 @@ const ALIASES: Record<string, { key: string; title?: string }> = {
   /* إعادة تموضع دروس الأولى باك آداب المؤلفة وفق البنية الرسمية الجديدة */
   "bac1-arts.history.0.2": { key: "bac1-arts.history.0.1" },
   "bac1-arts.history.3.3": { key: "bac1-arts.history.1.3", title: "اليقظة الفكرية في المشرق العربي" },
+
+  /* الثانية باك آداب ← الدروس المشتركة مع المسلك العلمي (النسخة المختصرة) إلى حين تأليف نسخة موسعة */
+  "bac2-arts.history.0.3": { key: "bac2-sci.history.0.3" },
+  "bac2-arts.history.1.0": { key: "bac2-sci.history.0.2", title: "المغرب تحت نظام الحماية" },
+  "bac2-arts.history.1.1": { key: "bac2-sci.history.0.2", title: "المغرب: الاستغلال الاستعماري في عهد الحماية" },
+  "bac2-arts.history.1.2": { key: "bac2-sci.history.1.0" },
+  "bac2-arts.history.1.3": { key: "bac2-sci.history.1.1" },
+  "bac2-arts.history.1.4": { key: "bac2-sci.history.1.2" },
+  "bac2-arts.history.2.0": { key: "bac2-sci.history.2.0" },
+  "bac2-arts.history.2.1": { key: "bac2-sci.history.2.1" },
+  "bac2-arts.history.2.2": { key: "bac2-sci.history.3.0", title: "المغرب: الكفاح المسلح من أجل الاستقلال واستكمال الوحدة الترابية" },
+  "bac2-arts.history.2.3": { key: "bac2-sci.history.3.1" },
+  "bac2-arts.history.2.4": { key: "bac2-sci.history.3.2" },
+  "bac2-arts.history.2.5": { key: "bac2-sci.history.2.2" },
+  "bac2-arts.geography.0.0": { key: "bac2-sci.geography.0.0" },
+  "bac2-arts.geography.0.1": { key: "bac2-sci.geography.0.1" },
+  "bac2-arts.geography.0.2": { key: "bac2-sci.geography.0.2" },
+  "bac2-arts.geography.1.2": { key: "bac2-sci.geography.1.0" },
+  "bac2-arts.geography.1.3": { key: "bac2-sci.geography.1.1" },
 };
 
 function foldAsil(subject: "history" | "geography", indexes: string[]) {

@@ -144,6 +144,8 @@ export interface CurriculumBranch {
   label: string;
   note?: string;
   program?: string;
+  /** نص مصدر قائمة الدروس (اختياري) — يعوّض النص الافتراضي في صفحة الدروس */
+  programNote?: string;
   subjects: { id: "history" | "geography" | "citizenship"; label: string }[];
   units: Record<string, CurriculumUnit[]>;
 }

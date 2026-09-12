@@ -242,7 +242,7 @@ export default function Lessons({ go, initialLevel }: LessonsProps) {
                     <ExternalLink className="size-3" aria-hidden="true" />
                     مصدر قائمة الدروس
                   </span>
-                  مقرر «{branch.program}» — وفق التنظيم المنشور على منصة قرايتي (9rayti.com).
+                  {branch.programNote ?? <>مقرر «{branch.program}» — وفق التنظيم المنشور على منصة قرايتي (9rayti.com).</>}
                 </p>
               )}
             </div>
