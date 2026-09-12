@@ -4,6 +4,7 @@ import { TC_SCI_HISTORY } from "./lessons/tcSciHistory";
 import { TC_SCI_GEO } from "./lessons/tcSciGeo";
 import { TC_ARTS } from "./lessons/tcArts";
 import { BAC1_SCI_HISTORY } from "./lessons/bac1SciHistory";
+import { BAC1_SCI_GEO } from "./lessons/bac1SciGeo";
 import { BAC_ARTS_HISTORY } from "./lessons/bacArtsHistory";
 import { BAC2_SCI_HISTORY } from "./lessons/bac2SciHistory";
 import { BAC2_SCI_GEO } from "./lessons/bac2SciGeo";
@@ -249,7 +250,7 @@ export const LESSON_CONTENT: Record<string, LessonContent> = {
 };
 
 // دمج سجلات المحتوى المفصلة لكل المستويات والمسالك
-Object.assign(LESSON_CONTENT, TC_SCI_HISTORY, TC_SCI_GEO, TC_ARTS, BAC1_SCI_HISTORY, BAC_ARTS_HISTORY, BAC2_SCI_HISTORY, BAC2_SCI_GEO, BAC2_BOOK_HISTORY, BAC2_BOOK_GEO);
+Object.assign(LESSON_CONTENT, TC_SCI_HISTORY, TC_SCI_GEO, TC_ARTS, BAC1_SCI_HISTORY, BAC1_SCI_GEO, BAC_ARTS_HISTORY, BAC2_SCI_HISTORY, BAC2_SCI_GEO, BAC2_BOOK_HISTORY, BAC2_BOOK_GEO);
 
 /**
  * ربط المحتوى المشترك بين المسالك:
@@ -263,6 +264,7 @@ const ALIASES: Record<string, { key: string; title?: string }> = {
 
   /* الأولى باكالوريا علوم تجريبية ← نفس محتوى العلوم */
   ...foldAliasList("bac1-exp", "history", "bac1-sci", ["0.0", "1.0", "1.1", "1.2", "1.3", "2.0", "2.1", "3.0", "3.1", "4.0"]),
+  ...foldAliasList("bac1-exp", "geography", "bac1-sci", ["0.0", "0.1", "0.2", "0.3", "0.4"]),
 
   /* الجذع المشترك آداب ← المحتوى المشترك مع العلمي */
   "tc-arts.history.0.0": { key: "tc-sci.history.0.1", title: "التحولات السياسية والاجتماعية في أوربا خلال القرنين 15 و16م" },

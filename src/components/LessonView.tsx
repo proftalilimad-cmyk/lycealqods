@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import type { LessonBlock, LessonContent } from "../types";
 import Reveal from "./Reveal";
+import CopyLinkButton from "./CopyLinkButton";
 import type { Route } from "../routes";
 import { getDeckForLesson } from "../data/decks";
 
@@ -219,6 +220,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
                   العرض التفاعلي (الكتاب المدرسي ص {deck.pages[0]}–{deck.pages[1]})
                 </button>
               )}
+              <CopyLinkButton route={{ view: "lesson", id: lesson.id }} ariaLabel={`نسخ رابط درس ${lesson.title}`} />
               <button
                 type="button"
                 onClick={() => window.print()}

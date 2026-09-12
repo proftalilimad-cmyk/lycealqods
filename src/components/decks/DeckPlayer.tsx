@@ -28,6 +28,7 @@ import {
 import { deckPages, deckTaskCount, pageUrl, type Deck, type DeckSlideKind } from "../../data/decks";
 import type { Route } from "../../routes";
 import { cn } from "../../utils/cn";
+import CopyLinkButton from "../CopyLinkButton";
 
 interface DeckPlayerProps {
   deck: Deck;
@@ -273,6 +274,11 @@ export default function DeckPlayer({ deck, onBack, go, initialSlide }: DeckPlaye
                   الدرس المكتوب
                 </button>
               )}
+              <CopyLinkButton
+                route={{ view: "decks", id: deck.id }}
+                ariaLabel={`نسخ رابط عرض ${deck.title}`}
+                className="border-ink-900/10 px-3.5 py-2 text-ink-700 hover:border-brand-300 hover:text-brand-700"
+              />
               <button type="button" onClick={() => setShowHelp((v) => !v)} className="inline-flex items-center gap-1.5 rounded-xl border border-ink-900/10 bg-white px-3.5 py-2 text-xs font-extrabold text-ink-700 transition-all hover:border-brand-300 hover:text-brand-700">
                 <Keyboard className="size-4" aria-hidden="true" />
                 اختصارات
