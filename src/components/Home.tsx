@@ -10,6 +10,7 @@ import {
   GraduationCap,
   History,
   Library,
+  MonitorPlay,
   PenLine,
   Search,
   Target,
@@ -42,6 +43,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   { label: "الفروض", desc: "تقويمات محروسة ونماذج فروض", icon: ClipboardList, route: { view: "resources", type: "exam" } },
   { label: "الامتحانات الجهوية", desc: "مواضيع رسمية مع عناصر الإجابة", icon: FileText, route: { view: "resources", type: "regional" } },
   { label: "المنهجيات", desc: "تحليل الوثائق والكتابة", icon: PenLine, route: { view: "methods" } },
+  { label: "العروض التفاعلية", desc: "دروس 1 باك علوم من الكتاب المدرسي", icon: MonitorPlay, route: { view: "decks" } },
   { label: "المصطلحات", desc: "معجم مفاهيم دروس المادة", icon: Library, search: true },
   { label: "الخرائط والخطاطات", desc: "خرائط تخطيطية وخطاطات تفاعلية", icon: Globe2, route: { view: "resources", type: "map" } },
   { label: "التقويم الذاتي", desc: "8 تقويمات تفاعلية حسب المستوى", icon: Target, route: { view: "test" } },
@@ -97,7 +99,7 @@ export default function Home({ go, onSearch }: HomeProps) {
           </Reveal>
 
           <Reveal delay={340}>
-            <div className="mx-auto mt-9 grid max-w-3xl grid-cols-3 gap-3">
+            <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-5 lg:max-w-5xl">
               {QUICK_ACTIONS.map((a) => (
                 <button
                   key={a.label}

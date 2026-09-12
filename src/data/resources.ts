@@ -5,6 +5,7 @@ import { APPLICATIONS } from "./applications";
 import { TEST_BANKS } from "./testBanks";
 import { TEACHER_FILES } from "./teacherFiles";
 import { REFERENCE_FRAMEWORKS, REGIONAL_EXAMS } from "./regionalExams";
+import { DECKS, deckTaskCount } from "./decks";
 
 /* ============================================================
    مكتبة الموارد التعليمية — طبقة البيانات
@@ -76,7 +77,7 @@ export interface ResourceItem {
 
 export const RESOURCE_TYPES: { id: ResourceType; label: string; plural: string; desc: string }[] = [
   { id: "pdf", label: "درس PDF", plural: "دروس وملخصات PDF", desc: "دروس كاملة قابلة للطباعة أو الحفظ بصيغة PDF" },
-  { id: "slides", label: "عرض", plural: "عروض تقديمية", desc: "عروض الدروس المصورة (PowerPoint / PDF)" },
+  { id: "slides", label: "عرض", plural: "عروض تفاعلية", desc: "عروض الدروس المبنية على صفحات الكتاب المدرسي مع الاشتغال على الوثائق" },
   { id: "map", label: "خريطة", plural: "خرائط وخطاطات", desc: "خرائط تخطيطية وخطاطات تركيبية للتدرب على القراءة والتحليل" },
   { id: "table", label: "جدول", plural: "جداول إحصائية", desc: "جداول رقمية للتدرب على منهجية قراءة الجدول" },
   { id: "chart", label: "مبيان", plural: "مبيانات", desc: "مبيانات بالأعمدة والمنحنيات والدوائر للتحليل" },
@@ -631,10 +632,28 @@ const EXTERNAL_LINKS: ResourceItem[] = [
 ];
 
 /* ------------------------------------------------------------
+   العروض التفاعلية (الكتاب المدرسي — 1 باك علوم) ← نوع "slides"
+   ------------------------------------------------------------ */
+function generatedDecks(): ResourceItem[] {
+  return DECKS.map((d) => ({
+    id: `deck-${d.id}`,
+    type: "slides",
+    title: `عرض تفاعلي: ${d.title}`,
+    desc: `${d.slides.length} شرائح من الكتاب المدرسي (ص ${d.pages[0]}–${d.pages[1]}) · ${deckTaskCount(d)} مهمة على الوثائق · ${d.quiz.length} أسئلة ختامية.`,
+    level: "الأولى باكالوريا",
+    subject: d.subject,
+    tags: ["عرض تفاعلي", "الكتاب المدرسي", d.module.split(":")[0].trim(), ...d.concepts.slice(0, 3)],
+    lessonKey: d.lessonKey,
+    action: { kind: "route", route: { view: "decks", id: d.id }, label: "ابدأ العرض" },
+  }));
+}
+
+/* ------------------------------------------------------------
    التجميع النهائي
    ------------------------------------------------------------ */
 export const RESOURCES: ResourceItem[] = [
   ...generatedLessonPdfs(),
+  ...generatedDecks(),
   ...DATA_DOCS,
   ...generatedExercises(),
   ...generatedExams(),

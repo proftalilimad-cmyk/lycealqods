@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BookOpenCheck, FileText, FlaskConical, FolderOpen, LayoutGrid, Search, Target, X } from "lucide-react";
+import { ArrowLeft, BookOpenCheck, FileText, FlaskConical, FolderOpen, LayoutGrid, MonitorPlay, Search, Target, X } from "lucide-react";
 import { normalizeArabic } from "../lib/arabic";
 import { METHODOLOGIES } from "../data/methodologies";
 import { APPLICATIONS } from "../data/applications";
@@ -8,11 +8,12 @@ import { QUESTIONS } from "../data/questions";
 import { LESSON_CONTENT } from "../data/lessonContent";
 import { TEST_BANKS } from "../data/testBanks";
 import { RESOURCES, typeMeta } from "../data/resources";
+import { DECKS } from "../data/decks";
 import type { Route } from "../routes";
 
 interface SearchResult {
   id: string;
-  group: "منهجيات" | "تطبيقات" | "دروس ومحاور" | "أسئلة التقويم" | "موارد" | "صفحات";
+  group: "منهجيات" | "تطبيقات" | "دروس ومحاور" | "عروض تفاعلية" | "أسئلة التقويم" | "موارد" | "صفحات";
   title: string;
   hint: string;
   action: Route;
@@ -29,6 +30,7 @@ const STATIC_PAGES: SearchResult[] = [
   { id: "p-about", group: "صفحات", title: "نبذة عن الأستاذ عماد طليل", hint: "أستاذ الاجتماعيات — ثانوية القدس القنيطرة", action: { view: "about" } },
   { id: "p-dash", group: "صفحات", title: "لوحة نتائج الأستاذ", hint: "إحصاءات وجداول نتائج التلاميذ", action: { view: "dashboard" } },
   { id: "p-res", group: "صفحات", title: "الموارد التعليمية", hint: "ملفات وخرائط وجداول ومبيانات", action: { view: "resources" } },
+  { id: "p-decks", group: "صفحات", title: "العروض التفاعلية — الأولى باكالوريا علوم", hint: "دروس من الكتاب المدرسي مع الاشتغال على الوثائق", action: { view: "decks" } },
 ];
 
 const SUGGESTIONS = ["الثورة الصناعية", "تحليل الخريطة", "الفلاحة البورية", "المسيرة الخضراء", "قراءة المبيان", "كتابة فقرة", "الهجرة القروية"];
@@ -37,6 +39,7 @@ const GROUP_ICONS = {
   منهجيات: FileText,
   تطبيقات: FlaskConical,
   "دروس ومحاور": BookOpenCheck,
+  "عروض تفاعلية": MonitorPlay,
   "أسئلة التقويم": Target,
   موارد: FolderOpen,
   صفحات: LayoutGrid,
@@ -113,6 +116,20 @@ export default function SearchOverlay({ open, onClose, go }: SearchOverlayProps)
             });
           });
         }
+      }
+    }
+
+    /* العروض التفاعلية المبنية على الكتاب المدرسي */
+    for (const d of DECKS) {
+      const hay = normalizeArabic(`${d.title} ${d.module} ${d.problem} ${d.concepts.join(" ")} ${d.slides.map((s) => s.title).join(" ")} عرض تفاعلي`);
+      if (hay.includes(qNorm)) {
+        out.push({
+          id: `d-${d.id}`,
+          group: "عروض تفاعلية",
+          title: d.title,
+          hint: `${d.subject} · الكتاب ص ${d.pages[0]}–${d.pages[1]} · ${d.slides.length} شرائح`,
+          action: { view: "decks", id: d.id },
+        });
       }
     }
 

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { BadgeCheck, BookOpen, BookOpenCheck, ExternalLink, FileText, FlaskConical, Globe2, History, Hourglass, Landmark, Scale, Sparkles, Wrench } from "lucide-react";
+import { BadgeCheck, BookOpen, BookOpenCheck, ExternalLink, FileText, FlaskConical, Globe2, History, Hourglass, Landmark, MonitorPlay, Scale, Sparkles, Wrench } from "lucide-react";
 import { LEVELS } from "../data/curriculum";
 import { hasLessonContent, lessonKey } from "../data/lessonContent";
+import { getDeckForLesson } from "../data/decks";
 import type { LessonItem } from "../types";
 import Reveal from "./Reveal";
 import type { Route } from "../routes";
@@ -17,7 +18,7 @@ const SUBJECT_ICONS: Record<string, typeof History> = {
   citizenship: Scale,
 };
 
-function LessonRow({ lesson, index, ready, onOpen }: { lesson: LessonItem; index: number; ready: boolean; onOpen: () => void }) {
+function LessonRow({ lesson, index, ready, onOpen, deckId, onDeck }: { lesson: LessonItem; index: number; ready: boolean; onOpen: () => void; deckId?: string; onDeck?: () => void }) {
   if (lesson.soon) {
     return (
       <li className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
@@ -65,34 +66,57 @@ function LessonRow({ lesson, index, ready, onOpen }: { lesson: LessonItem; index
               <BookOpen className="size-3" aria-hidden="true" />
               {ready ? "المحتوى كامل: أهداف + محاور + مفاهيم + اختبر فهمك" : "المحتوى التفصيلي يُضاف تباعًا على المنصة"}
             </span>
+            {deckId && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-[10px] font-extrabold text-brand-700 ring-1 ring-brand-200">
+                <MonitorPlay className="size-3" aria-hidden="true" />
+                عرض تفاعلي من الكتاب المدرسي
+              </span>
+            )}
           </div>
         </div>
       </div>
-      {ready ? (
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-4 py-2 text-[11px] font-extrabold text-white shadow-lg shadow-brand-700/25 transition-transform duration-300 group-hover:-translate-x-1">
-          اقرأ الدرس ←
-        </span>
-      ) : (
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-1.5 text-[10px] font-extrabold text-brand-700 ring-1 ring-brand-200">
-          <BadgeCheck className="size-3.5" aria-hidden="true" />
-          مدرج بالمقرر الرسمي
-        </span>
-      )}
+      <span className="flex shrink-0 flex-wrap items-center gap-2">
+        {deckId && onDeck && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeck();
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gold-300 bg-gold-50 px-3.5 py-2 text-[11px] font-extrabold text-gold-700 transition-all hover:-translate-y-0.5 hover:border-gold-500 hover:bg-gold-100"
+          >
+            <MonitorPlay className="size-3.5" aria-hidden="true" />
+            العرض التفاعلي
+          </button>
+        )}
+        {ready ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen();
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-4 py-2 text-[11px] font-extrabold text-white shadow-lg shadow-brand-700/25 transition-transform duration-300 group-hover:-translate-x-1"
+          >
+            اقرأ الدرس ←
+          </button>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-1.5 text-[10px] font-extrabold text-brand-700 ring-1 ring-brand-200">
+            <BadgeCheck className="size-3.5" aria-hidden="true" />
+            مدرج بالمقرر الرسمي
+          </span>
+        )}
+      </span>
     </>
   );
 
-  return ready ? (
-    <li>
-      <button
-        type="button"
-        onClick={onOpen}
-        className="group flex w-full flex-wrap items-center justify-between gap-3 px-6 py-4 text-start transition-colors hover:bg-brand-50/60"
-      >
-        {body}
-      </button>
+  return (
+    <li
+      className={`group flex flex-wrap items-center justify-between gap-3 px-6 py-4 transition-colors ${ready ? "cursor-pointer hover:bg-brand-50/60" : "hover:bg-brand-50/40"}`}
+      onClick={ready ? onOpen : undefined}
+    >
+      {body}
     </li>
-  ) : (
-    <li className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 transition-colors hover:bg-brand-50/40">{body}</li>
   );
 }
 
@@ -264,6 +288,7 @@ export default function Lessons({ go, initialLevel }: LessonsProps) {
                     {unit.lessons.map((lesson, li) => {
                       const key = lesson.soon ? "" : lessonKey(branch.id, activeSubject.id, ui, li);
                       const ready = key !== "" && hasLessonContent(key);
+                      const deck = key ? getDeckForLesson(key) : undefined;
                       return (
                         <LessonRow
                           key={li}
@@ -271,6 +296,8 @@ export default function Lessons({ go, initialLevel }: LessonsProps) {
                           index={li}
                           ready={ready}
                           onOpen={() => go({ view: "lesson", id: key })}
+                          deckId={deck?.id}
+                          onDeck={deck ? () => go({ view: "decks", id: deck.id }) : undefined}
                         />
                       );
                     })}

@@ -7,7 +7,8 @@ export type Route =
   | { view: "methods"; id?: string }
   | { view: "apps"; id?: string; level?: string }
   | { view: "lesson"; id: string }
-  | { view: "resources"; type?: string; open?: string };
+  | { view: "resources"; type?: string; open?: string }
+  | { view: "decks"; id?: string; subject?: string };
 
 export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "الرئيسية", route: { view: "home" } },
@@ -15,6 +16,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "التقويم التشخيصي", route: { view: "test" } },
   { label: "الدروس", route: { view: "lessons" } },
   { label: "التطبيقات", route: { view: "apps" } },
+  { label: "العروض", route: { view: "decks" } },
   { label: "المنهجيات", route: { view: "methods" } },
   { label: "الموارد", route: { view: "resources" } },
 ];

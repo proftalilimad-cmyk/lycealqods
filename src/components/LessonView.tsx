@@ -16,6 +16,7 @@ import {
   Layers,
   Lightbulb,
   ListChecks,
+  MonitorPlay,
   Network,
   NotebookPen,
   Printer,
@@ -29,6 +30,7 @@ import {
 import type { LessonBlock, LessonContent } from "../types";
 import Reveal from "./Reveal";
 import type { Route } from "../routes";
+import { getDeckForLesson } from "../data/decks";
 
 /* ---------- عارض الكتل ---------- */
 function BlockRenderer({ block }: { block: LessonBlock }) {
@@ -185,6 +187,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
   const [sectionIndex, setSectionIndex] = useState(0);
   const [openDocId, setOpenDocId] = useState<number | null>(null);
   const [showModel, setShowModel] = useState(false);
+  const deck = useMemo(() => getDeckForLesson(lesson.id), [lesson.id]);
   const toc = useMemo(() => {
     const items = ["أهداف الدرس", "تمهيد وإشكالية", ...lesson.sections.map((s) => s.title)];
     if (lesson.docs?.length) items.push("الوثائق وتحليلها");
@@ -203,14 +206,26 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
               العودة إلى دروس {breadcrumb.level}
             </button>
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-all hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-md"
-            >
-              <Printer className="size-4" aria-hidden="true" />
-              طباعة / تحميل PDF
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {deck && (
+                <button
+                  type="button"
+                  onClick={() => go({ view: "decks", id: deck.id })}
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-gold-500 to-gold-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-md shadow-gold-600/25 transition-all hover:-translate-y-0.5"
+                >
+                  <MonitorPlay className="size-4" aria-hidden="true" />
+                  العرض التفاعلي (الكتاب المدرسي ص {deck.pages[0]}–{deck.pages[1]})
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-all hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-md"
+              >
+                <Printer className="size-4" aria-hidden="true" />
+                طباعة / تحميل PDF
+              </button>
+            </div>
           </div>
         </Reveal>
 

@@ -11,6 +11,9 @@ import Applications from "./components/Applications";
 import Resources from "./components/Resources";
 import SearchOverlay from "./components/SearchOverlay";
 import LessonView from "./components/LessonView";
+import Decks from "./components/decks/Decks";
+import DeckPlayer from "./components/decks/DeckPlayer";
+import { getDeck } from "./data/decks";
 import { resolveLesson } from "./data/lessonContent";
 import type { Route } from "./routes";
 
@@ -64,6 +67,12 @@ export default function App() {
                 go={go}
               />
             );
+          })()}
+        {route.view === "decks" &&
+          (() => {
+            const deck = route.id ? getDeck(route.id) : undefined;
+            if (deck) return <DeckPlayer key={deck.id} deck={deck} onBack={() => go({ view: "decks", subject: deck.subject })} go={go} />;
+            return <Decks key={route.subject ?? "all"} go={go} initialSubject={route.subject} />;
           })()}
         {route.view === "resources" && (
           <Resources key={`${route.type ?? "all"}-${route.open ?? ""}`} go={go} initialType={route.type} openId={route.open} />
