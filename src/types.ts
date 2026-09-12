@@ -221,4 +221,6 @@ export interface LessonContent {
   characters?: { name: string; role: string }[];
   places?: { name: string; why: string }[];
   references?: { name: string; url: string }[];
+  /** صفحة الكتاب/الملخص المدرسي الذي بُني عليه الدرس (صورة داخل public/) */
+  bookPage?: { src: string; book: string; page: number; caption?: string };
 }

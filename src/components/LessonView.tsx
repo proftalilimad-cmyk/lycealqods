@@ -189,7 +189,9 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
   const [showModel, setShowModel] = useState(false);
   const deck = useMemo(() => getDeckForLesson(lesson.id), [lesson.id]);
   const toc = useMemo(() => {
-    const items = ["أهداف الدرس", "تمهيد وإشكالية", ...lesson.sections.map((s) => s.title)];
+    const items = ["أهداف الدرس", "تمهيد وإشكالية"];
+    if (lesson.bookPage) items.push("صفحة الكتاب");
+    items.push(...lesson.sections.map((s) => s.title));
     if (lesson.docs?.length) items.push("الوثائق وتحليلها");
     if (lesson.schema) items.push("الخطاطة التركيبية");
     if (lesson.application) items.push("تمرين تطبيقي");
@@ -252,7 +254,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
               <div className="mt-5 flex flex-wrap gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-gold-400/30 bg-gold-400/10 px-3.5 py-1.5 text-[11px] font-bold text-gold-300">
                   <GraduationCap className="size-3.5" aria-hidden="true" />
-                  مقرر التاريخ — الجذع المشترك
+                  مقرر {breadcrumb.subject} — {breadcrumb.level}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-[11px] font-bold text-white/85">
                   <Clock3 className="size-3.5" aria-hidden="true" />
@@ -311,6 +313,38 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
               </div>
             </Reveal>
             </div>
+
+            {/* صفحة الكتاب المدرسي */}
+            {lesson.bookPage && (
+              <div data-lesson-block>
+              <Reveal delay={60}>
+                <div className="overflow-hidden rounded-3xl border border-gold-300/60 bg-white">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gold-200/70 bg-gold-50 px-6 py-4">
+                    <h2 className="flex items-center gap-2.5 font-display text-lg font-extrabold text-ink-900">
+                      <span className="grid size-10 place-items-center rounded-xl bg-gold-100 text-gold-700">
+                        <BookMarked className="size-5" aria-hidden="true" />
+                      </span>
+                      صفحة الكتاب: {lesson.bookPage.book}
+                    </h2>
+                    <span className="rounded-full bg-white px-3.5 py-1.5 text-[11px] font-extrabold text-gold-700 ring-1 ring-gold-300">
+                      الصفحة {lesson.bookPage.page}
+                    </span>
+                  </div>
+                  <a href={lesson.bookPage.src} target="_blank" rel="noreferrer" className="block bg-brand-50/40 p-3 sm:p-5" title="فتح الصفحة بالحجم الكامل">
+                    <img
+                      src={lesson.bookPage.src}
+                      alt={`${lesson.bookPage.book} — الصفحة ${lesson.bookPage.page}`}
+                      loading="lazy"
+                      className="mx-auto w-full max-w-3xl rounded-xl border border-ink-900/10 bg-white shadow-md"
+                    />
+                  </a>
+                  {lesson.bookPage.caption && (
+                    <p className="border-t border-ink-900/6 px-6 py-3 text-xs leading-relaxed text-ink-500">{lesson.bookPage.caption}</p>
+                  )}
+                </div>
+              </Reveal>
+              </div>
+            )}
 
             {/* المحاور */}
             {lesson.sections.map((section, si) => (
