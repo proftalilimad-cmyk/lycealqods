@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BookOpenCheck, HelpCircle, Printer, X } from "lucide-react";
 import type { ChartDataDoc, MapDataDoc, ResourceItem, TableDataDoc } from "../../data/resources";
 import type { Route } from "../../routes";
+import MimosaMap from "../geo/MimosaMap";
 
 /* ============================================================
    عارض الوثائق البيانية: جدول / مبيان / خريطة تخطيطية
@@ -204,13 +205,13 @@ function PieChart({ doc }: { doc: ChartDataDoc }) {
   );
 }
 
-/* ---------- خرائط تخطيطية ---------- */
-function North({ x, y }: { x: number; y: number }) {
+/* ---------- خرائط وخطاطات تعليمية مفصّلة ---------- */
+function North({ x, y, r = 16 }: { x: number; y: number; r?: number }) {
   return (
     <g transform={`translate(${x},${y})`}>
-      <circle r="14" fill="#ffffff" stroke="#0f7c5b" strokeWidth="1.5" />
-      <polygon points="0,-9 4,4 0,1 -4,4" fill="#0f7c5b" />
-      <text y="-18" textAnchor="middle" fontSize="10" fontWeight="800" fill="#0f7c5b">
+      <circle r={r} fill="#ffffff" stroke="#0f7c5b" strokeWidth="1.6" />
+      <polygon points={`0,${-r * 0.62} ${r * 0.3},${r * 0.3} 0,${r * 0.1} ${-r * 0.3},${r * 0.3}`} fill="#0f7c5b" />
+      <text y={-r - 5} textAnchor="middle" fontSize="10" fontWeight="800" fill="#0f7c5b">
         شمال
       </text>
     </g>
@@ -220,189 +221,371 @@ function North({ x, y }: { x: number; y: number }) {
 function Scale({ x, y, label }: { x: number; y: number; label: string }) {
   return (
     <g transform={`translate(${x},${y})`}>
-      <rect x="0" y="-4" width="30" height="6" fill="#0b1d17" />
-      <rect x="30" y="-4" width="30" height="6" fill="#ffffff" stroke="#0b1d17" strokeWidth="1" />
-      <text x="30" y="12" textAnchor="middle" fontSize="8" fontWeight="700" fill="#4a4438">
+      <rect x="0" y="-5" width="36" height="7" fill="#0b1d17" />
+      <rect x="36" y="-5" width="36" height="7" fill="#ffffff" stroke="#0b1d17" strokeWidth="1.2" />
+      <text x="36" y="14" textAnchor="middle" fontSize="9" fontWeight="700" fill="#4a4438">
         {label}
       </text>
     </g>
   );
 }
 
-function QuartierSketch() {
+/* رموز نباتية صغيرة لخطاطة المناخ */
+function VegTree({ x, y, c = "#1d7a3f" }: { x: number; y: number; c?: string }) {
   return (
-    <svg viewBox="0 0 340 210" className="w-full rounded-2xl border border-ink-900/10 bg-[#f4efe3]" role="img" aria-label="رسم تخطيطي لحي سكني: مدرسة في الوسط، نهر جنوبًا شرقًا، مسجد شمالًا غربًا">
-      <g stroke="#d8d0bb" strokeWidth="1">
-        {[40, 80, 120, 160, 200, 240, 280].map((x) => (
-          <line key={x} x1={x} y1="0" x2={x} y2="210" />
-        ))}
-        {[35, 70, 105, 140, 175].map((y) => (
-          <line key={y} x1="0" y1={y} x2="340" y2={y} />
-        ))}
-      </g>
-      <line x1="8" y1="92" x2="332" y2="92" stroke="#8a8168" strokeWidth="7" />
-      <line x1="8" y1="92" x2="332" y2="92" stroke="#f4efe3" strokeWidth="1.5" strokeDasharray="10 8" />
-      <text x="14" y="86" fontSize="9" fill="#6b6350" fontWeight="700">
-        الشارع الرئيسي
-      </text>
-      <North x={30} y={32} />
-      <g transform="translate(170,108)">
-        <rect x="-17" y="-8" width="34" height="20" rx="2" fill="#0f7c5b" />
-        <polygon points="-20,-8 0,-22 20,-8" fill="#0c6147" />
-        <rect x="-4" y="2" width="8" height="10" fill="#f4efe3" />
-        <text y="26" textAnchor="middle" fontSize="10" fontWeight="800" fill="#0b1d17">
-          المدرسة
-        </text>
-      </g>
-      <g transform="translate(76,48)">
-        <rect x="-12" y="-2" width="24" height="14" rx="2" fill="#b97f26" />
-        <circle cy="-6" r="5" fill="#d99e37" />
-        <text y="24" textAnchor="middle" fontSize="10" fontWeight="800" fill="#6b4a10">
-          المسجد
-        </text>
-      </g>
-      <path d="M 232 210 C 240 190, 226 178, 244 162 C 262 146, 252 130, 278 118 C 300 108, 310 96, 332 88" fill="none" stroke="#3b82c4" strokeWidth="7" strokeLinecap="round" opacity="0.85" />
-      <text x="258" y="180" fontSize="10" fontWeight="800" fill="#1e4f7c">
-        النهر
-      </text>
-      <Scale x={18} y={190} label="0 ——— 100 متر" />
-    </svg>
+    <g transform={`translate(${x},${y})`}>
+      <rect x="-1.6" y="0" width="3.2" height="9" fill="#7c4a12" />
+      <circle cy="-5" r="8" fill={c} />
+      <circle cx="-6" cy="-1" r="5" fill={c} />
+      <circle cx="6" cy="-1" r="5" fill={c} />
+    </g>
+  );
+}
+function VegConifer({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <rect x="-1.4" y="0" width="2.8" height="6" fill="#7c4a12" />
+      <polygon points="0,-20 8,-6 -8,-6" fill="#166534" />
+      <polygon points="0,-13 9,0 -9,0" fill="#1d7a3f" />
+    </g>
+  );
+}
+function VegCactus({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`} stroke="#3f8f4f" strokeWidth="4" strokeLinecap="round" fill="none">
+      <path d="M 0 0 L 0 -16" />
+      <path d="M 0 -8 C -7 -8, -8 -12, -8 -15" />
+      <path d="M 0 -5 C 7 -5, 8 -9, 8 -12" />
+    </g>
+  );
+}
+function VegGrass({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`} stroke="#7fb069" strokeWidth="2" strokeLinecap="round" fill="none">
+      <path d="M -8 0 C -8 -6, -10 -8, -11 -10" />
+      <path d="M 0 0 C 0 -8, -1 -10, -1 -13" />
+      <path d="M 8 0 C 8 -6, 10 -8, 11 -10" />
+    </g>
+  );
+}
+function VegSnow({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`} stroke="#7ea8d8" strokeWidth="2" strokeLinecap="round">
+      <line y1="-9" y2="9" />
+      <line x1="-8" x2="8" />
+      <line x1="-6" y1="-6" x2="6" y2="6" />
+      <line x1="-6" y1="6" x2="6" y2="-6" />
+    </g>
   );
 }
 
+/* 1) خريطة الكثافة السكانية — مجال نموذجي */
 function DensitySketch() {
   return (
-    <svg viewBox="0 0 340 230" className="w-full rounded-2xl border border-ink-900/10 bg-[#eef4fb]" role="img" aria-label="خريطة تخطيطية لتوزيع الكثافة السكانية: شريط ساحلي مكتظ غربًا، أحواض نهرية متوسطة، داخل جبلي وجاف قليل الكثافة">
-      {/* اليابسة */}
-      <path d="M 60 12 C 90 30, 70 70, 62 110 C 55 150, 80 190, 66 222 L 336 222 L 336 12 Z" fill="#d4ede0" stroke="#0a4d3a" strokeWidth="1.5" />
-      {/* البحر */}
-      <text x="22" y="120" fontSize="11" fontWeight="800" fill="#1e4f7c" transform="rotate(-90 22 120)">
+    <svg viewBox="0 0 640 430" className="w-full rounded-2xl border border-ink-900/10 bg-[#e8f1fb]" role="img" aria-label="خريطة تخطيطية لتوزيع الكثافة السكانية: شريط ساحلي مكتظ غربًا، أحواض نهرية متوسطة الكثافة، ومجال جبلي وجاف قليل الكثافة شرقًا">
+      {/* المحيط */}
+      <rect x="0" y="0" width="640" height="430" fill="#dcebf9" />
+      {[70, 150, 230, 310, 390].map((y) => (
+        <path key={y} d={`M 14 ${y} q 12 -7 24 0 q 12 7 24 0`} fill="none" stroke="#9cc3e8" strokeWidth="2" />
+      ))}
+      <text x="34" y="222" fontSize="13" fontWeight="800" fill="#1e4f7c" transform="rotate(-90 34 222)">
         المحيط
       </text>
-      {/* كثافة متوسطة: أحواض */}
-      <path d="M 78 40 C 130 60, 170 55, 230 70 C 250 80, 240 110, 210 118 C 160 126, 120 110, 82 120 C 64 100, 70 70, 78 40 Z" fill="#3fa883" opacity="0.9" />
-      <path d="M 90 150 C 140 140, 190 150, 230 175 C 200 200, 150 205, 92 195 C 78 180, 82 165, 90 150 Z" fill="#3fa883" opacity="0.9" />
-      {/* كثافة مرتفعة: شريط ساحلي */}
-      <path d="M 62 20 C 82 45, 74 80, 68 112 C 64 150, 82 185, 70 220 L 96 220 C 104 185, 90 150, 92 112 C 96 80, 104 48, 84 20 Z" fill="#0a4d3a" />
+      {/* اليابسة */}
+      <path d="M 96 0 C 120 60, 84 120, 100 180 C 112 240, 88 300, 104 360 C 110 400, 100 418, 96 430 L 640 430 L 640 0 Z" fill="#d4ede0" stroke="#0a4d3a" strokeWidth="2" />
+      {/* كثافة متوسطة: حوضان نهريان */}
+      <path d="M 150 88 C 210 78, 280 94, 340 108 C 372 118, 368 150, 330 158 C 260 170, 200 158, 152 160 C 140 136, 142 110, 150 88 Z" fill="#3fa883" />
+      <path d="M 150 266 C 220 256, 300 266, 356 290 C 374 305, 356 330, 316 334 C 250 340, 190 330, 150 326 C 140 306, 142 286, 150 266 Z" fill="#3fa883" />
+      {/* كثافة مرتفعة: الشريط الساحلي */}
+      <path d="M 96 0 C 120 60, 84 120, 100 180 C 112 240, 88 300, 104 360 C 110 400, 100 418, 96 430 L 150 430 C 142 380, 158 320, 150 260 C 144 200, 162 140, 152 80 C 148 40, 144 20, 142 0 Z" fill="#0a4d3a" />
+      {/* الأنهار */}
+      <path d="M 476 58 C 400 84, 300 104, 210 118 C 180 124, 158 128, 138 132" fill="none" stroke="#3b82c4" strokeWidth="5" strokeLinecap="round" />
+      <path d="M 505 352 C 420 322, 330 306, 240 298 C 200 294, 168 296, 146 300" fill="none" stroke="#3b82c4" strokeWidth="5" strokeLinecap="round" />
+      <text x="392" y="76" fontSize="10" fontWeight="800" fill="#1e4f7c">
+        نهر رئيسي
+      </text>
+      <text x="404" y="342" fontSize="10" fontWeight="800" fill="#1e4f7c">
+        نهر رئيسي
+      </text>
+      {/* مجال جبلي */}
+      {[
+        [432, 152],
+        [472, 128],
+        [512, 158],
+        [552, 118],
+        [592, 148],
+        [468, 212],
+        [532, 232],
+        [592, 208],
+      ].map(([x, y], i) => (
+        <polygon key={i} points={`${x - 13},${y + 10} ${x},${y - 11} ${x + 13},${y + 10}`} fill="none" stroke="#33473f" strokeWidth="1.8" />
+      ))}
+      <text x="512" y="182" textAnchor="middle" fontSize="11" fontWeight="800" fill="#33473f">
+        مجال جبلي
+      </text>
+      {/* مجال جاف: كثبان ونقاط */}
+      {[
+        [450, 280],
+        [492, 300],
+        [540, 276],
+        [586, 300],
+        [470, 340],
+        [520, 356],
+        [576, 344],
+        [610, 380],
+      ].map(([x, y], i) => (
+        <path key={i} d={`M ${x - 12} ${y} q 12 -10 24 0`} fill="none" stroke="#b97f26" strokeWidth="2.2" opacity="0.75" />
+      ))}
+      <text x="528" y="410" textAnchor="middle" fontSize="11" fontWeight="800" fill="#8a5a12">
+        مجال جاف شبه فارغ
+      </text>
       {/* المدن */}
       {[
-        [80, 60, "مدينة أ"],
-        [84, 130, "مدينة ب"],
-        [82, 200, "مدينة ج"],
+        [120, 66, "مدينة ساحلية كبرى"],
+        [128, 208, "ميناء"],
+        [118, 344, "مدينة ساحلية"],
+        [300, 122, "مدينة حوضية"],
       ].map(([x, y, n]) => (
         <g key={String(n)}>
-          <circle cx={Number(x)} cy={Number(y)} r="4" fill="#e6b457" stroke="#0b1d17" strokeWidth="1" />
-          <text x={Number(x) + 8} y={Number(y) + 4} fontSize="8.5" fontWeight="800" fill="#0b1d17">
+          <circle cx={Number(x)} cy={Number(y)} r="5.5" fill="#e6b457" stroke="#0b1d17" strokeWidth="1.4" />
+          <text x={Number(x) + 10} y={Number(y) + 4} fontSize="10" fontWeight="800" fill="#0b1d17">
             {n}
           </text>
         </g>
       ))}
-      {/* الأنهار */}
-      <path d="M 300 40 C 250 60, 200 70, 120 90 C 100 96, 90 104, 78 112" fill="none" stroke="#3b82c4" strokeWidth="3" strokeLinecap="round" />
-      <path d="M 320 200 C 260 180, 200 170, 140 165 C 110 162, 95 170, 84 180" fill="none" stroke="#3b82c4" strokeWidth="3" strokeLinecap="round" />
-      {/* جبال */}
-      {[
-        [230, 130],
-        [262, 118],
-        [292, 140],
-        [318, 112],
-        [250, 160],
-      ].map(([x, y], i) => (
-        <polygon key={i} points={`${x - 10},${y + 8} ${x},${y - 8} ${x + 10},${y + 8}`} fill="none" stroke="#33473f" strokeWidth="1.4" />
-      ))}
-      <text x="268" y="185" fontSize="9.5" fontWeight="800" fill="#33473f">
-        مجال جبلي وجاف
+      {/* طريق ساحلي */}
+      <path d="M 120 66 C 128 120, 122 160, 128 208 C 132 260, 120 300, 118 344" fill="none" stroke="#8a8168" strokeWidth="2" strokeDasharray="7 5" />
+      {/* تسميات توجيهية */}
+      <text x="176" y="30" fontSize="11" fontWeight="800" fill="#0a4d3a">
+        شريط ساحلي مكتظ (أكثر من 100 ن/كلم²)
       </text>
-      <North x={310} y={34} />
-      <Scale x={200} y={214} label="0 ——— 200 كلم" />
+      <line x1="172" y1="34" x2="140" y2="52" stroke="#0a4d3a" strokeWidth="1.2" />
+      <text x="238" y="200" fontSize="11" fontWeight="800" fill="#14624a">
+        أحواض نهرية متوسطة الكثافة
+      </text>
+      <line x1="236" y1="192" x2="220" y2="156" stroke="#14624a" strokeWidth="1.2" />
+      <North x={600} y={42} />
+      <Scale x={430} y={412} label="0 ——— 200 كلم" />
     </svg>
   );
 }
 
+/* 2) خطاطة النطاقات المناخية من خط الاستواء إلى القطب */
 function ClimateSketch() {
+  const y = (lat: number) => 400 - (lat / 90) * 380;
   const bands = [
-    { y: 0, h: 22, color: "#9ec5e8", label: "قطبي / بارد", lat: "90°" },
-    { y: 22, h: 34, color: "#7fb069", label: "معتدل", lat: "60°" },
-    { y: 56, h: 26, color: "#e0b25c", label: "مداري جاف (صحاري)", lat: "30°" },
-    { y: 82, h: 46, color: "#1d7a3f", label: "استوائي ومداري رطب", lat: "0°" },
-    { y: 128, h: 26, color: "#e0b25c", label: "مداري جاف (صحاري)", lat: "30°" },
-    { y: 154, h: 34, color: "#7fb069", label: "معتدل", lat: "60°" },
-    { y: 188, h: 22, color: "#9ec5e8", label: "قطبي / بارد", lat: "90°" },
+    { a: 0, b: 10, color: "#146b33", name: "النطاق الاستوائي" },
+    { a: 10, b: 23.5, color: "#1d7a3f", name: "المداري الرطب" },
+    { a: 23.5, b: 35, color: "#e0b25c", name: "المداري الجاف (الصحراوي)" },
+    { a: 35, b: 60, color: "#7fb069", name: "النطاق المعتدل" },
+    { a: 60, b: 75, color: "#9ec5e8", name: "النطاق البارد (تايغا/توندرا)" },
+    { a: 75, b: 90, color: "#cfe3f5", name: "النطاق القطبي" },
   ];
   return (
-    <svg viewBox="0 0 340 210" className="w-full rounded-2xl border border-ink-900/10 bg-white" role="img" aria-label="خطاطة النطاقات المناخية الكبرى من القطب الشمالي إلى القطب الجنوبي">
-      {bands.map((b, i) => (
-        <g key={i}>
-          <rect x="60" y={b.y} width="220" height={b.h} fill={b.color} stroke="#fff" strokeWidth="1" />
-          <text x="170" y={b.y + b.h / 2 + 4} textAnchor="middle" fontSize="10" fontWeight="800" fill={b.color === "#9ec5e8" || b.color === "#e0b25c" ? "#0b1d17" : "#fff"}>
-            {b.label}
-          </text>
-          <text x="52" y={b.y + 10} textAnchor="end" fontSize="8.5" fontWeight="700" fill="#5b6e66">
-            {b.lat}
+    <svg viewBox="0 0 640 430" className="w-full rounded-2xl border border-ink-900/10 bg-white" role="img" aria-label="خطاطة النطاقات المناخية الكبرى من خط الاستواء إلى القطب مع الغطاء النباتي المقابل">
+      {/* محور خطوط العرض */}
+      <line x1="120" y1={y(90)} x2="120" y2={y(0)} stroke="#33473f" strokeWidth="2" />
+      {[0, 23.5, 30, 60, 66.5, 90].map((lat) => (
+        <g key={lat}>
+          <line x1="114" x2="126" y1={y(lat)} y2={y(lat)} stroke="#33473f" strokeWidth="2" />
+          <text x="108" y={y(lat) + 4} textAnchor="end" fontSize="10" fontWeight="700" fill="#5b6e66">
+            {lat}°
           </text>
         </g>
       ))}
-      <line x1="60" y1="105" x2="280" y2="105" stroke="#b91c1c" strokeWidth="1.5" strokeDasharray="6 4" />
-      <text x="286" y="108" fontSize="9" fontWeight="800" fill="#b91c1c">
-        خط الاستواء
+      <text x="40" y="210" fontSize="10" fontWeight="800" fill="#5b6e66" transform="rotate(-90 40 210)">
+        خطوط العرض
       </text>
-      <text x="286" y="50" fontSize="8.5" fontWeight="700" fill="#33473f">
-        مدار السرطان ↑
+      {/* النطاقات */}
+      {bands.map((b) => (
+        <g key={b.name}>
+          <rect x="140" y={y(b.b)} width="220" height={y(b.a) - y(b.b)} fill={b.color} stroke="#ffffff" strokeWidth="1.5" />
+          <text x="250" y={(y(b.a) + y(b.b)) / 2 + 4} textAnchor="middle" fontSize="11" fontWeight="800" fill={b.color === "#e0b25c" || b.color === "#cfe3f5" ? "#0b1d17" : "#ffffff"}>
+            {b.name}
+          </text>
+        </g>
+      ))}
+      {/* خطوط مرجعية */}
+      <line x1="120" x2="360" y1={y(0)} y2={y(0)} stroke="#b91c1c" strokeWidth="2" strokeDasharray="8 5" />
+      <text x="140" y={y(0) + 16} fontSize="10" fontWeight="800" fill="#b91c1c">
+        خط الاستواء 0°
       </text>
-      <text x="286" y="166" fontSize="8.5" fontWeight="700" fill="#33473f">
-        مدار الجدي ↓
+      <line x1="120" x2="360" y1={y(23.5)} y2={y(23.5)} stroke="#b45309" strokeWidth="1.4" strokeDasharray="6 4" />
+      <text x="366" y={y(23.5) + 4} fontSize="9.5" fontWeight="700" fill="#b45309">
+        مدار السرطان
       </text>
-      <g transform="translate(20,150)" fontSize="8" fontWeight="700" fill="#5b6e66">
-        <text transform="rotate(-90)">خطوط العرض</text>
+      <line x1="120" x2="360" y1={y(66.5)} y2={y(66.5)} stroke="#475569" strokeWidth="1.4" strokeDasharray="6 4" />
+      <text x="366" y={y(66.5) + 4} fontSize="9.5" fontWeight="700" fill="#475569">
+        الدائرة القطبية
+      </text>
+      {/* أشعة الشمس: عمودية عند الاستواء ومائلة عند القطب */}
+      <g stroke="#e6a512" strokeWidth="2.4" strokeLinecap="round">
+        <line x1="66" y1={y(5)} x2="132" y2={y(5)} />
+        <polygon points={`136,${y(5)} 126,${y(5) - 4} 126,${y(5) + 4}`} fill="#e6a512" stroke="none" />
+        <line x1="52" y1={y(84) - 24} x2="120" y2={y(84)} />
+        <polygon points={`126,${y(84) + 2} 114,${y(84) - 6} 120,${y(84) - 10}`} fill="#e6a512" stroke="none" />
       </g>
+      <circle cx="56" cy={y(5)} r="9" fill="#f6c445" stroke="#e6a512" strokeWidth="2" />
+      <circle cx="42" cy={y(84) - 20} r="9" fill="#f6c445" stroke="#e6a512" strokeWidth="2" />
+      <text x="18" y={y(5) + 24} fontSize="9" fontWeight="700" fill="#8a5a12">
+        أشعة عمودية
+      </text>
+      <text x="14" y={y(84) - 34} fontSize="9" fontWeight="700" fill="#8a5a12">
+        أشعة مائلة
+      </text>
+      {/* الغطاء النباتي المقابل */}
+      <text x="500" y="26" textAnchor="middle" fontSize="11" fontWeight="800" fill="#33473f">
+        الغطاء النباتي المقابل
+      </text>
+      <VegSnow x={402} y={y(82)} />
+      <text x="420" y={y(82) - 2} fontSize="10" fontWeight="800" fill="#33473f">
+        جليد وتوندرا: تشكيلات عشبية قصيرة
+      </text>
+      <text x="420" y={y(82) + 11} fontSize="9" fontWeight="700" fill="#5b6e66">
+        حرارة تحت الصفر وتساقطات ثلجية ضعيفة
+      </text>
+      <VegConifer x={402} y={y(67)} />
+      <text x="420" y={y(67) - 2} fontSize="10" fontWeight="800" fill="#33473f">
+        التايغا: غابات صنوبرية مخروطية
+      </text>
+      <text x="420" y={y(67) + 11} fontSize="9" fontWeight="700" fill="#5b6e66">
+        أوراق إبرية مقاومة للبرودة
+      </text>
+      <VegTree x={402} y={y(47)} c="#4c8f3f" />
+      <text x="420" y={y(47) - 2} fontSize="10" fontWeight="800" fill="#33473f">
+        غابات معتدلة وسهوب (براري)
+      </text>
+      <text x="420" y={y(47) + 11} fontSize="9" fontWeight="700" fill="#5b6e66">
+        أربعة فصول وتساقطات منتظمة
+      </text>
+      <VegCactus x={402} y={y(29)} />
+      <text x="420" y={y(29) - 2} fontSize="10" fontWeight="800" fill="#33473f">
+        نباتات صحراوية متباعدة شوكية
+      </text>
+      <text x="420" y={y(29) + 11} fontSize="9" fontWeight="700" fill="#5b6e66">
+        جفاف شديد وحرارة مرتفعة
+      </text>
+      <g>
+        <VegTree x={398} y={y(16)} c="#23924a" />
+        <VegGrass x={414} y={y(16)} />
+      </g>
+      <text x="428" y={y(16) - 2} fontSize="10" fontWeight="800" fill="#33473f">
+        السافانا: حشائش وأشجار متفرقة
+      </text>
+      <text x="428" y={y(16) + 11} fontSize="9" fontWeight="700" fill="#5b6e66">
+        فصل مطير وفصل جاف متباينان
+      </text>
+      <VegTree x={402} y={y(5)} c="#146b33" />
+      <text x="420" y={y(5) - 2} fontSize="10" fontWeight="800" fill="#33473f">
+        غابة استوائية كثيفة دائمة الخضرة
+      </text>
+      <text x="420" y={y(5) + 11} fontSize="9" fontWeight="700" fill="#5b6e66">
+        حرارة ورطوبة طوال السنة
+      </text>
     </svg>
   );
 }
 
+/* 3) مقطع المجموعات البنيوية الكبرى */
 function ReliefSketch() {
   return (
-    <svg viewBox="0 0 340 210" className="w-full rounded-2xl border border-ink-900/10 bg-white" role="img" aria-label="مقطع تخطيطي: درع قديم، حوض رسوبي، سلسلة التوائية حديثة">
-      {/* السماء/الخلفية */}
-      <rect x="0" y="0" width="340" height="210" fill="#f7f5ef" />
-      {/* الدرع القديم */}
-      <path d="M 0 140 L 0 170 L 120 170 L 120 128 C 90 118, 60 120, 30 126 Z" fill="#8f5f1c" />
-      <path d="M 0 140 C 30 126, 60 120, 120 128" fill="none" stroke="#5c3d10" strokeWidth="2" />
-      {/* الحوض الرسوبي (طبقات أفقية) */}
-      {[132, 142, 152, 162].map((y, i) => (
-        <rect key={y} x="120" y={y} width="100" height="10" fill={i % 2 === 0 ? "#e6b457" : "#f5dfae"} stroke="#b97f26" strokeWidth="0.6" />
+    <svg viewBox="0 0 640 380" className="w-full rounded-2xl border border-ink-900/10 bg-[#f7f5ef]" role="img" aria-label="مقطع تخطيطي: درع قديم منبسط، حوض رسوبي بطبقات أفقية، وسلسلة التوائية حديثة بقمم شاهقة فوق القاعدة البلورية">
+      {/* القاعدة البلورية */}
+      <rect x="0" y="300" width="640" height="80" fill="#33473f" />
+      {[80, 200, 320, 440, 560].map((x) => (
+        <g key={x} stroke="#8fa39a" strokeWidth="1.4">
+          <line x1={x - 5} x2={x + 5} y1="340" y2="340" />
+          <line x1={x} x2={x} y1="335" y2="345" />
+        </g>
       ))}
-      {/* السلسلة الالتوائية */}
-      <path d="M 220 170 L 220 150 C 235 120, 245 70, 262 60 C 278 70, 288 118, 300 140 C 312 120, 322 100, 340 92 L 340 170 Z" fill="#0f7c5b" />
-      <path d="M 232 130 C 245 100, 252 84, 262 78 C 272 84, 280 102, 290 130" fill="none" stroke="#a9dcc4" strokeWidth="1.5" strokeDasharray="4 3" />
-      <path d="M 244 150 C 252 126, 256 112, 262 106 C 268 112, 272 128, 280 150" fill="none" stroke="#a9dcc4" strokeWidth="1.5" strokeDasharray="4 3" />
-      {/* قاعدة */}
-      <rect x="0" y="170" width="340" height="40" fill="#33473f" />
-      <text x="170" y="195" textAnchor="middle" fontSize="9.5" fontWeight="800" fill="#f7f5ef">
-        القاعدة الصلبة
+      <text x="320" y="368" textAnchor="middle" fontSize="11" fontWeight="800" fill="#f7f5ef">
+        القاعدة البلورية القديمة
       </text>
-      {/* تسميات */}
-      <text x="60" y="112" textAnchor="middle" fontSize="10" fontWeight="800" fill="#5c3d10">
-        درع قديم
+      {/* 1) الدرع القديم */}
+      <path d="M 0 214 C 40 206, 70 210, 104 208 C 140 206, 176 212, 210 210 L 210 300 L 0 300 Z" fill="#8f5f1c" />
+      <path d="M 0 214 C 40 206, 70 210, 104 208 C 140 206, 176 212, 210 210" fill="none" stroke="#5c3d10" strokeWidth="2.4" />
+      {[
+        [40, 236],
+        [96, 252],
+        [150, 240],
+        [70, 278],
+        [170, 280],
+      ].map(([x, y], i) => (
+        <g key={i} stroke="#e8d9bd" strokeWidth="1.6">
+          <line x1={x - 5} x2={x + 5} y1={y} y2={y} />
+          <line x1={x} x2={x} y1={y - 5} y2={y + 5} />
+        </g>
+      ))}
+      {/* أسهم التعرية */}
+      <g stroke="#b97f26" strokeWidth="2" fill="#b97f26">
+        <path d="M 120 190 C 150 178, 190 182, 224 196" fill="none" strokeDasharray="5 4" />
+        <polygon points="230,199 218,196 222,190" stroke="none" />
+      </g>
+      <text x="118" y="176" fontSize="9.5" fontWeight="800" fill="#8a5a12">
+        تعرية ونقل الرواسب
       </text>
-      <text x="60" y="124" textAnchor="middle" fontSize="8" fontWeight="700" fill="#5c3d10">
-        (هضاب / سهول عليا)
+      <text x="105" y="120" textAnchor="middle" fontSize="12" fontWeight="800" fill="#5c3d10">
+        1) الدروع / القواعد القديمة
       </text>
-      <text x="170" y="112" textAnchor="middle" fontSize="10" fontWeight="800" fill="#8f5f1c">
-        حوض رسوبي
+      <text x="105" y="136" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="#5c3d10">
+        سهول وهضاب منبسطة صلبة
       </text>
-      <text x="170" y="124" textAnchor="middle" fontSize="8" fontWeight="700" fill="#8f5f1c">
-        (سهول منخفضة)
+      <text x="105" y="150" textAnchor="middle" fontSize="9" fontWeight="700" fill="#7c5a24">
+        (مثال: الدرع الكندي والإفريقي)
       </text>
-      <text x="262" y="46" textAnchor="middle" fontSize="10" fontWeight="800" fill="#0a4d3a">
-        سلسلة التوائية حديثة
+      {/* 2) الحوض الرسوبي */}
+      {[0, 1, 2, 3, 4].map((i) => (
+        <path key={i} d={`M 210 ${224 + i * 15} C 260 ${228 + i * 15}, 340 ${228 + i * 15}, 390 ${224 + i * 15} L 390 ${239 + i * 15} C 340 ${243 + i * 15}, 260 ${243 + i * 15}, 210 ${239 + i * 15} Z`} fill={i % 2 === 0 ? "#e6b457" : "#f5dfae"} stroke="#b97f26" strokeWidth="0.8" />
+      ))}
+      <path d="M 210 224 C 260 220, 340 220, 390 224" fill="none" stroke="#8f5f1c" strokeWidth="2.2" />
+      {/* نهر بالحوض */}
+      <path d="M 268 222 C 284 214, 316 214, 332 222" fill="none" stroke="#3b82c4" strokeWidth="4" strokeLinecap="round" />
+      <text x="300" y="208" textAnchor="middle" fontSize="9" fontWeight="800" fill="#1e4f7c">
+        نهر
       </text>
-      <text x="262" y="57" textAnchor="middle" fontSize="8" fontWeight="700" fill="#0a4d3a">
-        (جبال شاهقة)
+      {/* سهم الترسيب */}
+      <g stroke="#8f5f1c" strokeWidth="2" fill="#8f5f1c">
+        <line x1="300" y1="176" x2="300" y2="196" strokeDasharray="5 4" />
+        <polygon points="300,202 295,192 305,192" stroke="none" />
+      </g>
+      <text x="308" y="172" fontSize="9.5" fontWeight="800" fill="#8a5a12">
+        ترسيب
       </text>
-      <text x="8" y="16" fontSize="8.5" fontWeight="700" fill="#5b6e66">
+      <text x="300" y="120" textAnchor="middle" fontSize="12" fontWeight="800" fill="#8f5f1c">
+        2) الأحواض الرسوبية
+      </text>
+      <text x="300" y="136" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="#8f5f1c">
+        سهول وهضاب رسوبية منخفضة
+      </text>
+      <text x="300" y="150" textAnchor="middle" fontSize="9" fontWeight="700" fill="#a3762c">
+        (مثال: حوض سبو، حوض باريس)
+      </text>
+      {/* 3) السلسلة الالتوائية الحديثة */}
+      <path d="M 390 300 L 390 236 C 408 200, 420 150, 442 118 C 452 100, 462 84, 472 66 C 486 88, 498 128, 512 158 C 522 138, 532 118, 544 100 C 560 128, 574 176, 588 210 C 602 190, 618 172, 640 160 L 640 300 Z" fill="#0f7c5b" />
+      <path d="M 472 66 L 466 78 L 478 78 Z" fill="#ffffff" />
+      <path d="M 544 100 L 538 112 L 550 112 Z" fill="#ffffff" />
+      <path d="M 412 240 C 434 180, 452 130, 472 100 C 492 130, 508 180, 528 236" fill="none" stroke="#a9dcc4" strokeWidth="1.8" strokeDasharray="6 4" />
+      <path d="M 430 262 C 448 210, 460 170, 472 146 C 486 172, 500 216, 516 262" fill="none" stroke="#a9dcc4" strokeWidth="1.8" strokeDasharray="6 4" />
+      {/* أسهم الضغط */}
+      <g stroke="#b91c1c" strokeWidth="3" fill="#b91c1c">
+        <line x1="352" y1="268" x2="382" y2="268" />
+        <polygon points="390,268 378,262 378,274" stroke="none" />
+        <line x1="636" y1="268" x2="606" y2="268" />
+        <polygon points="598,268 610,262 610,274" stroke="none" />
+      </g>
+      <text x="516" y="40" textAnchor="middle" fontSize="12" fontWeight="800" fill="#0a4d3a">
+        3) السلاسل الالتوائية الحديثة
+      </text>
+      <text x="516" y="56" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="#0a4d3a">
+        قمم حادة شاهقة وطبقات ملتوية
+      </text>
+      <text x="516" y="70" textAnchor="middle" fontSize="9" fontWeight="700" fill="#14624a">
+        (مثال: الأطلس الكبير، الألب، الهيمالايا)
+      </text>
+      <text x="10" y="18" fontSize="10" fontWeight="700" fill="#5b6e66">
         غرب
       </text>
-      <text x="332" y="16" textAnchor="end" fontSize="8.5" fontWeight="700" fill="#5b6e66">
+      <text x="630" y="18" textAnchor="end" fontSize="10" fontWeight="700" fill="#5b6e66">
         شرق
       </text>
     </svg>
@@ -412,10 +595,11 @@ function ReliefSketch() {
 function MapDoc({ doc }: { doc: MapDataDoc }) {
   return (
     <div>
-      {doc.sketch === "quartier" && <QuartierSketch />}
+      {doc.sketch === "quartier" && <MimosaMap />}
       {doc.sketch === "density" && <DensitySketch />}
       {doc.sketch === "climate" && <ClimateSketch />}
       {doc.sketch === "relief" && <ReliefSketch />}
+      {doc.sketch !== "quartier" && (
       <div className="mt-4 rounded-2xl border border-ink-900/8 bg-white p-4">
         <p className="text-[11px] font-extrabold text-ink-500">المفتاح</p>
         <ul className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -427,6 +611,7 @@ function MapDoc({ doc }: { doc: MapDataDoc }) {
           ))}
         </ul>
       </div>
+      )}
     </div>
   );
 }
