@@ -18,7 +18,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-DATE="$(date +%Y-%m-%d)"
+DATE="${EXPORT_DATE:-$(date +%Y-%m-%d)}"
 OUT="$ROOT/dist/exports"
 SITE_ZIP="$OUT/lycealqods-site-$DATE.zip"
 SRC_ZIP="$OUT/lycealqods-source-$DATE.zip"
