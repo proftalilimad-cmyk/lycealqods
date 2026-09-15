@@ -34,7 +34,7 @@ rm -f "$OUT"/*.zip
 echo "→ أرشفة الموقع المنشور (dist)…"
 (
   cd "$ROOT/dist"
-  zip -qrX "$SITE_ZIP" index.html decks files images og-cover.png
+  zip -qrX "$SITE_ZIP" index.html decks files images og-cover.png ads.txt
 )
 
 echo "→ أرشفة مصدر المشروع…"
