@@ -208,7 +208,54 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
   );
 }
 
+/* وثيقة PDF: سطور النص بترتيبها الأصلي (طبقة النص في الملف لا تحمل بنية الجدول) */
+const PDF_HEAD_WORDS = [
+  "مراحل", "أهداف", "اهداف", "الدعامات", "التدبير", "مفاهيم", "مصطلحات", "تقويم", "تمهيد",
+  "المقطع", "النشاط", "تقديم عام", "المراجع", "المجزوءة", "الوحدة", "المستوى", "رقم الجذاذة",
+  "الأستاذ", "مكون", "المنتوج", "المحتوى",
+];
+
+function PdfSheet({ f }: { f: ImportedFiche }) {
+  const lines = f.blocks.filter((b) => b.type === "para");
+  return (
+    <div className="mt-2 overflow-hidden rounded-xl border" style={{ borderColor: C.line }}>
+      <div
+        className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-[10px] font-extrabold"
+        style={{ background: C.beige, color: C.headDark }}
+      >
+        <span className="inline-flex items-center gap-1.5">
+          <FileText className="size-3.5" aria-hidden="true" />
+          الوثيقة المصدر PDF — سطور النص بترتيبها الأصلي كما وردت في الملف، حرفيًا
+        </span>
+        <span className="text-ink-600">{f.source}</span>
+      </div>
+      <div className="px-3 py-2">
+        {lines.map((b, i) => {
+          const t = b.text ?? "";
+          const head = t.length <= 46 && PDF_HEAD_WORDS.some((h) => t.includes(h));
+          return (
+            <p
+              key={i}
+              className={`whitespace-pre-line border-b py-1 text-[11px] leading-relaxed last:border-0 ${head ? "font-black" : "font-semibold text-ink-800"}`}
+              style={{ borderColor: C.beige, color: head ? C.headDark : undefined }}
+            >
+              {t}
+            </p>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Blocks({ f }: { f: ImportedFiche }) {
+  if (f.layout === "pdf") {
+    return (
+      <div className="px-3 pb-4 pt-1 sm:px-4">
+        <PdfSheet f={f} />
+      </div>
+    );
+  }
   return (
     <div className="px-3 pb-4 pt-1 sm:px-4">
       {f.blocks.map((b, i) =>
@@ -307,6 +354,9 @@ const DOC_CSS = `
   .produit .phase { display: inline-block; background: ${C.head}; color: #fff; border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: 700; margin-bottom: 4px; }
   .sign { margin-top: 16px; background: ${C.gold}; border: 1px solid ${C.goldLine}; border-radius: 10px; padding: 11px 14px;
           font-size: 12px; font-weight: 700; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+  .pdfsheet { border: 1px solid ${C.line}; border-radius: 10px; overflow: hidden; margin-top: 10px; }
+  .pdfnote { margin: 0; padding: 7px 11px; background: ${C.beige}; color: ${C.headDark}; font-size: 10.5px; font-weight: 700; }
+  .pdfline { margin: 0; padding: 4px 11px; border-bottom: 1px solid ${C.beige}; font-size: 11.5px; font-weight: 600; line-height: 1.9; }
   .src { margin-top: 9px; font-size: 10.5px; color: #4c5b54; line-height: 1.8; }
   @media print { body { background: #fff; padding: 0; } .sheet { border: none; border-radius: 0; max-width: none; } @page { size: A4; margin: 12mm; } }
 `;
@@ -347,11 +397,17 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
   return `<table${nested ? ' style="margin-top:6px"' : ""}><tbody>\n${body}\n</tbody></table>`;
 }
 
-function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
+export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
   const { slot } = entry;
-  const blocks = f.blocks
-    .map((b) => (b.type === "para" ? `<p class="para">${esc(b.text ?? "").replace(/\n/g, "<br />")}</p>` : b.table ? tableToHtml(b.table) : ""))
-    .join("\n");
+  const blocks =
+    f.layout === "pdf"
+      ? `<div class="pdfsheet"><p class="pdfnote">الوثيقة المصدر PDF — سطور النص بترتيبها الأصلي كما وردت في الملف، حرفيًا</p>${f.blocks
+          .filter((b) => b.type === "para")
+          .map((b) => `<p class="pdfline">${esc(b.text ?? "").replace(/\n/g, "<br />")}</p>`)
+          .join("")}</div>`
+      : f.blocks
+          .map((b) => (b.type === "para" ? `<p class="para">${esc(b.text ?? "").replace(/\n/g, "<br />")}</p>` : b.table ? tableToHtml(b.table) : ""))
+          .join("\n");
   const parts = collectProduit(f);
   const produit = parts.length
     ? `<div class="produit"><h2>المنتوج</h2>
@@ -424,7 +480,7 @@ function downloadEntry(entry: CatalogEntry) {
 /* ============================================================
    الجذاذة المبنية رقميًا (نموذج احتياطي إن لم تتوفر وثيقة أصلية)
    ============================================================ */
-function ficheToHtml(j: Jadada): string {
+export function ficheToHtml(j: Jadada): string {
   const rows = j.segments
     .map(
       (s) =>
