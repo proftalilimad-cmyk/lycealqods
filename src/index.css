@@ -348,31 +348,67 @@ body {
     animation: none !important;
     transition: none !important;
   }
-  /* جداول الجذاذات عند الطباعة: الصفوف تبقى مجتمعة، لكن الخلايا الكبيرة
-     (كعمود المنتوج وجداوله المتداخلة) يُسمح بقطعها بين الصفحتين حتى لا تبقى
-     مساحات فارغة أو صف ثانٍ مكسور كما في الطبعات القديمة */
+  /* ===== نظام الجداول الحقيقي عند الطباعة / تصدير PDF =====
+     - الترويسة (thead) تُعرض table-header-group فتتكرر أعلى كل صفحة.
+     - الصفوف تبقى مجتمعة (page-break-inside: avoid) ما أمكن؛ والخلايا الطويلة
+       (عمود المنتوج وجداوله المتداخلة، صنف .splittable) يُسمح بقطعها حتى لا
+       تبقى مساحات فارغة — بلا أي ارتفاعات ثابتة.
+     - الحدود: border-collapse: separate مع حدود أسفل/نهاية لكل خلية وحدّ
+       أعلى/بداية للجدول، + box-decoration-break: clone → كل مقطع من خلية
+       مقطوعة بين صفحتين يعيد رسم حدوده، فلا تُفقد الحدود عند التقسيم. */
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
+  table {
+    table-layout: auto;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border-top: 1px solid #d9c39b;
+    border-inline-start: 1px solid #d9c39b;
+    width: 100% !important;
+    min-width: 0 !important;
+    page-break-inside: auto;
+  }
+  th,
+  td {
+    border-top: none !important;
+    border-inline-start: none !important;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    text-align: start;
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: none;
+  }
   tr {
     page-break-inside: avoid;
     break-inside: avoid;
   }
-  td,
-  th {
+  td.splittable,
+  th.splittable {
     page-break-inside: auto;
     break-inside: auto;
   }
-  table {
-    page-break-inside: auto;
-    break-inside: auto;
-  }
-  /* ترويسة الجدول المتداخل تلتصق بأول صف بعده */
-  tr.head th {
+  tr.head th,
+  thead th {
     page-break-after: avoid;
     break-after: avoid;
   }
-  table {
-    width: 100% !important;
-    min-width: 0 !important;
-  }
+}
+
+/* ===== الجذاذات على الشاشة: محاذاة RTL ونصوص عربية طويلة ===== */
+.jadada-table {
+  table-layout: auto;
+}
+.jadada-table th,
+.jadada-table td {
+  text-align: start;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
