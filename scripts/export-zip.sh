@@ -42,8 +42,14 @@ echo "→ أرشفة مصدر المشروع…"
   cd "$ROOT"
   zip -qrX "$SRC_ZIP" \
     src public index.html package.json package-lock.json tsconfig.json \
-    vite.config.ts scripts .gitignore *.md
+    vite.config.ts scripts .gitignore *.md \
+    -x "scripts/__pycache__/*"
 )
+
+# نسخ بالأسماء المختصرة المعتمدة للنسخ الاحتياطي
+cp -f "$SITE_ZIP" "$OUT/site-talil-imad.zip"
+cp -f "$SRC_ZIP" "$OUT/site-talil-imad-source.zip"
+cp -f "$SRC_ZIP" "$OUT/imad-source.zip"
 
 echo
 echo "================ النتيجة ================"
@@ -60,4 +66,6 @@ echo "عدد الملفات داخل أرشيف المصدر: $(unzip -l "$SRC_Z
 echo
 echo "للتحميل من المعاينة الحية:"
 echo "  /dist/exports/$(basename "$SITE_ZIP")"
-echo "  /dist/exports/$(basename "$SRC_ZIP")"
+echo "  /dist/exports/$(basename "$SRC_ZIP")
+  /dist/exports/site-talil-imad.zip  (= الموقع)
+  /dist/exports/site-talil-imad-source.zip  و  /dist/exports/imad-source.zip  (= المصدر)"

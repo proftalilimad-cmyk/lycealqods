@@ -348,6 +348,17 @@ body {
     animation: none !important;
     transition: none !important;
   }
+  /* جداول الجذاذات: لا يُقطع الصف بين صفحتين */
+  tr,
+  td,
+  th {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  table {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
