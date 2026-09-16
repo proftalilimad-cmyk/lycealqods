@@ -23,23 +23,48 @@ export interface JadadaSegment {
   content: string[];
 }
 
+/**
+ * حالة الجذاذة — شفافية كاملة تجاه الأستاذ:
+ *  - "original": مُفرغة حرفيًا من وثيقة الأستاذ المرفقة (لا حذف ولا اختصار ولا إعادة صياغة).
+ *  - "model":    رقمنة بنيوية على منهاج المقرر الرسمي، في انتظار المطابقة مع الوثيقة الأصلية.
+ *  - "pending":  خانة الدرس مسجّلة في اللائحة، ومحتواها لم يُدرج بعد (لا يُؤلف شيء تلقائيًا).
+ */
+export type JadadaStatus = "original" | "model" | "pending";
+
 export interface Jadada {
   id: string;
   level: "tc" | "bac1" | "bac2";
   track: string;
   subject: "التاريخ" | "الجغرافيا";
+  /** معرّف الدورة/الوحدة */
+  unitId: string;
+  /** عنوان الدورة/الوحدة كما ورد في المقرر */
+  unitTitle: string;
+  /** الدورة الأولى / الدورة الثانية */
+  cycle: string;
   /** رقم المجزوءة */
   module: string;
-  /** رقم الدرس */
+  /** رقم الجذاذة داخل المادة (حسب ترتيب المقرر) */
   number: string;
   title: string;
+  status: JadadaStatus;
+  /** مصدر المحتوى (يظهر للأستاذ أسفل الجذاذة) */
+  sourceNote?: string;
   duration: string;
   book: string;
+  /** الإشكالية (إن وردت في الوثيقة) */
+  problematic?: string;
+  /** المفاهيم والمصطلحات (إن وردت في الوثيقة) */
+  concepts?: string[];
   kifayaMarkaziya: string;
   kifayaMihwariya: string;
   goals: { cognitive: string[]; skills: string[]; affective: string[] };
   segments: JadadaSegment[];
   taqwimIjmali: string[];
+  /** الخلاصات والاستنتاجات (إن وردت في الوثيقة) */
+  conclusion?: string[];
+  /** المراجع والصفحات المشار إليها في الكتاب المدرسي */
+  references?: string[];
   lessonKey?: string;
 }
 
@@ -55,12 +80,17 @@ const P = (from: number, to: number) => [`الوثائق والنصوص ص ${fro
 export const JADADAT: Jadada[] = [
   /* ================= التاريخ 01 ================= */
   {
-    id: "tc-sci-h1",
+    id: "tc-sci-h02",
     level: "tc",
     track: "مسلك علوم",
     subject: "التاريخ",
+    unitId: "tc-h-u1",
+    unitTitle: "العالم المتوسطي في القرنين 15 و16م",
+    cycle: "الدورة الأولى",
     module: "01",
-    number: "01",
+    number: "02",
+    status: "model",
+    sourceNote: "رقمنة بنيوية وفق منهاج المقرر الرسمي وكتاب «منار التاريخ والجغرافيا» — في انتظار المطابقة مع الوثيقة الأصلية للأستاذ.",
     title: "التحولات السياسية والاجتماعية (ظهور البورجوازية، الدولة المدنية، الميثاق السياسي، الدولة الأمة)",
     duration: DUR,
     book: BOOK_TC,
@@ -163,17 +193,22 @@ export const JADADAT: Jadada[] = [
       "تقويم كتابي إجمالي: فقرة قصيرة تجيب عن الأسئلة المحورية للوحدة.",
       "تقييم المشاركة وجودة المخطط السببي والتركيب في الدفاتر.",
     ],
-    lessonKey: "tc-sci.history.0.0",
+    lessonKey: "tc-sci.history.0.1",
   },
 
   /* ================= التاريخ 02 ================= */
   {
-    id: "tc-sci-h2",
+    id: "tc-sci-h03",
     level: "tc",
     track: "مسلك علوم",
     subject: "التاريخ",
+    unitId: "tc-h-u1",
+    unitTitle: "العالم المتوسطي في القرنين 15 و16م",
+    cycle: "الدورة الأولى",
     module: "01",
-    number: "02",
+    number: "03",
+    status: "model",
+    sourceNote: "رقمنة بنيوية وفق منهاج المقرر الرسمي وكتاب «منار التاريخ والجغرافيا» — في انتظار المطابقة مع الوثيقة الأصلية للأستاذ.",
     title: "الاكتشافات الجغرافية وظاهرة الميركنتيلية",
     duration: DUR,
     book: BOOK_TC,
@@ -269,17 +304,22 @@ export const JADADAT: Jadada[] = [
       "تقويم إجمالي: تفسير علاقة الميركنتيلية بنتائج الكشوف في فقرة.",
       "تقييم دقة التوطين والخرائط المنجزة.",
     ],
-    lessonKey: "tc-sci.history.0.1",
+    lessonKey: "tc-sci.history.0.2",
   },
 
   /* ================= التاريخ 03 ================= */
   {
-    id: "tc-sci-h3",
+    id: "tc-sci-h04",
     level: "tc",
     track: "مسلك علوم",
     subject: "التاريخ",
-    module: "02",
-    number: "03",
+    unitId: "tc-h-u1",
+    unitTitle: "العالم المتوسطي في القرنين 15 و16م",
+    cycle: "الدورة الأولى",
+    module: "01",
+    number: "04",
+    status: "model",
+    sourceNote: "رقمنة بنيوية وفق منهاج المقرر الرسمي وكتاب «منار التاريخ والجغرافيا» — في انتظار المطابقة مع الوثيقة الأصلية للأستاذ.",
     title: "المد الإسلامي (امتداد النفوذ العثماني وبداية التدخل الأوروبي)",
     duration: DUR,
     book: BOOK_TC,
@@ -371,17 +411,22 @@ export const JADADAT: Jadada[] = [
       "تقويم إجمالي: فقرة تفسيرية حول علاقة المد الإسلامي ببداية التدخل الأوروبي.",
       "تقييم الخط الزمني والخريطة المنجزين.",
     ],
-    lessonKey: "tc-sci.history.0.2",
+    lessonKey: "tc-sci.history.0.3",
   },
 
   /* ================= التاريخ 04 (نموذج الصورة) ================= */
   {
-    id: "tc-sci-h4",
+    id: "tc-sci-h10",
     level: "tc",
     track: "مسلك علوم",
     subject: "التاريخ",
+    unitId: "tc-h-u2",
+    unitTitle: "العالم المتوسطي في القرنين 17 و18م",
+    cycle: "الدورة الثانية",
     module: "02",
-    number: "04",
+    number: "10",
+    status: "original",
+    sourceNote: "مُفرغة حرفيًا من جذاذة الأستاذ (الوثيقة الأصلية) — لم يُحذف أو يُختصر أو يُعد صياغة أي عنصر منها.",
     title: "الأوضاع العامة في العالم الإسلامي خلال القرنين 16 و17م",
     duration: DUR,
     book: BOOK_TC,
@@ -498,17 +543,29 @@ export const JADADAT: Jadada[] = [
       "حدد المعالم المشتركة للحركة الفكرية في العالم الإسلامي.",
       "أجب عن أسئلة تقويم التعلم ص 98.",
     ],
-    lessonKey: "tc-sci.history.0.3",
+    references: [
+      "الكتاب المدرسي «منار التاريخ والجغرافيا» — الجذع المشترك العلمي: وضعية الانطلاق ص 72-73.",
+      "المقطع الأول: الوثائق والنصوص ص 92-93.",
+      "المقطع الثاني: الوثائق والنصوص ص 95-96.",
+      "المقطع الثالث: الوثائق والنصوص ص 97.",
+      "التقويم الإجمالي: أسئلة تقويم التعلم ص 98.",
+    ],
+    lessonKey: "tc-sci.history.1.3",
   },
 
   /* ================= الجغرافيا 01 ================= */
   {
-    id: "tc-sci-g1",
+    id: "tc-sci-g01",
     level: "tc",
     track: "مسلك علوم",
     subject: "الجغرافيا",
+    unitId: "tc-g-u1",
+    unitTitle: "التعريف بمكونات الوسط الطبيعي",
+    cycle: "الدورة الأولى",
     module: "01",
     number: "01",
+    status: "model",
+    sourceNote: "رقمنة بنيوية وفق منهاج المقرر الرسمي وكتاب «منار التاريخ والجغرافيا» — في انتظار المطابقة مع الوثيقة الأصلية للأستاذ.",
     title: "الجغرافيا: الموضوع، الوظيفة، الأدوات",
     duration: DUR,
     book: BOOK_TC,
@@ -606,12 +663,17 @@ export const JADADAT: Jadada[] = [
 
   /* ================= الجغرافيا 02 ================= */
   {
-    id: "tc-sci-g2",
+    id: "tc-sci-g02",
     level: "tc",
     track: "مسلك علوم",
     subject: "الجغرافيا",
+    unitId: "tc-g-u1",
+    unitTitle: "التعريف بمكونات الوسط الطبيعي",
+    cycle: "الدورة الأولى",
     module: "01",
     number: "02",
+    status: "model",
+    sourceNote: "رقمنة بنيوية وفق منهاج المقرر الرسمي وكتاب «منار التاريخ والجغرافيا» — في انتظار المطابقة مع الوثيقة الأصلية للأستاذ.",
     title: "الكوارث الطبيعية: تعريفها وأنواعها",
     duration: DUR,
     book: BOOK_TC,
@@ -709,12 +771,17 @@ export const JADADAT: Jadada[] = [
 
   /* ================= الجغرافيا 03 ================= */
   {
-    id: "tc-sci-g3",
+    id: "tc-sci-g03",
     level: "tc",
     track: "مسلك علوم",
     subject: "الجغرافيا",
-    module: "02",
+    unitId: "tc-g-u1",
+    unitTitle: "التعريف بمكونات الوسط الطبيعي",
+    cycle: "الدورة الأولى",
+    module: "01",
     number: "03",
+    status: "model",
+    sourceNote: "رقمنة بنيوية وفق منهاج المقرر الرسمي وكتاب «منار التاريخ والجغرافيا» — في انتظار المطابقة مع الوثيقة الأصلية للأستاذ.",
     title: "المجموعات البنيوية الكبرى وأشكال التضاريس",
     duration: DUR,
     book: BOOK_TC,
@@ -812,12 +879,17 @@ export const JADADAT: Jadada[] = [
 
   /* ================= الجغرافيا 04 ================= */
   {
-    id: "tc-sci-g4",
+    id: "tc-sci-g04",
     level: "tc",
     track: "مسلك علوم",
     subject: "الجغرافيا",
-    module: "02",
+    unitId: "tc-g-u1",
+    unitTitle: "التعريف بم الوسط الطبيعي",
+    cycle: "الدورة الأولى",
+    module: "01",
     number: "04",
+    status: "model",
+    sourceNote: "رقمنة بنيوية وفق منهاج المقرر الرسمي وكتاب «منار التاريخ والجغرافيا» — في انتظار المطابقة مع الوثيقة الأصلية للأستاذ.",
     title: "النطاقات المناخية والغطاء النباتي في العالم (مقابلة بين خريطتين)",
     duration: DUR,
     book: BOOK_TC,
@@ -913,6 +985,227 @@ export const JADADAT: Jadada[] = [
   },
 ];
 
-export function getJadada(id: string): Jadada | undefined {
-  return JADADAT.find((j) => j.id === id);
+/* ============================================================
+   اللائحة الرسمية الكاملة لدروس الجذع المشترك العلمي
+   (مادة الاجتماعيات — التاريخ والجغرافيا)، مرتبة حسب المقرر
+   المغربي: الدورات، then الوحدات/المجزوءات، then الدروس.
+
+   كل درس = خانة جذاذة (slot) برقم تسلسلي داخل المادة.
+   إن وُجدت جذاذة مُدرجة في JADADAT بنفس المعرّف تُعرض بمحتواها،
+   وإلا تبقى الخانة «في انتظار الوثيقة الأصلية» دون أي تأليف.
+   ============================================================ */
+
+export interface JadadaUnit {
+  id: string;
+  subject: "التاريخ" | "الجغرافيا";
+  cycle: string;
+  title: string;
+  module: string;
 }
+
+export interface JadadaSlot {
+  /** معرّف الخانة = معرّف الجذاذة عند إدراج محتواها (tc-sci-h10) */
+  id: string;
+  subject: "التاريخ" | "الجغرافيا";
+  unitId: string;
+  unitTitle: string;
+  cycle: string;
+  module: string;
+  /** رقم الجذاذة داخل المادة حسب ترتيب المقرر */
+  number: string;
+  /** عنوان الدرس كما ورد في المقرر الرسمي */
+  title: string;
+  tag?: string;
+  lessonKey?: string;
+}
+
+interface LessonSeed {
+  /** عنوان الدرس في المقرر */
+  t: string;
+  /** مفتاح الدرس التفاعلي المقابل داخل الموقع */
+  k?: string;
+  tag?: string;
+}
+interface UnitSeed extends Omit<JadadaUnit, "id"> {
+  id: string;
+  prefix: "h" | "g";
+  lessons: LessonSeed[];
+}
+
+export const TC_SCI_UNITS_SEED: UnitSeed[] = [
+  {
+    id: "tc-h-u1",
+    prefix: "h",
+    subject: "التاريخ",
+    cycle: "الدورة الأولى",
+    title: "العالم المتوسطي في القرنين 15 و16م",
+    module: "01",
+    lessons: [
+      { t: "التحولات الفكرية والعلمية والفنية (الحركة الإنسية)", k: "tc-sci.history.0.0" },
+      { t: "التحولات السياسية والاجتماعية (ظهور الطبقة البورجوازية، الدولة المدنية، الميثاق السياسي، الدولة الأمة)", k: "tc-sci.history.0.1" },
+      { t: "الاكتشافات الجغرافية وظاهرة الميركنتيلية", k: "tc-sci.history.0.2" },
+      { t: "المد الإسلامي (امتداد النفوذ العثماني وبداية التدخل الأوروبي)", k: "tc-sci.history.0.3" },
+      { t: "التطورات السياسية والاجتماعية في العالم الإسلامي", k: "tc-sci.history.0.4" },
+      { t: "التطورات الاقتصادية في العالم الإسلامي", k: "tc-sci.history.0.5" },
+    ],
+  },
+  {
+    id: "tc-h-u2",
+    prefix: "h",
+    subject: "التاريخ",
+    cycle: "الدورة الثانية",
+    title: "العالم المتوسطي في القرنين 17 و18م",
+    module: "02",
+    lessons: [
+      { t: "عصر الأنوار (الفكر الإنجليزي والفكر الفرنسي)", k: "tc-sci.history.1.0" },
+      { t: "الثورات الاجتماعية والسياسية (الثورة الفرنسية)", k: "tc-sci.history.1.1" },
+      { t: "انطلاقة الثورة الصناعية", k: "tc-sci.history.1.2" },
+      { t: "الأوضاع العامة في العالم الإسلامي", k: "tc-sci.history.1.3" },
+      { t: "تصاعد الضغوط الأوروبية على العالم الإسلامي", k: "tc-sci.history.1.4" },
+      { t: "بداية محاولات الإصلاح وحدودها", k: "tc-sci.history.1.5" },
+      { t: "اختلال التوازن بالعالم المتوسطي وبداية الهيمنة الأوروبية", k: "tc-sci.history.1.6" },
+    ],
+  },
+  {
+    id: "tc-g-u1",
+    prefix: "g",
+    subject: "الجغرافيا",
+    cycle: "الدورة الأولى",
+    title: "التعريف بمكونات الوسط الطبيعي",
+    module: "01",
+    lessons: [
+      { t: "الجغرافيا: الموضوع، الوظيفة، الأدوات", k: "tc-sci.geography.0.0" },
+      { t: "الكوارث الطبيعية: تعريفها وأنواعها", k: "tc-sci.geography.0.1" },
+      { t: "المجموعات البنيوية الكبرى وأشكال التضاريس", k: "tc-sci.geography.0.2" },
+      { t: "النطاقات المناخية والغطاء النباتي في العالم (مقابلة بين خريطتين)", k: "tc-sci.geography.0.3" },
+      { t: "المنظومة البيئية: مفهومها، أسس توازنها والتعريف بأنواعها", k: "tc-sci.geography.0.4" },
+    ],
+  },
+  {
+    id: "tc-g-u2",
+    prefix: "g",
+    subject: "الجغرافيا",
+    cycle: "الدورة الثانية",
+    title: "أشكال استغلال الإنسان للمجال وتنظيمه",
+    module: "02",
+    lessons: [
+      { t: "أشكال استغلال الإنسان للمجال في الأرياف", k: "tc-sci.geography.1.0" },
+      { t: "أشكال استغلال الإنسان للمجال في المدن", k: "tc-sci.geography.1.1" },
+      { t: "تقنيات رسم خرائط المجال الريفي والحضري (تمثيل المعطيات النوعية والكمية)", k: "tc-sci.geography.1.2", tag: "تقنية" },
+      { t: "الإجراءات والتدابير على مستوى تنظيم المجال (التشريعية والتقنية، التربوية)", k: "tc-sci.geography.1.3" },
+    ],
+  },
+  {
+    id: "tc-g-u3",
+    prefix: "g",
+    subject: "الجغرافيا",
+    cycle: "الدورة الثانية",
+    title: "ملفات التربية على المواطنة البيئية",
+    module: "03",
+    lessons: [
+      { t: "ملف حول كارثة طبيعية: الزلازل في المغرب", k: "tc-sci.geography.2.0", tag: "ملف" },
+      { t: "ملف حول كارثة بيئية: الاحتباس الحراري", k: "tc-sci.geography.2.1", tag: "ملف" },
+      { t: "ملف حول دور الجمعيات والمنظمات غير الحكومية في حماية البيئة", k: "tc-sci.geography.2.2", tag: "ملف" },
+    ],
+  },
+];
+
+export const TC_SCI_UNITS: JadadaUnit[] = TC_SCI_UNITS_SEED.map(({ prefix: _prefix, lessons: _lessons, ...u }) => u);
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** بناء خانات الجذاذات: ترقيم تسلسلي داخل كل مادة حسب ترتيب المقرر */
+export const TC_SCI_SLOTS: JadadaSlot[] = (() => {
+  const counters: Record<string, number> = { التاريخ: 0, الجغرافيا: 0 };
+  return TC_SCI_UNITS_SEED.flatMap((u) =>
+    u.lessons.map((l) => {
+      counters[u.subject] += 1;
+      const number = pad(counters[u.subject]);
+      return {
+        id: `tc-sci-${u.prefix}${number}`,
+        subject: u.subject,
+        unitId: u.id,
+        unitTitle: u.title,
+        cycle: u.cycle,
+        module: u.module,
+        number,
+        title: l.t,
+        tag: l.tag,
+        lessonKey: l.k,
+      } satisfies JadadaSlot;
+    }),
+  );
+})();
+
+/** الروابط القديمة التي وُزّعت سابقًا تبقى صالحة (تُحوَّل إلى المعرّفات الرسمية) */
+export const JADADA_ID_ALIASES: Record<string, string> = {
+  "tc-sci-h1": "tc-sci-h02",
+  "tc-sci-h2": "tc-sci-h03",
+  "tc-sci-h3": "tc-sci-h04",
+  "tc-sci-h4": "tc-sci-h10",
+  "tc-sci-g1": "tc-sci-g01",
+  "tc-sci-g2": "tc-sci-g02",
+  "tc-sci-g3": "tc-sci-g03",
+  "tc-sci-g4": "tc-sci-g04",
+};
+
+export function resolveJadadaId(id: string): string {
+  return JADADA_ID_ALIASES[id] ?? id;
+}
+
+export function getJadada(id: string): Jadada | undefined {
+  const rid = resolveJadadaId(id);
+  return JADADAT.find((j) => j.id === rid);
+}
+
+export function getSlot(id: string): JadadaSlot | undefined {
+  const rid = resolveJadadaId(id);
+  return TC_SCI_SLOTS.find((s) => s.id === rid);
+}
+
+/** خانة جذاذة + محتواها إن كان مُدرجًا */
+export interface CatalogEntry {
+  slot: JadadaSlot;
+  fiche?: Jadada;
+  status: JadadaStatus;
+}
+
+export const TC_SCI_CATALOG: CatalogEntry[] = TC_SCI_SLOTS.map((slot) => {
+  const fiche = getJadada(slot.id);
+  return { slot, fiche, status: fiche ? fiche.status : "pending" };
+});
+
+export function getCatalogEntry(id: string): CatalogEntry | undefined {
+  const slot = getSlot(id);
+  if (!slot) return undefined;
+  return TC_SCI_CATALOG.find((e) => e.slot.id === slot.id);
+}
+
+export const JADADA_STATUS_META: Record<JadadaStatus, { label: string; short: string; note: string }> = {
+  original: {
+    label: "مطابقة للوثيقة الأصلية",
+    short: "أصلية",
+    note: "مُفرغة حرفيًا من جذاذة الأستاذ: لا حذف ولا اختصار ولا إعادة صياغة.",
+  },
+  model: {
+    label: "رقمنة بنيوية — في انتظار المطابقة",
+    short: "مسودة رقمية",
+    note: "بنية الجذاذة الرسمية على منهاج المقرر؛ تُستبدل بمحتوى وثيقتك الأصلية عند التوصل بها.",
+  },
+  pending: {
+    label: "في انتظار إدراج الوثيقة الأصلية",
+    short: "قيد الإدراج",
+    note: "خانة الدرس مسجّلة في اللائحة الرسمية؛ لم يُدرج محتواها بعد ولا يُؤلَّف أي محتوى بديل.",
+  },
+};
+
+/** بطاقة تعريف القسم (تظهر في رأس الصفحة وفي كل جذاذة) */
+export const SECTION_META = {
+  title: "جذاذات الجذع المشترك العلمي",
+  subject: "الاجتماعيات — التاريخ والجغرافيا",
+  level: "الجذع المشترك العلمي",
+  frame: "الثانوي التأهيلي بالمغرب",
+  authorLabel: `إعداد وإنجاز: ${TEACHER_NAME}`,
+  school: TEACHER_SCHOOL,
+  book: BOOK_TC,
+};

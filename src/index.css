@@ -313,7 +313,19 @@ body {
 }
 
 /* ---------- الطباعة / حفظ PDF ---------- */
+/* ترويسة تظهر في الورق فقط (رأس الجذاذة: القسم، المادة، المستوى، إنجاز الأستاذ) */
+.jadada-print-only {
+  display: none;
+}
+
 @media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  .jadada-print-only {
+    display: block !important;
+  }
   header,
   footer,
   .skip-link,

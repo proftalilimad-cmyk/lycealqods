@@ -16,6 +16,7 @@ import LessonView from "./components/LessonView";
 import Decks from "./components/decks/Decks";
 import DeckPlayer from "./components/decks/DeckPlayer";
 import { getDeck } from "./data/decks";
+import { getCatalogEntry } from "./data/jadadat";
 import { resolveLesson } from "./data/lessonContent";
 import { BASE_TITLE, VIEW_LABELS, hashToRoute, routeToHash, type Route } from "./routes";
 
@@ -63,7 +64,12 @@ export default function App() {
     () => (route.view === "decks" && route.id ? getDeck(route.id) : undefined),
     [route]
   );
-  const detail = resolvedLesson?.content.title ?? resolvedDeck?.title;
+  const resolvedJadada = useMemo(
+    () => (route.view === "jadadat" && route.open ? getCatalogEntry(route.open) : undefined),
+    [route]
+  );
+  const detail =
+    resolvedLesson?.content.title ?? resolvedDeck?.title ?? resolvedJadada?.fiche?.title ?? resolvedJadada?.slot.title;
   useDocumentTitle(route, detail);
   const detailLabel = detail ? `${detail} — ${VIEW_LABELS[route.view]}` : VIEW_LABELS[route.view];
 
