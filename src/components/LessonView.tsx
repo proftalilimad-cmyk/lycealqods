@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import type { LessonBlock, LessonContent } from "../types";
 import Reveal from "./Reveal";
+import SmartText from "./SmartText";
 import CopyLinkButton from "./CopyLinkButton";
 import type { Route } from "../routes";
 import { getDeckForLesson } from "../data/decks";
@@ -36,7 +37,8 @@ import { getDeckForLesson } from "../data/decks";
 /* ---------- عارض الكتل ---------- */
 function BlockRenderer({ block }: { block: LessonBlock }) {
   if (block.type === "p") {
-    return <p className="text-[15px] leading-loose text-ink-700">{block.text}</p>;
+    /* البيانات المنظمة داخل الفقرة تتحول تلقائيًا إلى جدول حقيقي (النظام الموحد) */
+    return <SmartText text={block.text} className="text-[15px] leading-loose text-ink-700" />;
   }
   if (block.type === "ul") {
     return (
@@ -388,7 +390,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
                         <div key={di} className="overflow-hidden rounded-2xl border border-ink-900/8">
                           <div className="border-b border-ink-900/8 bg-gold-50/70 p-5">
                             <p className="text-[11px] font-extrabold text-gold-700">{doc.label}</p>
-                            <p className="mt-2.5 whitespace-pre-line text-sm leading-loose text-ink-700">{doc.text}</p>
+                            <div className="mt-2.5"><SmartText text={doc.text} className="text-sm leading-loose text-ink-700" /></div>
                           </div>
                           <ol className="divide-y divide-ink-900/5 px-5 py-2 sm:px-6">
                             {doc.questions.map((qa, qi) => (

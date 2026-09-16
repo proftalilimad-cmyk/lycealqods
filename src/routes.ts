@@ -10,7 +10,8 @@ export type Route =
   | { view: "lesson"; id: string }
   | { view: "resources"; type?: string; open?: string }
   | { view: "decks"; id?: string; subject?: string }
-  | { view: "jadadat"; level?: string; open?: string };
+  | { view: "jadadat"; level?: string; open?: string }
+  | { view: "studio" };
 
 export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "الرئيسية", route: { view: "home" } },
@@ -23,6 +24,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "العروض", route: { view: "decks" } },
   { label: "المنهجيات", route: { view: "methods" } },
   { label: "الموارد", route: { view: "resources" } },
+  { label: "محرر الوثائق", route: { view: "studio" } },
 ];
 
 /* ============================================================
@@ -75,6 +77,7 @@ export const VIEW_LABELS: Record<Route["view"], string> = {
   apps: "التطبيقات",
   resources: "الموارد",
   decks: "العروض التفاعلية",
+  studio: "محرر الوثائق",
 };
 
 const SEGMENTS: Record<string, Route["view"]> = {
@@ -91,6 +94,7 @@ const SEGMENTS: Record<string, Route["view"]> = {
   apps: "apps",
   resources: "resources",
   decks: "decks",
+  studio: "studio",
 };
 
 function encodeSegment(value: string): string {
@@ -114,6 +118,8 @@ export function routeToPath(route: Route): string {
       return "/about";
     case "dashboard":
       return "/dashboard";
+    case "studio":
+      return "/studio";
     case "test":
       return route.bank ? `/test/${encodeSegment(route.bank)}` : "/test";
     case "battle":
@@ -155,6 +161,7 @@ export function routeFromPath(rawPath: string): Route {
     case "home":
     case "about":
     case "dashboard":
+    case "studio":
       return { view };
     case "test":
       return parts[1] ? { view: "test", bank: parts[1] } : { view: "test" };

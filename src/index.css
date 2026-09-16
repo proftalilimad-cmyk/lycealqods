@@ -423,3 +423,84 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   الجداول الذكية — النظام الموحد (lib/tableDetect + SmartText)
+   نفس آلية الحدود الآمنة عند الطباعة: حدود أسفل/نهاية للخلايا
+   وحدّ أعلى/بداية للجدول + border-collapse: separate.
+   ============================================================ */
+.auto-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-top: 1px solid #a9dcc4;
+  border-inline-start: 1px solid #a9dcc4;
+  background: #fff;
+  font-size: 13px;
+}
+.auto-table caption {
+  color: #0c6147;
+  font-weight: 800;
+  text-align: start;
+  padding: 4px 8px;
+  caption-side: top;
+}
+.auto-table th,
+.auto-table td {
+  border-bottom: 1px solid #a9dcc4;
+  border-inline-end: 1px solid #a9dcc4;
+  padding: 6px 10px;
+  text-align: start;
+  vertical-align: top;
+  line-height: 1.8;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+}
+.auto-table thead th {
+  background: #0f7c5b;
+  color: #fff;
+  font-weight: 800;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.auto-table tbody tr:nth-child(even) td {
+  background: #f4faf7;
+}
+.auto-table td.num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* نمط وثائق الجذاذات: بني/بيج كما في الأصول */
+.auto-table.doc {
+  border-top-color: #d9c39b;
+  border-inline-start-color: #d9c39b;
+  background: #fbf4e2;
+  font-size: 10.5px;
+}
+.auto-table.doc caption {
+  color: #8c4b2e;
+}
+.auto-table.doc th,
+.auto-table.doc td {
+  border-bottom-color: #d9c39b;
+  border-inline-end-color: #d9c39b;
+  color: #5d3a24;
+}
+.auto-table.doc thead th {
+  background: #8a3a26;
+  color: #fff;
+}
+.auto-table.doc tbody tr:nth-child(even) td {
+  background: #f6e7c6;
+}
+/* الهاتف: الجدول يبقى كاملاً مع تمرير أفقي عند الحاجة (overflow-x-auto في الغلاف) */
+@media (max-width: 640px) {
+  .auto-table {
+    font-size: 12px;
+  }
+  .auto-table th,
+  .auto-table td {
+    padding: 5px 7px;
+  }
+}

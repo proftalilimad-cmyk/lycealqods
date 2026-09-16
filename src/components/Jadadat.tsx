@@ -32,6 +32,8 @@ import {
   type SrcTable,
 } from "../data/jadadat";
 import type { Route } from "../routes";
+import { detectSegments, detectedTableToHtml } from "../lib/tableDetect";
+import SmartText, { AutoTableView } from "./SmartText";
 
 /* ============================================================
    قسم الجذاذات — «جذاذات الجذع المشترك العلمي»
@@ -129,15 +131,22 @@ function CellContent({ c, gold, stage }: { c: SrcCell; gold?: boolean; stage?: b
           </span>
         ),
       )}
-      {(c.lines ?? []).map((l, i) => (
-        <p
-          key={i}
-          className={`whitespace-pre-line ${i > 0 || (c.box ?? []).length ? "mt-1" : ""} ${gold ? "font-bold" : ""} ${stage ? "font-extrabold underline underline-offset-4" : ""}`}
-          style={stage ? { color: D.ink } : undefined}
-        >
-          {l}
-        </p>
-      ))}
+      {/* النص داخل الخلية يمرّ على النظام الموحد: بيانات منظمة → جدول حقيقي، وغير ذلك يبقى نصًا */}
+      {detectSegments((c.lines ?? []).join("\n")).map((seg, si) =>
+        seg.kind === "text" ? (
+          seg.text.split("\n").map((l, li) => (
+            <p
+              key={`${si}-${li}`}
+              className={`whitespace-pre-line ${si > 0 || li > 0 || (c.box ?? []).length ? "mt-1" : ""} ${gold ? "font-bold" : ""} ${stage ? "font-extrabold underline underline-offset-4" : ""}`}
+              style={stage ? { color: D.ink } : undefined}
+            >
+              {l}
+            </p>
+          ))
+        ) : (
+          <AutoTableView key={`t${si}`} t={seg.table} variant="doc" />
+        ),
+      )}
       {(c.nested ?? []).map((t, i) => (
         <div key={i} className="mt-2">
           <SrcTable t={t} nested />
@@ -466,12 +475,12 @@ function Blocks({ f, slot }: { f: ImportedFiche; slot: { number: string; title: 
       {lead.rest > 0 && <DocHeaderBand lead={lead} slot={slot} />}
       {f.blocks.slice(lead.rest).map((b, i) =>
         b.type === "para" ? (
-          <p
+          <SmartText
             key={i}
-            className={`whitespace-pre-line text-[11.5px] font-bold leading-relaxed text-ink-900 ${b.frame ? "mt-1" : "mt-2"}`}
-          >
-            {b.text}
-          </p>
+            text={b.text ?? ""}
+            variant="doc"
+            className={`text-[11.5px] font-bold leading-relaxed text-ink-900 ${b.frame ? "mt-1" : "mt-2"}`}
+          />
         ) : b.table ? (
           <SrcTable key={i} t={b.table} />
         ) : null,
@@ -559,6 +568,12 @@ const DOC_CSS = `
   .boxflat { margin: 0 0 3px; font-weight: 800; color: ${D.nest}; }
   tr.head th { background: ${D.head}; color: #fff; font-size: 11px; }
   table.nested tr.head th { background: ${D.nest}; }
+  /* الجداول الذكية المكتشفة تلقائيًا (نفس النظام الموحد) */
+  table.auto-table { margin-top: 6px; background: ${D.beigeLight}; }
+  table.auto-table caption { color: ${D.head}; font-weight: 700; text-align: start; padding: 3px 6px; caption-side: top; }
+  table.auto-table thead th { background: ${D.nest}; color: #fff; font-weight: 700; white-space: nowrap; }
+  table.auto-table td { color: ${D.ink}; }
+  table.auto-table td.num { font-weight: 700; white-space: nowrap; }
   td.prod { background: ${D.beige}; }
   td.rowlab { background: ${D.head}; color: #fff; font-weight: 800; }
   td.label2, td.nestfirst { background: ${D.beigeDark}; color: ${D.ink}; font-weight: 800; }
@@ -601,7 +616,10 @@ function cellToHtml(c: SrcCell, flat?: boolean): string {
   const parts: string[] = [];
   for (const b of c.box ?? [])
     parts.push(flat ? `<p class="boxflat">${esc(b)}</p>` : `<span class="box">${esc(b)}</span>`);
-  for (const l of c.lines ?? []) parts.push(`<p>${esc(l).replace(/\n/g, "<br />")}</p>`);
+  for (const seg of detectSegments((c.lines ?? []).join("\n"))) {
+    if (seg.kind === "text") for (const l of seg.text.split("\n")) parts.push(`<p>${esc(l).replace(/\n/g, "<br />")}</p>`);
+    else parts.push(detectedTableToHtml(seg.table, { nested: true }));
+  }
   for (const n of c.nested ?? []) parts.push(tableToHtml(n, true));
   return parts.join("");
 }

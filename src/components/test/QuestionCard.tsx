@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import SmartText from "../SmartText";
 import MimosaMap from "../geo/MimosaMap";
 import { ArrowDown, ArrowUp, CheckCircle2, FileText, Link2, ListChecks, PenLine, Scale, Table2, XCircle } from "lucide-react";
 import type { Answer, Question } from "../../types";
@@ -106,7 +107,7 @@ export default function QuestionCard({ question: q, answer, onChange }: Question
           {q.mapSketch ? (
             <MimosaMap />
           ) : (
-            <p className="whitespace-pre-line text-sm leading-loose text-ink-700">{q.doc}</p>
+            <SmartText text={q.doc} className="text-sm leading-loose text-ink-700" />
           )}
         </div>
       )}
