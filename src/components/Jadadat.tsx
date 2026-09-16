@@ -223,9 +223,9 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
                     <CellContent c={row[0] ?? {}} />
                   </td>
                   <td
-                    colSpan={Math.max(row.length - 1, 1)}
-                    className="border px-2.5 py-2 text-[10.5px] font-bold leading-relaxed text-ink-900"
-                    style={{ background: D.beige, borderColor: D.line }}
+                    colSpan={Math.max(cols - 1, 1)}
+                    className="border px-2.5 py-2 text-[10.5px] font-bold leading-relaxed"
+                    style={{ background: D.beige, borderColor: D.line, color: D.ink }}
                   >
                     {row.slice(1).map((c, ci) => (
                       <div key={ci}>
@@ -619,7 +619,7 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
       }
       if (isTaqwimRow(row)) {
         const rest = row.slice(1).map((c) => cellToHtml(c)).join("<br />");
-        return `<tr><td class="taqwim">${cellToHtml(row[0] ?? {})}</td><td class="taqwimbody" colspan="${Math.max(row.length - 1, 1)}">${rest}</td></tr>`;
+        return `<tr><td class="taqwim">${cellToHtml(row[0] ?? {})}</td><td class="taqwimbody" colspan="${Math.max(cols - 1, 1)}">${rest}</td></tr>`;
       }
       const merged = row.length === 1 && cols > 1;
       const lastSpan = row.length < cols ? cols - row.length + 1 : 1;

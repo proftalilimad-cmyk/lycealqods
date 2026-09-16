@@ -348,12 +348,26 @@ body {
     animation: none !important;
     transition: none !important;
   }
-  /* جداول الجذاذات: لا يُقطع الصف بين صفحتين */
-  tr,
-  td,
-  th {
+  /* جداول الجذاذات عند الطباعة: الصفوف تبقى مجتمعة، لكن الخلايا الكبيرة
+     (كعمود المنتوج وجداوله المتداخلة) يُسمح بقطعها بين الصفحتين حتى لا تبقى
+     مساحات فارغة أو صف ثانٍ مكسور كما في الطبعات القديمة */
+  tr {
     page-break-inside: avoid;
     break-inside: avoid;
+  }
+  td,
+  th {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+  table {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+  /* ترويسة الجدول المتداخل تلتصق بأول صف بعده */
+  tr.head th {
+    page-break-after: avoid;
+    break-after: avoid;
   }
   table {
     width: 100% !important;
