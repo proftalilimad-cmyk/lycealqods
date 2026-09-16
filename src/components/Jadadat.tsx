@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { BookOpenCheck, Clock3, NotebookPen, Printer, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { BookOpenCheck, Clock3, NotebookPen, Printer } from "lucide-react";
 import { JADADAT, JADADA_LEVELS, TEACHER_NAME, TEACHER_SCHOOL, getJadada } from "../data/jadadat";
 import type { Jadada } from "../data/jadadat";
 import type { Route } from "../routes";
@@ -56,245 +56,219 @@ interface JadadatProps {
   go: (r: Route) => void;
 }
 
-function FicheModal({ id, onClose, go }: { id: string; onClose: () => void; go: (r: Route) => void }) {
-  const j = getJadada(id);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [onClose]);
-  if (!j) return null;
+function FichePage({ j, onBack, go }: { j: Jadada; onBack: () => void; go: (r: Route) => void }) {
   const levelLabel = JADADA_LEVELS.find((l) => l.id === j.level)?.label ?? j.level;
-
   return (
-    <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label={`جذاذة: ${j.title}`}>
-      <button type="button" aria-label="إغلاق" onClick={onClose} className="animate-fade-in absolute inset-0 bg-brand-950/60 backdrop-blur-sm" data-no-print />
-      <div className="animate-modal-in absolute inset-x-0 top-3 bottom-3 mx-auto w-[calc(100%-1rem)] max-w-5xl sm:top-6 sm:bottom-6">
-        <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-2xl shadow-brand-950/40">
-          {/* شريط الأدوات */}
-          <div className="flex items-center justify-between gap-3 border-b bg-white px-4 py-2.5" style={{ borderColor: C.line }} data-no-print>
-            <p className="truncate text-xs font-extrabold text-ink-700">
-              {j.subject} · مجزوءة {j.module} · درس {j.number} — {levelLabel} {j.track}
-            </p>
-            <div className="flex shrink-0 items-center gap-2">
-              {j.lessonKey && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    go({ view: "lesson", id: j.lessonKey! });
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-[11px] font-extrabold text-white transition-colors hover:bg-brand-700"
-                >
-                  <BookOpenCheck className="size-3.5" />
-                  الدرس التفاعلي
-                </button>
-              )}
-              <button type="button" onClick={() => window.print()} title="طباعة الجذاذة" aria-label="طباعة الجذاذة" className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-extrabold text-ink-700 transition-colors hover:text-brand-700" style={{ borderColor: C.line }}>
-                <Printer className="size-3.5" />
-                طباعة
-              </button>
-              <button type="button" onClick={onClose} aria-label="إغلاق" className="grid size-8 place-items-center rounded-lg border text-ink-700 transition-colors hover:text-brand-700" style={{ borderColor: C.line }}>
-                <X className="size-4" />
-              </button>
+    <div className="mx-auto w-full max-w-5xl px-4 pb-20 pt-6 sm:px-6">
+      {/* شريط أدوات الصفحة */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2" data-no-print>
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-ink-900/10 bg-white px-3.5 py-2 text-[11px] font-extrabold text-ink-700 transition-colors hover:border-brand-300 hover:text-brand-700"
+        >
+          ← رجوع إلى لائحة الجذاذات
+        </button>
+        <div className="flex items-center gap-2">
+          {j.lessonKey && (
+            <button
+              type="button"
+              onClick={() => go({ view: "lesson", id: j.lessonKey! })}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-[11px] font-extrabold text-white transition-colors hover:bg-brand-700"
+            >
+              <BookOpenCheck className="size-3.5" />
+              الدرس التفاعلي المقابل
+            </button>
+          )}
+          <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-xl border border-ink-900/10 bg-white px-3.5 py-2 text-[11px] font-extrabold text-ink-700 transition-colors hover:border-brand-300 hover:text-brand-700">
+            <Printer className="size-3.5" />
+            طباعة الجذاذة
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl bg-white shadow-xl shadow-brand-900/10 ring-1 ring-ink-900/10">
+        {/* البطاقة التقنية العليا */}
+        <div className="grid gap-3 p-4 sm:grid-cols-[1fr_1.4fr_1fr] sm:p-5">
+          <table className="w-full border-collapse">
+            <tbody>
+              {[
+                ["مادة", j.subject],
+                ["المستوى", `${levelLabel} ${j.track.replace("مسلك ", "")}`],
+                ["المجزوءة", j.module],
+              ].map(([k, v]) => (
+                <tr key={k}>
+                  <th className="w-24 border px-3 py-2 text-start text-[11px] font-extrabold text-white" style={{ background: C.head, borderColor: C.line }}>
+                    {k}
+                  </th>
+                  <td className="border px-3 py-2 text-[11px] font-extrabold text-ink-900" style={{ background: C.beige, borderColor: C.line }}>
+                    {v}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: C.head }}>
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white font-display text-sm font-black" style={{ color: C.head }}>
+              {j.number}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-extrabold text-white/80">عنوان الدرس</p>
+              <p className="font-display text-[13px] font-extrabold leading-snug text-white">{j.title}</p>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto bg-white p-4 sm:p-5">
-            {/* البطاقة التقنية العليا */}
-            <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr_1fr]">
-              <table className="w-full border-collapse">
-                <tbody>
-                  {[
-                    ["مادة", j.subject],
-                    ["المستوى", `${levelLabel} ${j.track.replace("مسلك ", "")}`],
-                    ["المجزوءة", j.module],
-                  ].map(([k, v]) => (
-                    <tr key={k}>
-                      <th className="w-24 border px-3 py-2 text-start text-[11px] font-extrabold text-white" style={{ background: C.head, borderColor: C.line }}>
-                        {k}
-                      </th>
-                      <td className="border px-3 py-2 text-[11px] font-extrabold text-ink-900" style={{ background: C.beige, borderColor: C.line }}>
-                        {v}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: C.head }}>
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white font-display text-sm font-black" style={{ color: C.head }}>
-                  {j.number}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-extrabold text-white/80">عنوان الدرس</p>
-                  <p className="font-display text-[13px] font-extrabold leading-snug text-white">{j.title}</p>
-                </div>
-              </div>
-
-              <table className="w-full border-collapse">
-                <tbody>
-                  {[
-                    ["مدة الإنجاز", j.duration],
-                    ["الكتاب المعتمد", j.book],
-                    ["إنجاز الأستاذ", TEACHER_NAME],
-                  ].map(([k, v]) => (
-                    <tr key={k}>
-                      <th className="w-28 border px-3 py-2 text-start text-[11px] font-extrabold text-white" style={{ background: C.head, borderColor: C.line }}>
-                        {k}
-                      </th>
-                      <td className="border px-3 py-2 text-[11px] font-extrabold text-ink-900" style={{ background: C.beige, borderColor: C.line }}>
-                        {v}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* الكفايات */}
-            <table className="mt-3 w-full border-collapse">
-              <tbody>
-                <tr>
-                  <th className="w-44 border px-3 py-2 text-start text-[11px] font-extrabold text-white" style={{ background: C.olive, borderColor: C.line }}>
-                    الكفاية المركزية/المجالية :
+          <table className="w-full border-collapse">
+            <tbody>
+              {[
+                ["مدة الإنجاز", j.duration],
+                ["الكتاب المعتمد", j.book],
+                ["إنجاز الأستاذ", TEACHER_NAME],
+              ].map(([k, v]) => (
+                <tr key={k}>
+                  <th className="w-28 border px-3 py-2 text-start text-[11px] font-extrabold text-white" style={{ background: C.head, borderColor: C.line }}>
+                    {k}
                   </th>
-                  <td className="border px-3 py-2 text-[11px] font-bold leading-relaxed text-ink-900" style={{ background: C.beige, borderColor: C.line }}>
-                    {j.kifayaMarkaziya}
+                  <td className="border px-3 py-2 text-[11px] font-extrabold text-ink-900" style={{ background: C.beige, borderColor: C.line }}>
+                    {v}
                   </td>
                 </tr>
-                <tr>
-                  <th className="border px-3 py-2 text-start text-[11px] font-extrabold text-white" style={{ background: C.olive, borderColor: C.line }}>
-                    الكفاية المحورية للوحدة :
-                  </th>
-                  <td className="border px-3 py-2 text-[11px] font-bold leading-relaxed text-ink-900" style={{ background: C.beige, borderColor: C.line }}>
-                    {j.kifayaMihwariya}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-            {/* الأهداف */}
-            <table className="mt-3 w-full border-collapse">
+        <div className="px-4 pb-4 sm:px-5 sm:pb-5">
+          {/* الكفايات */}
+          <table className="w-full border-collapse">
+            <tbody>
+              <tr>
+                <th className="w-44 border px-3 py-2 text-start text-[11px] font-extrabold text-white" style={{ background: C.olive, borderColor: C.line }}>
+                  الكفاية المركزية/المجالية :
+                </th>
+                <td className="border px-3 py-2 text-[11px] font-bold leading-relaxed text-ink-900" style={{ background: C.beige, borderColor: C.line }}>
+                  {j.kifayaMarkaziya}
+                </td>
+              </tr>
+              <tr>
+                <th className="border px-3 py-2 text-start text-[11px] font-extrabold text-white" style={{ background: C.olive, borderColor: C.line }}>
+                  الكفاية المحورية للوحدة :
+                </th>
+                <td className="border px-3 py-2 text-[11px] font-bold leading-relaxed text-ink-900" style={{ background: C.beige, borderColor: C.line }}>
+                  {j.kifayaMihwariya}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* الأهداف */}
+          <table className="mt-3 w-full border-collapse">
+            <thead>
+              <tr>
+                <Th>معرفيًا</Th>
+                <Th>مهاريًا</Th>
+                <Th>وجدانيا</Th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <Td bg={C.beige}>
+                  <Bullets items={j.goals.cognitive} />
+                </Td>
+                <Td bg={C.beige}>
+                  <Bullets items={j.goals.skills} />
+                </Td>
+                <Td bg={C.beige}>
+                  <Bullets items={j.goals.affective} />
+                </Td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* جدول سير الدرس */}
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse">
               <thead>
                 <tr>
-                  <Th>معرفيًا</Th>
-                  <Th>مهاريًا</Th>
-                  <Th>وجدانيا</Th>
+                  <Th dark>مراحل إنجاز الدرس</Th>
+                  <Th dark>أهداف التعلم المرتبطة بالنشاط</Th>
+                  <Th dark>التدبير الديداكتيكي (أنشطة الأستاذ والمتعلم)</Th>
+                  <Th dark>الدعامات الديداكتيكية</Th>
+                  <Th dark>المتنوع</Th>
                 </tr>
               </thead>
               <tbody>
+                {j.segments.map((s, i) =>
+                  s.phase.startsWith("تقويم مرحلي") ? (
+                    <tr key={i}>
+                      <td className="border px-3 py-2 text-center text-[11px] font-extrabold text-white" style={{ background: C.olive, borderColor: C.line }}>
+                        تقويم مرحلي
+                      </td>
+                      <td colSpan={4} className="border px-3 py-2 text-[11px] font-bold leading-relaxed text-ink-900" style={{ background: C.beigeDark, borderColor: C.line }}>
+                        <Bullets items={s.content} />
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={i}>
+                      <Td bg={C.beigeDark} className="text-center font-extrabold text-ink-900">
+                        {s.phase}
+                      </Td>
+                      <Td>
+                        <Bullets items={s.objectives} />
+                      </Td>
+                      <Td>
+                        <Bullets items={s.management} />
+                      </Td>
+                      <Td bg={C.gold} className="text-center font-extrabold">
+                        {s.supports.length > 0 ? <Bullets items={s.supports} /> : <span className="text-ink-400">—</span>}
+                      </Td>
+                      <Td>
+                        <Bullets items={s.content} />
+                      </Td>
+                    </tr>
+                  ),
+                )}
                 <tr>
-                  <Td bg={C.beige}>
-                    <Bullets items={j.goals.cognitive} />
-                  </Td>
-                  <Td bg={C.beige}>
-                    <Bullets items={j.goals.skills} />
-                  </Td>
-                  <Td bg={C.beige}>
-                    <Bullets items={j.goals.affective} />
-                  </Td>
+                  <td className="border px-3 py-2 text-center text-[11px] font-extrabold text-white" style={{ background: C.headDark, borderColor: C.line }}>
+                    تقويم إجمالي
+                  </td>
+                  <td colSpan={4} className="border px-3 py-2 text-[11px] font-bold leading-relaxed text-ink-900" style={{ background: C.beige, borderColor: C.line }}>
+                    <Bullets items={j.taqwimIjmali} />
+                  </td>
                 </tr>
               </tbody>
             </table>
+          </div>
 
-            {/* جدول سير الدرس */}
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse">
-                <thead>
-                  <tr>
-                    <Th dark>مراحل إنجاز الدرس</Th>
-                    <Th dark>أهداف التعلم المرتبطة بالنشاط</Th>
-                    <Th dark>التدبير الديداكتيكي</Th>
-                    <Th dark>الدعامات الديداكتيكية</Th>
-                    <Th dark>المتنوع</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {j.segments.map((s, i) =>
-                    s.phase.startsWith("تقويم مرحلي") ? (
-                      <tr key={i}>
-                        <td className="border px-3 py-2 text-center text-[11px] font-extrabold text-white" style={{ background: C.olive, borderColor: C.line }}>
-                          تقويم مرحلي
-                        </td>
-                        <td colSpan={4} className="border px-3 py-2 text-[11px] font-bold leading-relaxed text-ink-900" style={{ background: C.beigeDark, borderColor: C.line }}>
-                          <Bullets items={s.content} />
-                        </td>
-                      </tr>
-                    ) : (
-                      <tr key={i}>
-                        <Td bg={C.beigeDark} className="text-center font-extrabold text-ink-900">
-                          {s.phase}
-                        </Td>
-                        <Td>
-                          <Bullets items={s.objectives} />
-                        </Td>
-                        <Td>
-                          <Bullets items={s.management} />
-                        </Td>
-                        <Td bg={C.gold} className="text-center font-extrabold" >
-                          {s.supports.length > 0 ? (
-                            <Bullets items={s.supports} />
-                          ) : (
-                            <span className="text-ink-400">—</span>
-                          )}
-                        </Td>
-                        <Td>
-                          <Bullets items={s.content} />
-                        </Td>
-                      </tr>
-                    ),
-                  )}
-                  <tr>
-                    <td className="border px-3 py-2 text-center text-[11px] font-extrabold text-white" style={{ background: C.headDark, borderColor: C.line }}>
-                      تقويم إجمالي
-                    </td>
-                    <td colSpan={4} className="border px-3 py-2 text-[11px] font-bold leading-relaxed text-ink-900" style={{ background: C.beige, borderColor: C.line }}>
-                      <Bullets items={j.taqwimIjmali} />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* التوقيع */}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3" style={{ background: C.gold, border: `1px solid ${C.goldLine}` }}>
-              <p className="text-[11px] font-extrabold text-ink-900">
-                إنجاز: {TEACHER_NAME} — {TEACHER_SCHOOL}
-              </p>
-              <p className="inline-flex items-center gap-1.5 text-[10px] font-bold text-ink-500">
-                <Clock3 className="size-3" aria-hidden="true" />
-                {j.duration} · المرجع: {j.book}
-              </p>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-2" data-no-print>
-              <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-xs font-extrabold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-700">
-                <Printer className="size-4" />
-                طباعة الجذاذة
-              </button>
-              {j.lessonKey && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    go({ view: "lesson", id: j.lessonKey! });
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-all hover:-translate-y-0.5 hover:border-brand-400"
-                >
-                  <BookOpenCheck className="size-4" />
-                  الدرس التفاعلي المقابل ←
-                </button>
-              )}
-            </div>
+          {/* التوقيع */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3" style={{ background: C.gold, border: `1px solid ${C.goldLine}` }}>
+            <p className="text-[11px] font-extrabold text-ink-900">
+              إنجاز: {TEACHER_NAME} — {TEACHER_SCHOOL}
+            </p>
+            <p className="inline-flex items-center gap-1.5 text-[10px] font-bold text-ink-500">
+              <Clock3 className="size-3" aria-hidden="true" />
+              {j.duration} · المرجع: {j.book}
+            </p>
           </div>
         </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2" data-no-print>
+        <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-xs font-extrabold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-700">
+          <Printer className="size-4" />
+          طباعة الجذاذة
+        </button>
+        {j.lessonKey && (
+          <button
+            type="button"
+            onClick={() => go({ view: "lesson", id: j.lessonKey! })}
+            className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-all hover:-translate-y-0.5 hover:border-brand-400"
+          >
+            <BookOpenCheck className="size-4" />
+            الدرس التفاعلي المقابل ←
+          </button>
+        )}
       </div>
     </div>
   );
@@ -324,6 +298,10 @@ export default function Jadadat({ level, open, go }: JadadatProps) {
   };
 
   const levelFiches = byLevel.get(activeLevel) ?? [];
+  const openJadada = openId ? getJadada(openId) : undefined;
+  if (openJadada) return <FichePage j={openJadada} onBack={closeFiche} go={go} />;
+
+  const levelLabel = JADADA_LEVELS.find((l) => l.id === activeLevel)?.label ?? "";
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6">
@@ -332,11 +310,16 @@ export default function Jadadat({ level, open, go }: JadadatProps) {
           <NotebookPen className="size-3.5" aria-hidden="true" />
           وثائق الأستاذ
         </span>
-        <h1 className="mt-3 font-display text-2xl font-black text-ink-900 sm:text-3xl">الجذاذات</h1>
+        <h1 className="mt-3 font-display text-2xl font-black text-ink-900 sm:text-3xl">
+          {activeLevel === "tc" ? "جذاذات الجذع المشترك العلمي" : `جذاذات ${levelLabel}`}
+        </h1>
+        <p className="mt-1 text-xs font-extrabold text-brand-700">
+          المادة: الاجتماعيات – التاريخ والجغرافيا · المستوى: {levelLabel} – الثانوي التأهيلي بالمغرب
+        </p>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-500">
           جذاذات الدروس بالصيغة الرسمية: البطاقة التقنية، الكفاية المركزية والمحورية، الأهداف معرفيًا ومهاريًا ووجدانيًا،
           جدول مراحل إنجاز الدرس (التدبير الديداكتيكي، الدعائم، المتن) مع التقويمات المرحلية والإجمالية — من إنجاز{" "}
-          <span className="font-extrabold text-ink-700">{TEACHER_NAME}</span>، قابلة للطباعة مباشرة.
+          <span className="font-extrabold text-ink-700">{TEACHER_NAME}</span>، معروضة في صفحة منظمة سهلة الطباعة والاستعمال داخل القسم.
         </p>
       </header>
 
@@ -385,7 +368,7 @@ export default function Jadadat({ level, open, go }: JadadatProps) {
             <section key={subject} className="mt-8">
               <h2 className="flex items-center gap-2 font-display text-lg font-extrabold text-ink-900">
                 <span className="size-2.5 rounded-full bg-gold-500" aria-hidden="true" />
-                {subject} — {JADADA_LEVELS.find((l) => l.id === activeLevel)?.label}
+                {subject} — {levelLabel}
                 <span className="text-xs font-bold text-ink-500">({list.length} جذاذات)</span>
               </h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -417,8 +400,6 @@ export default function Jadadat({ level, open, go }: JadadatProps) {
           );
         })
       )}
-
-      {openId && <FicheModal id={openId} onClose={closeFiche} go={go} />}
     </div>
   );
 }
