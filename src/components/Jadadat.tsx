@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   BookOpenCheck,
   CheckCircle2,
@@ -31,6 +31,7 @@ import {
   type SrcCell,
   type SrcTable,
 } from "../data/jadadat";
+import type { ProduitPart } from "../data/jadadat";
 import type { Route } from "../routes";
 import { detectSegments, detectedTableToHtml } from "../lib/tableDetect";
 import SmartText, { AutoTableView } from "./SmartText";
@@ -107,7 +108,122 @@ const HEAD_WORDS = [
 const cleanLine = (s: string) => s.replace(/[\u200f\u200e\u0640]/g, "").replace(/\s+/g, " ").trim();
 const cellTexts = (c?: SrcCell): string[] => [...(c?.box ?? []), ...(c?.lines ?? [])];
 const isHeaderCell = (c: SrcCell) => cellTexts(c).some((l) => HEAD_WORDS.some((w) => cleanLine(l).startsWith(w)));
-const isTaqwimRow = (row: SrcCell[]) => /^تقويم|^التقويم/.test(cleanLine(cellTexts(row[0])[0] ?? ""));
+const isTaqwimRow = (row: SrcCell[]) => /^[-–—•*\s]*(?:تقويم|التقويم)/.test(cleanLine(cellTexts(row[0])[0] ?? ""));
+
+/* ============================================================
+   القالب المرجعي وتجميع التدفق (بنية موحدة لكل صفحات الجذاذة)
+   ------------------------------------------------------------
+   الجدول الأول في الصفحة الأولى الذي يحمل ترويسة مراحل/أهداف/وضعيات
+   هو القالب المرجعي الإلزامي الوحيد. كل الأجزاء اللاحقة من التدفق
+   (أجزاء الجدول بترويسة مطابقة، كتل «تقويم مرحلي/اجمالي/نهائي»
+   المستقلة، أجزاء المحتوى المكملة، والفقرات البينية) تُدمج في
+   جدول رئيسي واحد بتلك الترويسة نفسها — فتتكرر الرؤوس حرفيًا في
+   كل صفحة طباعة، ولا يظهر أبدًا "جدول مختلف" في صفحة تالية.
+   لا يُغيَّر أي اسم أو ترتيب أو محتوى؛ الترويسات المكررة تُعرض
+   مرة واحدة في thead (وهي نفسها تتكرر في كل صفحة عند الطباعة).
+   ============================================================ */
+
+const REF_RE = /مراحل|وضعيات التعلمات|التقويمات|أنشطة التعلم|انشطة التعلم|أشكال الأنشطة|التدبير الديداكتيكي|التقويم المرحلي|التقويم النهائي/;
+/* ترويسة القالب المرجعي: خانات قصيرة (عناوين أعمدة حقيقية) وليست فقرات */
+const isRefHeadRow = (r: SrcCell[]) => {
+  const texts = r.map((c) => cleanLine(cellTexts(c).join(" ")));
+  const nonEmpty = texts.filter((t) => t.length > 0);
+  return nonEmpty.length >= 2 && nonEmpty.every((t) => t.length <= 40);
+};
+const headerIndexOf = (t: SrcTable): number => t.rows.findIndex((r) => r.filter(isHeaderCell).length >= 2);
+const normCellText = (c: SrcCell) => cleanLine(cellTexts(c).join(" ")).replace(/[ً-ْٰـ]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي");
+const sameHeadCells = (a: SrcCell[], b: SrcCell[]) => a.length === b.length && a.every((c, i) => normCellText(c) === normCellText(b[i]));
+const isTaqwimBlock = (t: SrcTable) => t.rows.length >= 1 && t.rows.every((r) => isTaqwimRow(r));
+
+type FlowItem = ImportedFiche["blocks"][number] | { kind: "master"; table: SrcTable };
+type MergePlan = { skipRow: number } | { skipRow: -1 };
+
+function canMergeInto(t: SrcTable, masterHead: SrcCell[]): MergePlan | null {
+  const hi = headerIndexOf(t);
+  /* جزء الجدول نفسه (ترويسة مطابقة للقالب حرفيًا) → يُدمج دون تكرار الترويسة */
+  if (hi >= 0 && sameHeadCells(t.rows[hi], masterHead)) return { skipRow: hi };
+  /* كتلة تقويم (مرحلي/اجمالي/نهائي) → صفوف حقول داخل الجدول الرئيسي */
+  if (isTaqwimBlock(t)) return { skipRow: -1 };
+  /* جزء محتوى مكمل بلا ترويسة (عموده ≤ 6 وأسطره ≥ 2) → صفوف مكملة بنفس الشبكة */
+  const tCols = Math.max(...t.rows.map((r) => r.length), 1);
+  if (hi === -1 && t.rows.length >= 2 && tCols <= 6) return { skipRow: -1 };
+  return null;
+}
+
+/** تجميع كتل الجذاذة: كتلة أصلية أو جدول رئيسي موحّد (القالب المرجعي) */
+export function assembleFlow(body: ImportedFiche["blocks"]): FlowItem[] {
+  const out: FlowItem[] = [];
+  let master: SrcCell[][] | null = null;
+  let masterHead: SrcCell[] | null = null;
+  /* صف يطابق ترويسة القالب حرفيًا = تكرار رؤوس أصلي: موجود في <thead> المتكرر، فلا يُعاد في الجسم */
+  const pushRows = (rows: SrcCell[][], skipRow: number) => {
+    rows.forEach((r, ri) => {
+      if (ri === skipRow) return;
+      if (masterHead && sameHeadCells(r, masterHead)) return;
+      master!.push(r);
+    });
+  };
+  const flush = () => {
+    if (master) out.push({ kind: "master", table: { rows: master } });
+    master = null;
+    masterHead = null;
+  };
+  for (let i = 0; i < body.length; i += 1) {
+    const b = body[i];
+    if (b.type === "para" || !b.table) {
+      /* فقرة بينية داخل التدفق → صف مدمج بعرض الجدول (نصها حرفيًا) */
+      const txt = (b.text ?? "").trim();
+      const next = body[i + 1];
+      if (master && masterHead && txt && next && next.type !== "para" && next.table && canMergeInto(next.table, masterHead)) {
+        master.push([{ lines: [b.text ?? ""] }]);
+        continue;
+      }
+      flush();
+      out.push(b);
+      continue;
+    }
+    const t = b.table;
+    const opensRef = (tbl: SrcTable): number => {
+      const hi = headerIndexOf(tbl);
+      return hi >= 0 && isRefHeadRow(tbl.rows[hi]) && REF_RE.test(tbl.rows[hi].map((c) => cellTexts(c).join(" ")).join(" ")) ? hi : -1;
+    };
+    if (!master) {
+      const hi = opensRef(t);
+      if (hi >= 0) {
+        masterHead = t.rows[hi];
+        master = [t.rows[hi]];
+        pushRows(t.rows, hi);
+        continue;
+      }
+      out.push(b);
+      continue;
+    }
+    const plan = canMergeInto(t, masterHead!);
+    if (plan) {
+      pushRows(t.rows, plan.skipRow);
+      continue;
+    }
+    /* الكتلة لا تندمج: تُغلق المجموعة، وقد تكون هي نفسها قالبًا مرجعيًا جديدًا */
+    flush();
+    const hi2 = opensRef(t);
+    if (hi2 >= 0) {
+      masterHead = t.rows[hi2];
+      master = [t.rows[hi2]];
+      pushRows(t.rows, hi2);
+      continue;
+    }
+    out.push(b);
+  }
+  flush();
+  return out;
+}
+
+/** هل للجذاذة جدول رئيسي موحّد (قالب مرجعي)؟ */
+export function hasFlowMaster(f: ImportedFiche): boolean {
+  if (f.layout === "pdf") return false;
+  const lead = docLead(f);
+  return assembleFlow(f.blocks.slice(lead.rest)).some((it) => (it as { kind?: string }).kind === "master");
+}
 
 /* ============================================================
    عرض محتوى الوثيقة الأصلية (خلايا وجداول)
@@ -156,7 +272,7 @@ function CellContent({ c, gold, stage }: { c: SrcCell; gold?: boolean; stage?: b
   );
 }
 
-function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
+function SrcTable({ t, nested, footerRow }: { t: SrcTable; nested?: boolean; footerRow?: ReactNode }) {
   const rows = t.rows;
   const headerIdx = rows.findIndex((r) => r.filter(isHeaderCell).length >= 2);
   const produitCol = headerIdx >= 0 ? rows[headerIdx].findIndex((c) => cellTexts(c).some(isProduitHeader)) : -1;
@@ -207,14 +323,41 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
             if (isHeader) {
               return (
                 <tr key={ri}>
-                  {row.map((c, ci) => (
-                    <th
+                  {row.map((c, ci) => {
+                    /* ترويسة أقصر من شبكة الجدول: آخر خانة تمتد دون تغيير اسم أو ترتيب */
+                    const hSpan = row.length < cols && ci === row.length - 1 ? cols - row.length + 1 : 1;
+                    return (
+                      <th
+                        key={ci}
+                        colSpan={hSpan > 1 ? hSpan : undefined}
+                        className="border px-2.5 py-2 text-start text-[10.5px] font-extrabold text-white"
+                        style={{ background: nested ? D.nest : D.head, borderColor: D.line }}
+                      >
+                        <CellContent c={c} />
+                      </th>
+                    );
+                  })}
+                </tr>
+              );
+            }
+            if (taqwim && row.length === cols) {
+              /* صف تقويم بعدد أعمدة الشبكة: كل خلية في عمودها (بلا دمج يغيّر المعنى) */
+              return (
+                <tr key={ri}>
+                  <td
+                    className="border px-2.5 py-2 text-center text-[10.5px] font-extrabold text-white"
+                    style={{ background: D.head, borderColor: D.line }}
+                  >
+                    <CellContent c={row[0] ?? {}} />
+                  </td>
+                  {row.slice(1).map((c, ci) => (
+                    <td
                       key={ci}
-                      className="border px-2.5 py-2 text-start text-[10.5px] font-extrabold text-white"
-                      style={{ background: nested ? D.nest : D.head, borderColor: D.line }}
+                      className="border px-2.5 py-2 text-[10.5px] font-bold leading-relaxed"
+                      style={{ background: D.beige, borderColor: D.line, color: D.ink }}
                     >
                       <CellContent c={c} />
-                    </th>
+                    </td>
                   ))}
                 </tr>
               );
@@ -300,7 +443,10 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
     <div className={`${nested ? "" : "mt-3"} overflow-x-auto`}>
       <table className="jadada-table w-full border-collapse" style={{ minWidth: nested ? undefined : cols >= 5 ? 780 : undefined }}>
         {head >= 0 && <thead>{renderRow(rows[head], head)}</thead>}
-        <tbody>{rows.map((row, ri) => (ri === head ? null : renderRow(row, ri)))}</tbody>
+        <tbody>
+          {rows.map((row, ri) => (ri === head ? null : renderRow(row, ri)))}
+          {footerRow}
+        </tbody>
       </table>
     </div>
   );
@@ -370,7 +516,7 @@ const isMetaTable = (t?: SrcTable): boolean =>
   );
 
 /** استخراج ترويسة الوثيقة (إن وجدت في ملفها) دون المساس ببقية الكتل */
-function docLead(f: ImportedFiche): DocLead {
+export function docLead(f: ImportedFiche): DocLead {
   const lead: DocLead = { metas: [], rest: 0 };
   let i = 0;
   while (i < f.blocks.length) {
@@ -461,6 +607,52 @@ function DocHeaderBand({ lead, slot }: { lead: DocLead; slot: { number: string; 
   );
 }
 
+/* «المنتوج» خانة مستقلة داخل الجدول الرئيسي (صف حقل بتسمية كاملة، لا عنوان عام) */
+function ProduitInner({ parts }: { parts: ProduitPart[] }) {
+  return (
+    <>
+      <p className="text-[9.5px] font-black leading-relaxed" style={{ color: D.head }}>
+        عمود «{parts[0].header}» في الجذاذة الأصلية · {parts.length} جزءًا — جُمعت بترتيبها وسياقها نفسه، ونُقلت حرفيًا دون
+        حذف أو اختصار أو إعادة صياغة أو تغيير في المصطلحات أو الأرقام. (تجدونها كذلك في موضعها الأصلي داخل عمود «{parts[0].header}» أعلاه.)
+      </p>
+      <div className="mt-1.5 divide-y" style={{ borderColor: D.line }}>
+        {parts.map((p, i) => (
+          <div key={i} className="px-2.5 py-2" style={{ background: i % 2 ? D.beigeLight : "#ffffff" }}>
+            {p.phase && (
+              <p className="mb-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: D.nest }}>
+                {p.phase}
+              </p>
+            )}
+            <div className="text-[11px] font-semibold leading-relaxed text-ink-900">
+              <CellContent c={p.cell} gold />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ProduitRow({ parts, cols }: { parts: ProduitPart[]; cols: number }) {
+  return (
+    <tr>
+      <td
+        className="border px-2.5 py-2 text-center text-[10.5px] font-extrabold text-white"
+        style={{ background: D.head, borderColor: D.line }}
+      >
+        المنتوج
+      </td>
+      <td
+        colSpan={Math.max(cols - 1, 1)}
+        className="splittable border px-2.5 py-2 align-top"
+        style={{ background: D.beige, borderColor: D.line, color: D.ink }}
+      >
+        <ProduitInner parts={parts} />
+      </td>
+    </tr>
+  );
+}
+
 function Blocks({ f, slot }: { f: ImportedFiche; slot: { number: string; title: string } }) {
   if (f.layout === "pdf") {
     return (
@@ -470,21 +662,37 @@ function Blocks({ f, slot }: { f: ImportedFiche; slot: { number: string; title: 
     );
   }
   const lead = docLead(f);
+  /* التدفق كله يُجمع في جدول رئيسي واحد على قالب الصفحة الأولى المرجعي:
+     نفس الترويسة تتكرر في كل صفحة، والتقويمات صفوف حقول داخله، والمنتوج خانة مستقلة */
+  const items = assembleFlow(f.blocks.slice(lead.rest));
+  const master = items.find((it) => (it as { kind?: string }).kind === "master") as { kind: "master"; table: SrcTable } | undefined;
+  const parts = master ? collectProduit(f) : [];
+  const masterCols = master ? Math.max(...master.table.rows.map((r) => r.length), 1) : 1;
   return (
     <div className="px-3 pb-4 pt-1 sm:px-4">
       {lead.rest > 0 && <DocHeaderBand lead={lead} slot={slot} />}
-      {f.blocks.slice(lead.rest).map((b, i) =>
-        b.type === "para" ? (
+      {items.map((b, i) => {
+        if ("kind" in b && b.kind === "master") {
+          return (
+            <SrcTable
+              key={i}
+              t={b.table}
+              footerRow={parts.length ? <ProduitRow parts={parts} cols={masterCols} /> : undefined}
+            />
+          );
+        }
+        const blk = b as ImportedFiche["blocks"][number];
+        return blk.type === "para" ? (
           <SmartText
             key={i}
-            text={b.text ?? ""}
+            text={blk.text ?? ""}
             variant="doc"
-            className={`text-[11.5px] font-bold leading-relaxed text-ink-900 ${b.frame ? "mt-1" : "mt-2"}`}
+            className={`text-[11.5px] font-bold leading-relaxed text-ink-900 ${blk.frame ? "mt-1" : "mt-2"}`}
           />
-        ) : b.table ? (
-          <SrcTable key={i} t={b.table} />
-        ) : null,
-      )}
+        ) : blk.table ? (
+          <SrcTable key={i} t={blk.table} />
+        ) : null;
+      })}
     </div>
   );
 }
@@ -574,6 +782,13 @@ const DOC_CSS = `
   table.auto-table thead th { background: ${D.nest}; color: #fff; font-weight: 700; }
   table.auto-table td { color: ${D.ink}; }
   table.auto-table td.num { font-weight: 700; white-space: nowrap; }
+  /* خانة «المنتوج» كصف حقل داخل الجدول الرئيسي */
+  td.produitlabel { background: ${D.head}; color: #fff; font-weight: 800; text-align: center; vertical-align: middle; }
+  td.produitbody { background: ${D.beige}; color: ${D.ink}; }
+  td.produitbody .note { margin: 0 0 6px; font-size: 10px; font-weight: 700; line-height: 1.8; }
+  td.produitbody .part { padding: 6px 4px; border-top: 1px solid ${D.line}; }
+  td.produitbody .part:first-of-type { border-top: 0; }
+  td.produitbody .phase { display: inline-block; background: ${D.nest}; color: #fff; font-size: 10px; font-weight: 800; border-radius: 5px; padding: 1px 7px; margin-bottom: 3px; }
   td.prod { background: ${D.beige}; }
   td.rowlab { background: ${D.head}; color: #fff; font-weight: 800; }
   td.label2, td.nestfirst { background: ${D.beigeDark}; color: ${D.ink}; font-weight: 800; }
@@ -624,7 +839,7 @@ function cellToHtml(c: SrcCell, flat?: boolean): string {
   return parts.join("");
 }
 
-function tableToHtml(t: SrcTable, nested?: boolean): string {
+function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string): string {
   const rows = t.rows;
   const headerIdx = rows.findIndex((r) => r.filter(isHeaderCell).length >= 2);
   const produitCol = headerIdx >= 0 ? rows[headerIdx].findIndex((c) => cellTexts(c).some(isProduitHeader)) : -1;
@@ -647,7 +862,13 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
         return `<tr class="head"><th colspan="${cols}">${cellToHtml(row[0] ?? {})}</th></tr>`;
       }
       if (ri === head) {
-        return `<tr class="head">${row.map((c) => `<th>${cellToHtml(c)}</th>`).join("")}</tr>`;
+        /* ترويسة أقصر من الشبكة: آخر خانة تمتد دون تغيير اسم أو ترتيب */
+        const hLast = row.length < cols ? cols - row.length + 1 : 1;
+        return `<tr class="head">${row.map((c, ci) => `<th${row.length < cols && ci === row.length - 1 ? ` colspan="${hLast}"` : ""}>${cellToHtml(c)}</th>`).join("")}</tr>`;
+      }
+      if (isTaqwimRow(row) && row.length === cols) {
+        /* صف تقويم بعدد أعمدة الشبكة: كل خلية في عمودها (بلا دمج يغيّر المعنى) */
+        return `<tr><td class="taqwim">${cellToHtml(row[0] ?? {})}</td>${row.slice(1).map((c) => `<td class="taqwimbody">${cellToHtml(c)}</td>`).join("")}</tr>`;
       }
       if (isTaqwimRow(row)) {
         const rest = row.slice(1).map((c) => cellToHtml(c)).join("<br />");
@@ -688,7 +909,7 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
   };
   const body = rows.map((row, ri) => (ri === head ? "" : rowHtml(row, ri))).join("\n");
   const thead = head >= 0 ? `<thead>\n${rowHtml(rows[head], head)}\n</thead>` : "";
-  return `<table${nested ? ' class="nested" style="margin-top:6px"' : ""}>${thead}<tbody>\n${body}\n</tbody></table>`;
+  return `<table${nested ? ' class="nested" style="margin-top:6px"' : ""}>${thead}<tbody>\n${body}${footerHtml ? `\n${footerHtml}` : ""}\n</tbody></table>`;
 }
 
 export function metaTableHtml(t?: SrcTable): string {
@@ -701,6 +922,19 @@ export function metaTableHtml(t?: SrcTable): string {
           .join("<br />")}</td></tr>`,
     )
     .join("")}</tbody></table>`;
+}
+
+/* «المنتوج» كصف حقل داخل الجدول الرئيسي في نسخة التحميل أيضًا (بنية مطابقة للعرض) */
+function produitRowHtml(parts: ProduitPart[], cols: number): string {
+  return `<tr><td class="produitlabel">المنتوج</td><td class="produitbody splittable" colspan="${Math.max(cols - 1, 1)}">
+    <p class="note">جُمعت أجزاء المنتوج من عمود «${esc(parts[0].header)}» في الجذاذة الأصلية بترتيبها وسياقها نفسه، ونُقلت حرفيًا دون حذف أو اختصار أو إعادة صياغة. (وتوجد كذلك في موضعها الأصلي داخل عمود «${esc(parts[0].header)}» أعلاه.)</p>
+    ${parts
+      .map(
+        (p) =>
+          `<div class="part">${p.phase ? `<span class="phase">${esc(p.phase)}</span>` : ""}${cellToHtml(p.cell)}</div>`,
+      )
+      .join("")}
+  </td></tr>`;
 }
 
 export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
@@ -716,17 +950,33 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
          ${metaTableHtml(lead.metas.find((t) => t !== (lead.metas.find((x) => cellTexts(x.rows[0]?.[0]).some((l) => l.includes("مادة"))) ?? lead.metas[0])))}</div>`
       : "";
   const bodyBlocks = f.blocks.slice(lead.rest);
+  /* نفس التجميع الموحّد في نسخة التحميل: جدول رئيسي واحد على قالب الصفحة الأولى */
+  const flow: FlowItem[] = f.layout === "pdf" ? [] : assembleFlow(bodyBlocks);
+  const master = flow.find((it) => "kind" in it && it.kind === "master") as { kind: "master"; table: SrcTable } | undefined;
+  const parts = collectProduit(f);
   const blocks =
     f.layout === "pdf"
       ? `<div class="pdfsheet"><p class="pdfnote">الوثيقة المصدر PDF — سطور النص بترتيبها الأصلي كما وردت في الملف، حرفيًا</p>${f.blocks
           .filter((b) => b.type === "para")
           .map((b) => `<p class="pdfline">${esc(b.text ?? "").replace(/\n/g, "<br />")}</p>`)
           .join("")}</div>`
-      : bodyBlocks
-          .map((b) => (b.type === "para" ? `<p class="para">${esc(b.text ?? "").replace(/\n/g, "<br />")}</p>` : b.table ? tableToHtml(b.table) : ""))
+      : flow
+          .map((b) => {
+            if ("kind" in b && b.kind === "master") {
+              const cols = Math.max(...b.table.rows.map((r) => r.length), 1);
+              return tableToHtml(b.table, false, parts.length ? produitRowHtml(parts, cols) : undefined);
+            }
+            const blk = b as ImportedFiche["blocks"][number];
+            return blk.type === "para"
+              ? `<p class="para">${esc(blk.text ?? "").replace(/\n/g, "<br />")}</p>`
+              : blk.table
+                ? tableToHtml(blk.table)
+                : "";
+          })
           .join("\n");
-  const parts = collectProduit(f);
-  const produit = parts.length
+  const produit = master
+    ? ""
+    : parts.length
     ? `<div class="produit"><h2>المنتوج</h2>
        <p class="note">جُمعت أجزاء المنتوج من عمود «${esc(parts[0].header)}» في الجذاذة الأصلية بترتيبها وسياقها نفسه، ونُقلت حرفيًا دون حذف أو اختصار أو إعادة صياغة.</p>
        ${parts
@@ -979,7 +1229,7 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
           <>
             <Blocks f={imported} slot={slot} />
             <div className="px-3 pb-4 sm:px-4">
-              <ProduitPanel f={imported} />
+              {!hasFlowMaster(imported) && <ProduitPanel f={imported} />}
               <div
                 className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3"
                 style={{ background: D.beige, border: `1px solid ${D.line}` }}
