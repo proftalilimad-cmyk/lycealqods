@@ -157,15 +157,34 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
   const stageCol = headerIdx >= 0 && /مراحل|وضعيات/.test(headFirst) ? 0 : -1;
   /* جدول من عمودين (الإشكالية ونحوها): خانة العنوان بيج بنص بني كما في الأصل */
   const twoCol = cols === 2;
+  /* الجداول المتداخلة: صفّها الأول ترويسة إن كانت خاناته قصيرة بلا تنقيط (كما في الأصل) */
+  const BULLET = /^\s*[-=*•·<>=>]|^\s*\d+\s*[).\-]/;
+  let head = headerIdx;
+  if (head === -1 && nested && rows.length > 1) {
+    const r0 = rows[0];
+    const shortAll = r0.every((c) => {
+      const t = cleanLine(cellTexts(c).join(" "));
+      return t.length <= 30 && !BULLET.test(t);
+    });
+    if (shortAll && r0.some((c) => cellTexts(c).length)) head = 0;
+  }
+  /* زوج عنوان/محتوى في جدول العمودين: العمود الأقصر كثيرًا هو خانة العنوان */
+  const sums = twoCol
+    ? [0, 1].map((ci) => rows.reduce((a, r) => a + (cellTexts(r[ci]).join(" ").length), 0))
+    : [0, 0];
+  const maxSum = Math.max(sums[0], sums[1], 1);
+  const minSum = Math.min(sums[0], sums[1]);
+  const labelPair = twoCol && minSum / maxSum <= 0.45;
+  const labelCol = labelPair ? (sums[0] <= sums[1] ? 0 : 1) : -1;
 
   return (
     <div className={`${nested ? "" : "mt-3"} overflow-x-auto`}>
       <table className="w-full border-collapse" style={{ minWidth: nested ? undefined : cols >= 5 ? 780 : undefined }}>
         <tbody>
           {rows.map((row, ri) => {
-            const isHeader = ri === headerIdx;
+            const isHeader = ri === head;
             /* صف مدمج واحد في أول الجدول = ترويسته الممتدة كما في الأصل */
-            if (ri === 0 && row.length === 1 && cols > 1 && headerIdx !== 0) {
+            if (ri === 0 && row.length === 1 && cols > 1 && head !== 0) {
               return (
                 <tr key={ri}>
                   <th
@@ -229,8 +248,9 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
                   const txt = cellTexts(c).join(" ");
                   /* عنوان صفّ قصير بدون صندوق = خانة بنية بنص أبيض (كخلية «أهداف التعلم») */
                   const rowLabel = first && !merged && cols >= 3 && !(c.box ?? []).length && cleanLine(txt).length <= 25;
-                  /* جدول عمودين: الخانة الأولى عنوان بيج بنص بني */
-                  const label2 = first && !merged && twoCol;
+                  /* جدول عمودين: خانة العنوان (الأقصر) بيج غامق/كريمي بنص بني عريض */
+                  const label2 = !merged && twoCol && ci === labelCol;
+                  const value2 = !merged && twoCol && labelPair && ci !== labelCol;
                   const bg = merged
                     ? D.beigeDark
                     : gold
@@ -238,17 +258,21 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
                       : rowLabel
                         ? D.head
                         : label2
-                          ? D.beigeDark
-                          : first && nested
-                            ? D.beigeDark
-                            : twoCol && ci === 1
+                          ? nested
+                            ? D.beigeLight
+                            : D.beigeDark
+                          : value2
+                            ? nested
+                              ? D.beige
+                              : D.beigeLight
+                            : nested
                               ? D.beigeLight
                               : "#ffffff";
                   return (
                     <td
                       key={ci}
                       colSpan={span > 1 ? span : undefined}
-                      className={`border px-2.5 py-2 align-top text-[10.5px] leading-relaxed ${rowLabel ? "font-extrabold text-white" : label2 || (twoCol && ci === 1) ? "font-extrabold" : `font-semibold ${gold ? "font-bold" : ""}`} ${merged ? "font-extrabold" : ""}`}
+                      className={`border px-2.5 py-2 align-top text-[10.5px] leading-relaxed ${rowLabel ? "font-extrabold text-white" : label2 ? "font-extrabold" : `font-semibold ${gold ? "font-bold" : ""}`} ${merged ? "font-extrabold" : ""}`}
                       style={{
                         background: bg,
                         borderColor: D.line,
@@ -524,6 +548,9 @@ const DOC_CSS = `
   td.rowlab { background: ${D.head}; color: #fff; font-weight: 800; }
   td.label2, td.nestfirst { background: ${D.beigeDark}; color: ${D.ink}; font-weight: 800; }
   td.label2val { background: ${D.beigeLight}; font-weight: 800; }
+  td.nlab { background: ${D.beigeLight}; color: ${D.ink}; font-weight: 800; }
+  td.nval { background: ${D.beige}; }
+  td.nbody { background: ${D.beigeLight}; }
   td.stage p { color: ${D.ink}; font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
   td.merged { background: ${D.beigeDark}; font-weight: 700; }
   td.taqwim { background: ${D.head}; color: #fff; text-align: center; font-weight: 700; }
@@ -572,12 +599,22 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
   const headFirst = cleanLine(cellTexts(rows[headerIdx]?.[0])[0] ?? "");
   const stageCol = headerIdx >= 0 && /مراحل|وضعيات/.test(headFirst) ? 0 : -1;
   const twoCol = cols === 2;
+  const BULLET = /^\s*[-=*•·<>=>]|^\s*\d+\s*[).\-]/;
+  let head = headerIdx;
+  if (head === -1 && nested && rows.length > 1) {
+    const r0 = rows[0];
+    if (r0.every((c) => { const t = cleanLine(cellTexts(c).join(" ")); return t.length <= 30 && !BULLET.test(t); }) && r0.some((c) => cellTexts(c).length)) head = 0;
+  }
+  const sums = twoCol ? [0, 1].map((ci) => rows.reduce((a, r) => a + cellTexts(r[ci]).join(" ").length, 0)) : [0, 0];
+  const maxSum = Math.max(sums[0], sums[1], 1);
+  const labelPair = twoCol && Math.min(sums[0], sums[1]) / maxSum <= 0.45;
+  const labelCol = labelPair ? (sums[0] <= sums[1] ? 0 : 1) : -1;
   const body = rows
     .map((row, ri) => {
-      if (ri === 0 && row.length === 1 && cols > 1 && headerIdx !== 0) {
+      if (ri === 0 && row.length === 1 && cols > 1 && head !== 0) {
         return `<tr class="head"><th colspan="${cols}">${cellToHtml(row[0] ?? {})}</th></tr>`;
       }
-      if (ri === headerIdx) {
+      if (ri === head) {
         return `<tr class="head">${row.map((c) => `<th>${cellToHtml(c)}</th>`).join("")}</tr>`;
       }
       if (isTaqwimRow(row)) {
@@ -591,20 +628,24 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
           const span = merged ? cols : ci === row.length - 1 ? lastSpan : 1;
           const first = ci === 0;
           const rowLabel = first && !merged && cols >= 3 && !(c.box ?? []).length && cleanLine(cellTexts(c).join(" ")).length <= 25;
-          const label2 = first && !merged && twoCol;
-          const nestFirst = first && !merged && Boolean(nested);
+          const isLabel2 = !merged && twoCol && ci === labelCol;
+          const isValue2 = !merged && twoCol && labelPair && ci !== labelCol;
           const cls = merged
             ? "merged"
             : ci === produitCol
               ? "prod"
               : rowLabel
                 ? "rowlab"
-                : label2
-                  ? "label2"
-                  : nestFirst
-                    ? "nestfirst"
-                    : twoCol && ci === 1
-                      ? "label2val"
+                : isLabel2
+                  ? nested
+                    ? "nlab"
+                    : "label2"
+                  : isValue2
+                    ? nested
+                      ? "nval"
+                      : "label2val"
+                    : nested
+                      ? "nbody"
                       : ci === stageCol
                         ? "stage"
                         : "";
@@ -613,7 +654,7 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
         .join("")}</tr>`;
     })
     .join("\n");
-  return `<table${nested ? ' style="margin-top:6px"' : ""}><tbody>\n${body}\n</tbody></table>`;
+  return `<table${nested ? ' class="nested" style="margin-top:6px"' : ""}><tbody>\n${body}\n</tbody></table>`;
 }
 
 export function metaTableHtml(t?: SrcTable): string {
