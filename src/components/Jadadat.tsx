@@ -45,7 +45,7 @@ import type { Route } from "../routes";
    «المنتوج» في موضع واضح مع الحفاظ على نصّه الأصلي وموقعه.
    ============================================================ */
 
-/* ألوان جداول الجذاذات = هوية المنصة (أخضر brand + لمسة gold) */
+/* ألوان جداول الجذاذات = هوية المنصة (أخضر brand + لمسة gold) لإطار القسم */
 const C = {
   head: "#0c6147",      /* brand-700 */
   headDark: "#0a4d3a",  /* brand-800 */
@@ -58,6 +58,18 @@ const C = {
 };
 
 const SUBJECTS = ["التاريخ", "الجغرافيا"] as const;
+
+/* ألوان شكل الوثيقة الأصلية كما وردت في ملف الأستاذ (بني/بيج) — يُحترم هذا الشكل في عرض الجذاذة */
+const D = {
+  head: "#8c4b2e",      /* بني رؤوس الجداول وصناديق المراحل وعنوان الدرس */
+  nest: "#8a3a26",      /* بني رؤوس الجداول المتداخلة */
+  beige: "#f6e7c6",     /* بيج الخلايا (المنتوج/التقويم/قيم البطاقة) */
+  beigeLight: "#fbf4e2",
+  beigeDark: "#f0dfb6",
+  line: "#d9c39b",
+  yellow: "#f5d878",    /* الخلية الفارغة في «انجاز الاستاذ» كما في الأصل */
+  ink: "#5d3a24",
+};
 
 /* ترويسات الجداول كما سمّتها الوثائق الأصلية (للتنسيق فقط، لا لتغيير النص) */
 const HEAD_WORDS = [
@@ -99,20 +111,24 @@ const isTaqwimRow = (row: SrcCell[]) => /^تقويم|^التقويم/.test(clean
    عرض محتوى الوثيقة الأصلية (خلايا وجداول)
    ============================================================ */
 
-function CellContent({ c, gold }: { c: SrcCell; gold?: boolean }) {
+function CellContent({ c, gold, stage }: { c: SrcCell; gold?: boolean; stage?: boolean }) {
   return (
     <>
       {(c.box ?? []).map((b, i) => (
         <span
           key={`b${i}`}
           className="mb-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white"
-          style={{ background: C.olive }}
+          style={{ background: D.head }}
         >
           {b}
         </span>
       ))}
       {(c.lines ?? []).map((l, i) => (
-        <p key={i} className={`whitespace-pre-line ${i > 0 || (c.box ?? []).length ? "mt-1" : ""} ${gold ? "font-bold" : ""}`}>
+        <p
+          key={i}
+          className={`whitespace-pre-line ${i > 0 || (c.box ?? []).length ? "mt-1" : ""} ${gold ? "font-bold" : ""} ${stage ? "font-extrabold underline underline-offset-4" : ""}`}
+          style={stage ? { color: D.ink } : undefined}
+        >
           {l}
         </p>
       ))}
@@ -145,7 +161,7 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
                     <th
                       key={ci}
                       className="border px-2.5 py-2 text-start text-[10.5px] font-extrabold text-white"
-                      style={{ background: ci === produitCol ? C.olive : C.headDark, borderColor: C.line }}
+                      style={{ background: nested ? D.nest : D.head, borderColor: D.line }}
                     >
                       <CellContent c={c} />
                     </th>
@@ -158,14 +174,14 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
                 <tr key={ri}>
                   <td
                     className="border px-2.5 py-2 text-center text-[10.5px] font-extrabold text-white"
-                    style={{ background: C.olive, borderColor: C.line }}
+                    style={{ background: D.head, borderColor: D.line }}
                   >
                     <CellContent c={row[0] ?? {}} />
                   </td>
                   <td
                     colSpan={Math.max(row.length - 1, 1)}
                     className="border px-2.5 py-2 text-[10.5px] font-bold leading-relaxed text-ink-900"
-                    style={{ background: C.beigeDark, borderColor: C.line }}
+                    style={{ background: D.beige, borderColor: D.line }}
                   >
                     {row.slice(1).map((c, ci) => (
                       <div key={ci}>
@@ -191,11 +207,11 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
                       colSpan={span > 1 ? span : undefined}
                       className={`border px-2.5 py-2 align-top text-[10.5px] leading-relaxed text-ink-900 ${merged ? "font-extrabold" : "font-semibold"}`}
                       style={{
-                        background: merged ? C.beigeDark : gold ? C.gold : first ? C.beige : "#ffffff",
-                        borderColor: C.line,
+                        background: merged ? D.beigeDark : gold ? D.beige : "#ffffff",
+                        borderColor: D.line,
                       }}
                     >
-                      <CellContent c={c} gold={gold} />
+                      <CellContent c={c} gold={gold} stage={first && !merged && cols >= 4} />
                     </td>
                   );
                 })}
@@ -248,7 +264,122 @@ function PdfSheet({ f }: { f: ImportedFiche }) {
   );
 }
 
-function Blocks({ f }: { f: ImportedFiche }) {
+/* ---------- ترويسة الوثيقة كما في ملف الأستاذ: بطاقتان جانبيتان + عنوان الدرس وسطها ---------- */
+interface DocLead {
+  metas: SrcTable[];
+  number?: string;
+  pill?: string;
+  title?: string;
+  rest: number;
+}
+
+const isMetaTable = (t?: SrcTable): boolean =>
+  Boolean(
+    t &&
+      t.rows.length >= 2 &&
+      t.rows.length <= 4 &&
+      t.rows.every(
+        (r) =>
+          r.length === 2 &&
+          cleanLine(cellTexts(r[0])[0] ?? "").length > 0 &&
+          cleanLine(cellTexts(r[0])[0] ?? "").length <= 20 &&
+          cleanLine(cellTexts(r[1])[0] ?? "").length <= 45,
+      ),
+  );
+
+/** استخراج ترويسة الوثيقة (إن وجدت في ملفها) دون المساس ببقية الكتل */
+function docLead(f: ImportedFiche): DocLead {
+  const lead: DocLead = { metas: [], rest: 0 };
+  let i = 0;
+  while (i < f.blocks.length) {
+    const b = f.blocks[i];
+    if (b.type === "table" && isMetaTable(b.table ?? undefined)) {
+      lead.metas.push(b.table!);
+      i += 1;
+      continue;
+    }
+    const t = cleanLine(b.type === "para" ? (b.text ?? "") : "");
+    if (b.type === "para" && t && t.length <= 60 && (lead.metas.length > 0 || /^\d{1,2}$/.test(t))) {
+      const isNum = /^\d{1,2}$/.test(t);
+      if (isNum && !lead.number) lead.number = t;
+      else if (!isNum && !lead.pill && t.includes("عنوان")) lead.pill = t;
+      else if (!isNum && !lead.title) lead.title = t;
+      else break; // لا يُحذف أي سطر من الوثيقة: ما لا يدخل في الترويسة يبقى في جسمها
+      i += 1;
+      continue;
+    }
+    break;
+  }
+  lead.rest = i;
+  if (lead.metas.length === 0 && !lead.number) return { metas: [], rest: 0 };
+  return lead;
+}
+
+function MetaTable({ t }: { t: SrcTable }) {
+  return (
+    <table className="w-full border-collapse">
+      <tbody>
+        {t.rows.map((r, ri) => {
+          const empty = cellTexts(r[1]).length === 0;
+          return (
+            <tr key={ri}>
+              <th
+                className="w-2/5 border px-2.5 py-1.5 text-start text-[10.5px] font-extrabold text-white"
+                style={{ background: D.head, borderColor: D.line }}
+              >
+                {cellTexts(r[0]).map((l, i) => (
+                  <p key={i} className="whitespace-pre-line">{l}</p>
+                ))}
+              </th>
+              <td
+                className="border px-2.5 py-1.5 text-[10.5px] font-bold text-ink-900"
+                style={{ background: empty ? D.yellow : D.beige, borderColor: D.line }}
+              >
+                {cellTexts(r[1]).map((l, i) => (
+                  <p key={i} className="whitespace-pre-line">{l}</p>
+                ))}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function DocHeaderBand({ lead, slot }: { lead: DocLead; slot: { number: string; title: string } }) {
+  const right = lead.metas.find((t) => cellTexts(t.rows[0]?.[0]).some((l) => l.includes("مادة"))) ?? lead.metas[0];
+  const left = lead.metas.find((t) => t !== right);
+  return (
+    <div className="mt-2 grid items-start gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,auto)_minmax(0,1fr)]">
+      {right && <MetaTable t={right} />}
+      <div className="order-first flex flex-col items-center gap-1.5 md:order-none">
+        <div className="flex w-full items-center justify-center gap-2">
+          <span
+            className="grid size-9 shrink-0 place-items-center rounded-full font-display text-[13px] font-black text-white"
+            style={{ background: D.head }}
+          >
+            {lead.number ?? slot.number}
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <span className="rounded-md bg-ink-500 px-2.5 py-0.5 text-[9.5px] font-black text-white">
+              {lead.pill ?? "عنوان الدرس"}
+            </span>
+            <span
+              className="w-full rounded-xl px-3 py-2 text-center font-display text-[12px] font-extrabold leading-snug text-white"
+              style={{ background: D.head }}
+            >
+              {lead.title ?? slot.title}
+            </span>
+          </div>
+        </div>
+      </div>
+      {left && <MetaTable t={left} />}
+    </div>
+  );
+}
+
+function Blocks({ f, slot }: { f: ImportedFiche; slot: { number: string; title: string } }) {
   if (f.layout === "pdf") {
     return (
       <div className="px-3 pb-4 pt-1 sm:px-4">
@@ -256,9 +387,11 @@ function Blocks({ f }: { f: ImportedFiche }) {
       </div>
     );
   }
+  const lead = docLead(f);
   return (
     <div className="px-3 pb-4 pt-1 sm:px-4">
-      {f.blocks.map((b, i) =>
+      {lead.rest > 0 && <DocHeaderBand lead={lead} slot={slot} />}
+      {f.blocks.slice(lead.rest).map((b, i) =>
         b.type === "para" ? (
           <p
             key={i}
@@ -279,8 +412,8 @@ function ProduitPanel({ f }: { f: ImportedFiche }) {
   const parts = collectProduit(f);
   if (parts.length === 0) {
     return (
-      <section className="mt-4 rounded-2xl border p-4" style={{ borderColor: C.goldLine, background: C.gold }}>
-        <h2 className="flex items-center gap-2 font-display text-[13px] font-extrabold" style={{ color: C.headDark }}>
+      <section className="mt-4 rounded-2xl border p-4" style={{ borderColor: D.line, background: D.beigeLight }}>
+        <h2 className="flex items-center gap-2 font-display text-[13px] font-extrabold" style={{ color: D.head }}>
           <ScrollText className="size-4" aria-hidden="true" />
           المنتوج
         </h2>
@@ -291,23 +424,23 @@ function ProduitPanel({ f }: { f: ImportedFiche }) {
     );
   }
   return (
-    <section className="mt-4 overflow-hidden rounded-2xl border" style={{ borderColor: C.goldLine }}>
-      <h2 className="flex flex-wrap items-center gap-2 px-4 py-2.5 font-display text-[13px] font-extrabold text-white" style={{ background: C.olive }}>
+    <section className="mt-4 overflow-hidden rounded-2xl border" style={{ borderColor: D.line }}>
+      <h2 className="flex flex-wrap items-center gap-2 px-4 py-2.5 font-display text-[13px] font-extrabold text-white" style={{ background: D.head }}>
         <ScrollText className="size-4" aria-hidden="true" />
         المنتوج
         <span className="rounded-full bg-white/20 px-2 py-0.5 text-[9.5px] font-black">
           عمود «{parts[0].header}» في الجذاذة الأصلية · {parts.length} جزءًا
         </span>
       </h2>
-      <p className="border-b px-4 py-2 text-[10px] font-bold leading-relaxed text-ink-600" style={{ borderColor: C.goldLine, background: C.gold }}>
+      <p className="border-b px-4 py-2 text-[10px] font-bold leading-relaxed text-ink-600" style={{ borderColor: D.line, background: D.beigeLight }}>
         جُمعت أجزاء المنتوج من الجدول الأصلي بترتيبها وسياقها نفسه، ونُقلت حرفيًا دون حذف أو اختصار أو إعادة صياغة أو تغيير
         في المصطلحات أو الأرقام. (تجدونها كذلك في موضعها الأصلي داخل عمود «{parts[0].header}» أعلاه.)
       </p>
-      <div className="divide-y" style={{ borderColor: C.goldLine }}>
+      <div className="divide-y" style={{ borderColor: D.line }}>
         {parts.map((p, i) => (
-          <div key={i} className="px-4 py-3" style={{ background: i % 2 ? "#fffdf7" : "#ffffff" }}>
+          <div key={i} className="px-4 py-3" style={{ background: i % 2 ? D.beigeLight : "#ffffff" }}>
             {p.phase && (
-              <p className="mb-1.5 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: C.head }}>
+              <p className="mb-1.5 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: D.nest }}>
                 {p.phase}
               </p>
             )}
@@ -331,33 +464,45 @@ const DOC_CSS = `
   * { box-sizing: border-box; }
   body { margin: 0; padding: 24px; background: #f6f8f7; color: #12211b;
          font-family: "Readex Pro", "Cairo", "Noto Naskh Arabic", Tahoma, Arial, sans-serif; }
-  .sheet { max-width: 1040px; margin: 0 auto; background: #fff; border: 1px solid ${C.line}; border-radius: 14px; overflow: hidden; }
-  .masthead { background: ${C.head}; color: #fff; padding: 16px 20px; }
+  .sheet { max-width: 1040px; margin: 0 auto; background: #fff; border: 1px solid ${D.line}; border-radius: 14px; overflow: hidden; }
+  .masthead { background: ${D.head}; color: #fff; padding: 16px 20px; }
   .masthead h1 { margin: 0; font-size: 19px; }
   .masthead p { margin: 6px 0 0; font-size: 12px; opacity: .92; line-height: 1.9; }
   .pad { padding: 16px 18px 22px; }
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { border: 1px solid ${C.line}; padding: 7px 9px; font-size: 11.5px; vertical-align: top; line-height: 1.9; text-align: start; }
-  thead th, tr.head th { background: ${C.headDark}; color: #fff; font-size: 11px; }
-  tr.head th.prod, td.prod { background: ${C.gold}; }
-  td.first { background: ${C.beige}; }
-  td.merged { background: ${C.beigeDark}; font-weight: 700; }
-  td.taqwim { background: ${C.olive}; color: #fff; text-align: center; font-weight: 700; }
-  td.taqwimbody { background: ${C.beigeDark}; }
+  th, td { border: 1px solid ${D.line}; padding: 7px 9px; font-size: 11.5px; vertical-align: top; line-height: 1.9; text-align: start; }
+  tr.head th { background: ${D.head}; color: #fff; font-size: 11px; }
+  table.nested tr.head th { background: ${D.nest}; }
+  td.prod { background: ${D.beige}; }
+  td.first { background: #fff; }
+  td.first.stage p { color: ${D.ink}; font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
+  td.merged { background: ${D.beigeDark}; font-weight: 700; }
+  td.taqwim { background: ${D.head}; color: #fff; text-align: center; font-weight: 700; }
+  td.taqwimbody { background: ${D.beige}; }
   p { margin: 2px 0; }
-  .box { display: inline-block; background: ${C.olive}; color: #fff; border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: 700; margin-bottom: 3px; }
+  .box { display: inline-block; background: ${D.head}; color: #fff; border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: 700; margin-bottom: 3px; }
   .para { font-size: 12px; font-weight: 600; line-height: 1.95; margin: 6px 0; }
-  .produit { margin-top: 16px; border: 1px solid ${C.goldLine}; border-radius: 10px; overflow: hidden; }
-  .produit h2 { margin: 0; padding: 9px 13px; background: ${C.olive}; color: #fff; font-size: 13px; }
-  .produit .note { padding: 7px 13px; background: ${C.gold}; font-size: 10.5px; line-height: 1.8; border-bottom: 1px solid ${C.goldLine}; }
-  .produit .part { padding: 9px 13px; border-bottom: 1px solid ${C.goldLine}; font-size: 11.5px; line-height: 1.95; }
-  .produit .phase { display: inline-block; background: ${C.head}; color: #fff; border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: 700; margin-bottom: 4px; }
-  .sign { margin-top: 16px; background: ${C.gold}; border: 1px solid ${C.goldLine}; border-radius: 10px; padding: 11px 14px;
+  .dochead { display: grid; grid-template-columns: 1fr minmax(220px, auto) 1fr; gap: 12px; align-items: start; margin-top: 4px; }
+  .dochead table { margin-top: 0; }
+  .dochead th { background: ${D.head}; color: #fff; width: 40%; }
+  .dochead td { background: ${D.beige}; }
+  .dochead td.empty { background: ${D.yellow}; }
+  .titlezone { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .titlerow { display: flex; align-items: center; gap: 8px; width: 100%; }
+  .num { width: 36px; height: 36px; border-radius: 50%; background: ${D.head}; color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 13px; flex: none; }
+  .pill { background: #6b7280; color: #fff; border-radius: 5px; padding: 1px 9px; font-size: 9.5px; font-weight: 800; }
+  .titlebox { background: ${D.head}; color: #fff; border-radius: 10px; padding: 8px 12px; text-align: center; font-weight: 800; font-size: 12px; width: 100%; }
+  .produit { margin-top: 16px; border: 1px solid ${D.line}; border-radius: 10px; overflow: hidden; }
+  .produit h2 { margin: 0; padding: 9px 13px; background: ${D.head}; color: #fff; font-size: 13px; }
+  .produit .note { padding: 7px 13px; background: ${D.beigeLight}; font-size: 10.5px; line-height: 1.8; border-bottom: 1px solid ${D.line}; }
+  .produit .part { padding: 9px 13px; border-bottom: 1px solid ${D.line}; font-size: 11.5px; line-height: 1.95; }
+  .produit .phase { display: inline-block; background: ${D.nest}; color: #fff; border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: 700; margin-bottom: 4px; }
+  .sign { margin-top: 16px; background: ${D.beige}; border: 1px solid ${D.line}; border-radius: 10px; padding: 11px 14px;
           font-size: 12px; font-weight: 700; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
-  .pdfsheet { border: 1px solid ${C.line}; border-radius: 10px; overflow: hidden; margin-top: 10px; }
-  .pdfnote { margin: 0; padding: 7px 11px; background: ${C.beige}; color: ${C.headDark}; font-size: 10.5px; font-weight: 700; }
-  .pdfline { margin: 0; padding: 4px 11px; border-bottom: 1px solid ${C.beige}; font-size: 11.5px; font-weight: 600; line-height: 1.9; }
   .src { margin-top: 9px; font-size: 10.5px; color: #4c5b54; line-height: 1.8; }
+  .pdfsheet { border: 1px solid ${D.line}; border-radius: 10px; overflow: hidden; margin-top: 10px; }
+  .pdfnote { margin: 0; padding: 7px 11px; background: ${D.beige}; color: ${D.head}; font-size: 10.5px; font-weight: 700; }
+  .pdfline { margin: 0; padding: 4px 11px; border-bottom: 1px solid ${D.beige}; font-size: 11.5px; font-weight: 600; line-height: 1.9; }
   @media print { body { background: #fff; padding: 0; } .sheet { border: none; border-radius: 0; max-width: none; } @page { size: A4; margin: 12mm; } }
 `;
 
@@ -377,7 +522,7 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
   const body = rows
     .map((row, ri) => {
       if (ri === headerIdx) {
-        return `<tr class="head">${row.map((c, ci) => `<th${ci === produitCol ? ' class="prod"' : ""}>${cellToHtml(c)}</th>`).join("")}</tr>`;
+        return `<tr class="head">${row.map((c) => `<th>${cellToHtml(c)}</th>`).join("")}</tr>`;
       }
       if (isTaqwimRow(row)) {
         const rest = row.slice(1).map((c) => cellToHtml(c)).join("<br />");
@@ -388,7 +533,7 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
       return `<tr>${row
         .map((c, ci) => {
           const span = merged ? cols : ci === row.length - 1 ? lastSpan : 1;
-          const cls = merged ? "merged" : ci === produitCol ? "prod" : ci === 0 ? "first" : "";
+          const cls = merged ? "merged" : ci === produitCol ? "prod" : ci === 0 ? `first${cols >= 4 ? " stage" : ""}` : "";
           return `<td class="${cls}"${span > 1 ? ` colspan="${span}"` : ""}>${cellToHtml(c)}</td>`;
         })
         .join("")}</tr>`;
@@ -397,15 +542,38 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
   return `<table${nested ? ' style="margin-top:6px"' : ""}><tbody>\n${body}\n</tbody></table>`;
 }
 
-export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
+export function metaTableHtml(t?: SrcTable): string {
+  if (!t) return "<span></span>";
+  return `<table><tbody>${t.rows
+    .map(
+      (r) =>
+        `<tr><th>${cellTexts(r[0]).map(esc).join("<br />")}</th><td class="${cellTexts(r[1]).length ? "" : "empty"}">${cellTexts(r[1])
+          .map(esc)
+          .join("<br />")}</td></tr>`,
+    )
+    .join("")}</tbody></table>`;
+}
+
+function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
   const { slot } = entry;
+  const lead = docLead(f);
+  const headBand =
+    lead.rest > 0
+      ? `<div class="dochead">${metaTableHtml(lead.metas.find((t) => cellTexts(t.rows[0]?.[0]).some((l) => l.includes("مادة"))) ?? lead.metas[0])}
+         <div class="titlezone"><div class="titlerow"><span class="num">${esc(lead.number ?? slot.number)}</span>
+         <span style="flex:1;display:flex;flex-direction:column;gap:4px;align-items:center">
+         <span class="pill">${esc(lead.pill ?? "عنوان الدرس")}</span>
+         <span class="titlebox">${esc(lead.title ?? slot.title)}</span></span></div></div>
+         ${metaTableHtml(lead.metas.find((t) => t !== (lead.metas.find((x) => cellTexts(x.rows[0]?.[0]).some((l) => l.includes("مادة"))) ?? lead.metas[0])))}</div>`
+      : "";
+  const bodyBlocks = f.blocks.slice(lead.rest);
   const blocks =
     f.layout === "pdf"
       ? `<div class="pdfsheet"><p class="pdfnote">الوثيقة المصدر PDF — سطور النص بترتيبها الأصلي كما وردت في الملف، حرفيًا</p>${f.blocks
           .filter((b) => b.type === "para")
           .map((b) => `<p class="pdfline">${esc(b.text ?? "").replace(/\n/g, "<br />")}</p>`)
           .join("")}</div>`
-      : f.blocks
+      : bodyBlocks
           .map((b) => (b.type === "para" ? `<p class="para">${esc(b.text ?? "").replace(/\n/g, "<br />")}</p>` : b.table ? tableToHtml(b.table) : ""))
           .join("\n");
   const parts = collectProduit(f);
@@ -439,6 +607,7 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
   <div class="pad">
     <p class="para"><strong>الجذاذة ${esc(slot.number)} — ${esc(slot.subject)}:</strong> ${esc(slot.title)}
        · ${esc(slot.cycle)} — ${esc(slot.unitTitle)} (مجزوءة ${esc(slot.module)})</p>
+${headBand}
 ${blocks}
 ${produit}
     <div class="sign">
@@ -634,7 +803,7 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-xl shadow-brand-900/10 ring-1 ring-ink-900/10">
         {/* ترويسة الطباعة (تظهر في الورق فقط) */}
-        <div className="jadada-print-only px-5 py-3" style={{ background: C.head }}>
+        <div className="jadada-print-only px-5 py-3" style={{ background: D.head }}>
           <p className="text-[13px] font-black text-white">{SECTION_META.title}</p>
           <p className="mt-1 text-[10px] font-bold text-white/85">
             المادة: {SECTION_META.subject} · المستوى: {SECTION_META.level} · الإطار: {SECTION_META.frame} · {SECTION_META.authorLabel} — {TEACHER_SCHOOL}
@@ -659,12 +828,12 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
 
         {imported ? (
           <>
-            <Blocks f={imported} />
+            <Blocks f={imported} slot={slot} />
             <div className="px-3 pb-4 sm:px-4">
               <ProduitPanel f={imported} />
               <div
                 className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3"
-                style={{ background: C.gold, border: `1px solid ${C.goldLine}` }}
+                style={{ background: D.beige, border: `1px solid ${D.line}` }}
               >
                 <p className="text-[11px] font-extrabold text-ink-900">
                   {SECTION_META.authorLabel} — {TEACHER_SCHOOL}
