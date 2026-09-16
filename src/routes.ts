@@ -9,7 +9,8 @@ export type Route =
   | { view: "apps"; id?: string; level?: string }
   | { view: "lesson"; id: string }
   | { view: "resources"; type?: string; open?: string }
-  | { view: "decks"; id?: string; subject?: string };
+  | { view: "decks"; id?: string; subject?: string }
+  | { view: "jadadat"; level?: string; open?: string };
 
 export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "الرئيسية", route: { view: "home" } },
@@ -17,6 +18,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "التقويم التشخيصي", route: { view: "test" } },
   { label: "المبارزة", route: { view: "battle" } },
   { label: "الدروس", route: { view: "lessons" } },
+  { label: "الجذاذات", route: { view: "jadadat" } },
   { label: "التطبيقات", route: { view: "apps" } },
   { label: "العروض", route: { view: "decks" } },
   { label: "المنهجيات", route: { view: "methods" } },
@@ -51,6 +53,9 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/resources              الموارد
      #/resources/<type>       موارد مصفاة بنوع
      #/resources/<type>/<id>  مورد مفتوح
+     #/jadadat              الجذاذات
+     #/jadadat/<level>      جذاذات مستوى (tc / bac1 / bac2)
+     #/jadadat/<level>/<id> جذاذة مفتوحة
   ============================================================ */
 
 export const BASE_TITLE = "فضاء الاجتماعيات — الأستاذ عماد طليل";
@@ -64,6 +69,7 @@ export const VIEW_LABELS: Record<Route["view"], string> = {
   battle: "المبارزة",
   dashboard: "لوحة التتبع",
   lessons: "الدروس",
+  jadadat: "الجذاذات",
   lesson: "الدرس",
   methods: "المنهجيات",
   apps: "التطبيقات",
@@ -79,6 +85,7 @@ const SEGMENTS: Record<string, Route["view"]> = {
   battle: "battle",
   dashboard: "dashboard",
   lessons: "lessons",
+  jadadat: "jadadat",
   lesson: "lesson",
   methods: "methods",
   apps: "apps",
@@ -129,6 +136,10 @@ export function routeToPath(route: Route): string {
       if (route.open) return `/resources/${encodeSegment(route.type ?? "all")}/${encodeSegment(route.open)}`;
       return route.type ? `/resources/${encodeSegment(route.type)}` : "/resources";
     }
+    case "jadadat": {
+      if (route.open) return `/jadadat/${encodeSegment(route.level ?? "tc")}/${encodeSegment(route.open)}`;
+      return route.level ? `/jadadat/${encodeSegment(route.level)}` : "/jadadat";
+    }
   }
 }
 
@@ -169,6 +180,11 @@ export function routeFromPath(rawPath: string): Route {
       const type = parts[1] && parts[1] !== "all" ? parts[1] : undefined;
       const open = parts[2] || undefined;
       return open ? { view: "resources", type, open } : type ? { view: "resources", type } : { view: "resources" };
+    }
+    case "jadadat": {
+      const lvl = parts[1] || undefined;
+      const open = parts[2] || undefined;
+      return open ? { view: "jadadat", level: lvl, open } : lvl ? { view: "jadadat", level: lvl } : { view: "jadadat" };
     }
   }
 }

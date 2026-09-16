@@ -10,6 +10,7 @@ import Lessons from "./components/Lessons";
 import Methodologies from "./components/Methodologies";
 import Applications from "./components/Applications";
 import Resources from "./components/Resources";
+import Jadadat from "./components/Jadadat";
 import SearchOverlay from "./components/SearchOverlay";
 import LessonView from "./components/LessonView";
 import Decks from "./components/decks/Decks";
@@ -131,6 +132,9 @@ export default function App() {
               );
             return <Decks key={route.subject ?? "all"} go={go} initialSubject={route.subject} />;
           })()}
+        {route.view === "jadadat" && (
+          <Jadadat key={`${route.level ?? "tc"}-${route.open ?? ""}`} level={route.level} open={route.open} go={go} />
+        )}
         {route.view === "resources" && (
           <Resources key={`${route.type ?? "all"}-${route.open ?? ""}`} go={go} initialType={route.type} openId={route.open} />
         )}
