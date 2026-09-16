@@ -11,13 +11,16 @@ import type { Route } from "../routes";
    وتوقيع «إنجاز الأستاذ».
    ============================================================ */
 
+/* ألوان جداول الجذاذات = هوية المنصة (أخضر brand + لمسة gold) */
 const C = {
-  head: "#7d5f3d",
-  headDark: "#6a4f31",
-  olive: "#8a7a4f",
-  beige: "#f6edda",
-  beigeDark: "#efe3c4",
-  line: "#d9c9a8",
+  head: "#0c6147",      /* brand-700 */
+  headDark: "#0a4d3a",  /* brand-800 */
+  olive: "#0f7c5b",     /* brand-600 */
+  beige: "#edf7f2",     /* brand-50 */
+  beigeDark: "#d4ede0", /* brand-100 */
+  line: "#a9dcc4",      /* brand-200 */
+  gold: "#fdf7e9",      /* gold-50 */
+  goldLine: "#f5dfae",  /* gold-200 */
 };
 
 function Th({ children, dark }: { children: React.ReactNode; dark?: boolean }) {
@@ -125,8 +128,8 @@ function FicheModal({ id, onClose, go }: { id: string; onClose: () => void; go: 
                 </tbody>
               </table>
 
-              <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: "#8a6248" }}>
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white font-display text-sm font-black" style={{ color: "#8a6248" }}>
+              <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: C.head }}>
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white font-display text-sm font-black" style={{ color: C.head }}>
                   {j.number}
                 </span>
                 <div className="min-w-0">
@@ -235,7 +238,7 @@ function FicheModal({ id, onClose, go }: { id: string; onClose: () => void; go: 
                         <Td>
                           <Bullets items={s.management} />
                         </Td>
-                        <Td bg="#fdf8ec" className="text-center font-extrabold" >
+                        <Td bg={C.gold} className="text-center font-extrabold" >
                           {s.supports.length > 0 ? (
                             <Bullets items={s.supports} />
                           ) : (
@@ -261,7 +264,7 @@ function FicheModal({ id, onClose, go }: { id: string; onClose: () => void; go: 
             </div>
 
             {/* التوقيع */}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3" style={{ background: C.beige, border: `1px solid ${C.line}` }}>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3" style={{ background: C.gold, border: `1px solid ${C.goldLine}` }}>
               <p className="text-[11px] font-extrabold text-ink-900">
                 إنجاز: {TEACHER_NAME} — {TEACHER_SCHOOL}
               </p>
