@@ -114,15 +114,21 @@ const isTaqwimRow = (row: SrcCell[]) => /^تقويم|^التقويم/.test(clean
 function CellContent({ c, gold, stage }: { c: SrcCell; gold?: boolean; stage?: boolean }) {
   return (
     <>
-      {(c.box ?? []).map((b, i) => (
-        <span
-          key={`b${i}`}
-          className="mb-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white"
-          style={{ background: D.head }}
-        >
-          {b}
-        </span>
-      ))}
+      {(c.box ?? []).map((b, i) =>
+        gold ? (
+          <p key={`b${i}`} className="whitespace-pre-line font-extrabold" style={{ color: D.nest }}>
+            {b}
+          </p>
+        ) : (
+          <span
+            key={`b${i}`}
+            className="mb-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white"
+            style={{ background: D.head }}
+          >
+            {b}
+          </span>
+        ),
+      )}
       {(c.lines ?? []).map((l, i) => (
         <p
           key={i}
@@ -158,6 +164,20 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
         <tbody>
           {rows.map((row, ri) => {
             const isHeader = ri === headerIdx;
+            /* صف مدمج واحد في أول الجدول = ترويسته الممتدة كما في الأصل */
+            if (ri === 0 && row.length === 1 && cols > 1 && headerIdx !== 0) {
+              return (
+                <tr key={ri}>
+                  <th
+                    colSpan={cols}
+                    className="border px-2.5 py-2 text-start text-[10.5px] font-extrabold text-white"
+                    style={{ background: nested ? D.nest : D.head, borderColor: D.line }}
+                  >
+                    <CellContent c={row[0] ?? {}} />
+                  </th>
+                </tr>
+              );
+            }
             const taqwim = !isHeader && isTaqwimRow(row);
             if (isHeader) {
               return (
@@ -228,11 +248,11 @@ function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
                     <td
                       key={ci}
                       colSpan={span > 1 ? span : undefined}
-                      className={`border px-2.5 py-2 align-top text-[10.5px] leading-relaxed ${rowLabel ? "font-extrabold text-white" : label2 ? "font-extrabold" : "font-semibold text-ink-900"} ${merged ? "font-extrabold" : ""}`}
+                      className={`border px-2.5 py-2 align-top text-[10.5px] leading-relaxed ${rowLabel ? "font-extrabold text-white" : label2 || (twoCol && ci === 1) ? "font-extrabold" : `font-semibold ${gold ? "font-bold" : ""}`} ${merged ? "font-extrabold" : ""}`}
                       style={{
                         background: bg,
                         borderColor: D.line,
-                        color: label2 || (first && nested && !rowLabel) ? D.ink : undefined,
+                        color: rowLabel ? undefined : D.ink,
                       }}
                     >
                       <CellContent c={c} gold={gold} stage={ci === stageCol && !merged && !rowLabel} />
@@ -495,12 +515,15 @@ const DOC_CSS = `
   .pad { padding: 16px 18px 22px; }
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
   th, td { border: 1px solid ${D.line}; padding: 7px 9px; font-size: 11.5px; vertical-align: top; line-height: 1.9; text-align: start; }
+  tbody td { color: ${D.ink}; }
+  tbody td.rowlab, tr.head th { color: #fff; }
+  .boxflat { margin: 0 0 3px; font-weight: 800; color: ${D.nest}; }
   tr.head th { background: ${D.head}; color: #fff; font-size: 11px; }
   table.nested tr.head th { background: ${D.nest}; }
   td.prod { background: ${D.beige}; }
   td.rowlab { background: ${D.head}; color: #fff; font-weight: 800; }
   td.label2, td.nestfirst { background: ${D.beigeDark}; color: ${D.ink}; font-weight: 800; }
-  td.label2val { background: ${D.beigeLight}; }
+  td.label2val { background: ${D.beigeLight}; font-weight: 800; }
   td.stage p { color: ${D.ink}; font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
   td.merged { background: ${D.beigeDark}; font-weight: 700; }
   td.taqwim { background: ${D.head}; color: #fff; text-align: center; font-weight: 700; }
@@ -532,9 +555,10 @@ const DOC_CSS = `
   @media print { body { background: #fff; padding: 0; } .sheet { border: none; border-radius: 0; max-width: none; } @page { size: A4; margin: 12mm; } }
 `;
 
-function cellToHtml(c: SrcCell): string {
+function cellToHtml(c: SrcCell, flat?: boolean): string {
   const parts: string[] = [];
-  for (const b of c.box ?? []) parts.push(`<span class="box">${esc(b)}</span>`);
+  for (const b of c.box ?? [])
+    parts.push(flat ? `<p class="boxflat">${esc(b)}</p>` : `<span class="box">${esc(b)}</span>`);
   for (const l of c.lines ?? []) parts.push(`<p>${esc(l).replace(/\n/g, "<br />")}</p>`);
   for (const n of c.nested ?? []) parts.push(tableToHtml(n, true));
   return parts.join("");
@@ -550,6 +574,9 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
   const twoCol = cols === 2;
   const body = rows
     .map((row, ri) => {
+      if (ri === 0 && row.length === 1 && cols > 1 && headerIdx !== 0) {
+        return `<tr class="head"><th colspan="${cols}">${cellToHtml(row[0] ?? {})}</th></tr>`;
+      }
       if (ri === headerIdx) {
         return `<tr class="head">${row.map((c) => `<th>${cellToHtml(c)}</th>`).join("")}</tr>`;
       }
@@ -581,7 +608,7 @@ function tableToHtml(t: SrcTable, nested?: boolean): string {
                       : ci === stageCol
                         ? "stage"
                         : "";
-          return `<td class="${cls}"${span > 1 ? ` colspan="${span}"` : ""}>${cellToHtml(c)}</td>`;
+          return `<td class="${cls}"${span > 1 ? ` colspan="${span}"` : ""}>${cellToHtml(c, ci === produitCol)}</td>`;
         })
         .join("")}</tr>`;
     })
