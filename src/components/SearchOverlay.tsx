@@ -9,7 +9,7 @@ import { LESSON_CONTENT } from "../data/lessonContent";
 import { TEST_BANKS } from "../data/testBanks";
 import { RESOURCES, typeMeta } from "../data/resources";
 import { DECKS } from "../data/decks";
-import { JADADA_STATUS_META, SECTION_META, TC_SCI_CATALOG } from "../data/jadadat";
+import { JADADA_STATUS_META, SECTION_META, TC_SCI_CATALOG, catalogText } from "../data/jadadat";
 import type { Route } from "../routes";
 
 interface SearchResult {
@@ -124,21 +124,22 @@ export default function SearchOverlay({ open, onClose, go }: SearchOverlayProps)
     /* العروض التفاعلية المبنية على الكتاب المدرسي */
     /* الجذاذات: اللائحة الرسمية للجذع المشترك العلمي (تاريخ + جغرافيا) */
     for (const e of TC_SCI_CATALOG) {
-      const f = e.fiche;
+      // البحث يشمل نص الوثيقة الأصلية كاملًا (المراحل، التدبير، الدعامات، المنتوج…)
       const hay = normalizeArabic(
         [
-          `جذاذة ${e.slot.number} ${e.slot.title} ${f?.title ?? ""}`,
+          `جذاذة ${e.slot.number} ${e.slot.title}`,
           `${e.slot.subject} ${e.slot.cycle} ${e.slot.unitTitle} ${SECTION_META.title} ${SECTION_META.level}`,
-          f ? `${f.kifayaMarkaziya} ${f.kifayaMihwariya} ${f.concepts?.join(" ") ?? ""}` : "",
-          f ? f.segments.map((sg) => `${sg.phase} ${sg.objectives.join(" ")} ${sg.management.join(" ")} ${sg.content.join(" ")}`).join(" ") : "",
-          f ? f.taqwimIjmali.join(" ") : "",
+          SECTION_META.authorLabel,
+          e.imported ? `المنتوج ${e.imported.source}` : "",
+          e.sourceFile ?? "",
+          catalogText(e),
         ].join(" "),
       );
       if (hay.includes(qNorm)) {
         out.push({
           id: `j-${e.slot.id}`,
           group: "جذاذات",
-          title: f?.title ?? e.slot.title,
+          title: e.slot.title,
           hint: `الجذاذة ${e.slot.number} · ${e.slot.subject} · ${e.slot.cycle} — ${JADADA_STATUS_META[e.status].short}`,
           action: { view: "jadadat", level: "tc", open: e.slot.id },
         });
