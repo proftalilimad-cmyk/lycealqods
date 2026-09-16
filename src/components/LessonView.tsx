@@ -29,7 +29,8 @@ import {
 } from "lucide-react";
 import type { LessonBlock, LessonContent } from "../types";
 import Reveal from "./Reveal";
-import SmartText from "./SmartText";
+import SmartText, { AutoTableView } from "./SmartText";
+import { isYear } from "../lib/tableDetect";
 import CopyLinkButton from "./CopyLinkButton";
 import type { Route } from "../routes";
 import { getDeckForLesson } from "../data/decks";
@@ -56,29 +57,15 @@ function BlockRenderer({ block }: { block: LessonBlock }) {
     );
   }
   if (block.type === "table") {
+    /* تصميم موحّد لكل جداول الدروس (كتل + وثائق + تقويمات): نفس النظام والمكوّن */
     return (
-      <div className="overflow-x-auto rounded-2xl border border-ink-900/6">
-        <table className="w-full min-w-[560px] text-sm">
-          <thead>
-            <tr className="bg-brand-800 text-white">
-              {block.head.map((h) => (
-                <th key={h} className="px-4 py-3 text-start font-display text-xs font-extrabold">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {block.rows.map((row, i) => (
-              <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-paper-warm/40"}>
-                {row.map((cell, j) => (
-                  <td key={j} className={`px-4 py-3 align-top leading-relaxed ${j === 0 ? "font-bold text-ink-900" : "text-ink-700"}`}>
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <AutoTableView
+        t={{
+          head: block.head,
+          rows: block.rows,
+          timeSeries: block.rows.length > 1 && block.rows.every((r) => isYear(r[0] ?? "")),
+        }}
+      />
     );
   }
   const tones = {

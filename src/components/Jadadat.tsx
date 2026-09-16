@@ -571,7 +571,7 @@ const DOC_CSS = `
   /* الجداول الذكية المكتشفة تلقائيًا (نفس النظام الموحد) */
   table.auto-table { margin-top: 6px; background: ${D.beigeLight}; }
   table.auto-table caption { color: ${D.head}; font-weight: 700; text-align: start; padding: 3px 6px; caption-side: top; }
-  table.auto-table thead th { background: ${D.nest}; color: #fff; font-weight: 700; white-space: nowrap; }
+  table.auto-table thead th { background: ${D.nest}; color: #fff; font-weight: 700; }
   table.auto-table td { color: ${D.ink}; }
   table.auto-table td.num { font-weight: 700; white-space: nowrap; }
   td.prod { background: ${D.beige}; }
