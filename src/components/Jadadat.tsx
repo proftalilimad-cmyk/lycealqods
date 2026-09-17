@@ -63,15 +63,19 @@ const C = {
 const SUBJECTS = ["التاريخ", "الجغرافيا"] as const;
 
 /* ألوان شكل الوثيقة الأصلية كما وردت في ملف الأستاذ (بني/بيج) — يُحترم هذا الشكل في عرض الجذاذة */
+/* منطقة الوثيقة بألوان الموقع (أخضر العلامة + الذهبي) وفق «وضع ألوان الموقع» —
+   البنية والنصوص بلا تغيير، الألوان فقط */
 const D = {
-  head: "#8c4b2e",      /* بني رؤوس الجداول وصناديق المراحل وعنوان الدرس */
-  nest: "#8a3a26",      /* بني رؤوس الجداول المتداخلة */
-  beige: "#f6e7c6",     /* بيج الخلايا (المنتوج/التقويم/قيم البطاقة) */
-  beigeLight: "#fbf4e2",
-  beigeDark: "#f0dfb6",
-  line: "#d9c39b",
-  yellow: "#f5d878",    /* الخلية الفارغة في «انجاز الاستاذ» كما في الأصل */
-  ink: "#5d3a24",
+  head: C.head,         /* أخضر الموقع لرؤوس الجداول وصناديق المراحل وعنوان الدرس */
+  nest: C.headDark,     /* أخضر غامق لرؤوس الجداول المتداخلة */
+  beige: C.beige,       /* أخضر فاتح للخلايا (التقويم/قيم البطاقة) */
+  beigeLight: "#f6fbf8",
+  beigeDark: C.beigeDark,
+  line: C.line,
+  yellow: C.gold,       /* ذهبي الموقع للخلية المميزة */
+  gold: C.gold,         /* ذهبي خانة المنتوج */
+  goldLine: C.goldLine,
+  ink: "#0b3a2c",       /* حبر أخضر غامق */
 };
 
 /* ترويسات الجداول كما سمّتها الوثائق الأصلية (للتنسيق فقط، لا لتغيير النص) */
@@ -646,8 +650,8 @@ function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: b
                     {fieldBand.map((fb) => (
                       <span
                         key={fb}
-                        className="min-w-[88px] flex-1 whitespace-nowrap rounded-md px-1.5 py-0.5 text-center text-[9.5px] font-black text-white"
-                        style={{ background: D.nest }}
+                        className="min-w-[88px] flex-1 whitespace-nowrap rounded-md px-1.5 py-0.5 text-center text-[9.5px] font-black"
+                        style={{ background: D.gold, color: "#6b4d12" }}
                       >
                         {fb}
                       </span>
@@ -833,7 +837,7 @@ function ProduitInner({ parts }: { parts: ProduitPart[] }) {
       </p>
       <div className="mt-1.5 divide-y" style={{ borderColor: D.line }}>
         {parts.map((p, i) => (
-          <div key={i} className="px-2.5 py-2" style={{ background: i % 2 ? D.beigeLight : "#ffffff" }}>
+          <div key={i} className="px-2.5 py-2" style={{ background: i % 2 ? D.gold : "#ffffff" }}>
             {p.phase && (
               <p className="mb-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: D.nest }}>
                 {p.phase}
@@ -861,7 +865,7 @@ function ProduitRow({ parts, cols }: { parts: ProduitPart[]; cols: number }) {
       <td
         colSpan={Math.max(cols - 1, 1)}
         className="splittable border px-2.5 py-2 align-top"
-        style={{ background: D.beige, borderColor: D.line, color: D.ink }}
+        style={{ background: D.gold, borderColor: D.goldLine, color: D.ink }}
       >
         <ProduitInner parts={parts} />
       </td>
@@ -1002,13 +1006,13 @@ const DOC_CSS = `
   /* شريط الحقول الستة الإلزامية (يتكرر في كل صفحة طباعة) */
   tr.fieldband th { background: ${D.head}; color: #fff; padding: 4px 5px; }
   tr.fieldband .fb { display: flex; flex-wrap: wrap; gap: 4px; }
-  tr.fieldband .fb span { flex: 1 1 0; min-width: 88px; background: ${D.nest}; color: #fff; border-radius: 5px;
+  tr.fieldband .fb span { flex: 1 1 0; min-width: 88px; background: ${D.gold}; color: #6b4d12; border-radius: 5px;
                           padding: 2px 6px; font-size: 10px; font-weight: 800; text-align: center; white-space: nowrap; }
   /* خانة «المنتوج» كصف حقل داخل الجدول الرئيسي */
   td.produitlabel { background: ${D.head}; color: #fff; font-weight: 800; text-align: center; vertical-align: middle; }
-  td.produitbody { background: ${D.beige}; color: ${D.ink}; }
+  td.produitbody { background: ${D.gold}; color: ${D.ink}; }
   td.produitbody .note { margin: 0 0 6px; font-size: 10px; font-weight: 700; line-height: 1.8; }
-  td.produitbody .part { padding: 6px 4px; border-top: 1px solid ${D.line}; }
+  td.produitbody .part { padding: 6px 4px; border-top: 1px solid ${D.goldLine}; }
   td.produitbody .part:first-of-type { border-top: 0; }
   td.produitbody .phase { display: inline-block; background: ${D.nest}; color: #fff; font-size: 10px; font-weight: 800; border-radius: 5px; padding: 1px 7px; margin-bottom: 3px; }
   td.prod { background: ${D.beige}; }
@@ -1227,6 +1231,7 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
   <div class="masthead">
     <h1>${esc(SECTION_META.title)}</h1>
     <p>المادة: ${esc(SECTION_META.subject)} · المستوى: ${esc(SECTION_META.level)} · الإطار: ${esc(SECTION_META.frame)}<br />
+       الكتاب المعتمد: ${esc(SECTION_META.book)} — مصاغة وفقه بجذاذات الأستاذ<br />
        ${esc(SECTION_META.authorLabel)} — ${esc(TEACHER_SCHOOL)}</p>
   </div>
   <div class="pad">
@@ -1514,6 +1519,12 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
             >
               التحقق البنيوي (TABLE VALIDATOR): {validation.status}
             </span>
+            <span
+              className="rounded-full px-3 py-1 text-[10px] font-extrabold"
+              style={{ background: C.gold, border: `1px solid ${C.goldLine}`, color: "#6b4d12" }}
+            >
+              مصاغة من كتاب: {SECTION_META.book} — {SECTION_META.level}
+            </span>
           </div>
           <ValidatorReport v={validation} />
         </div>
@@ -1539,8 +1550,9 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
                 </p>
               </div>
               <p className="mt-2 text-[10.5px] font-bold leading-relaxed text-ink-500">
-                نُقلت هذه الجذاذة آليًا من وثيقة الأستاذ الأصلية دون حذف أو اختصار أو إعادة صياغة أو تغيير في المصطلحات أو
-                الأرقام أو ترتيب المراحل، مع تحقق آلي من مطابقة كل كلمة بين المصدر والمعروض. بنية الجدول المعروضة هي بنية
+                جذاذة مصاغة وفق كتاب {SECTION_META.book} للسنة الدراسية الجارية، كما حرّرها الأستاذ في وثيقته الأصلية
+                حرفيًا دون حذف أو اختصار أو تغيير في المصطلحات أو الأرقام أو ترتيب المراحل، مع تحقق آلي من مطابقة كل كلمة
+                بين المصدر والمعروض. بنية الجدول المعروضة هي بنية
                 الوثيقة نفسها{imported.layout === "doc" ? " (ملف Word قديم: أُعيد بناء الجدول من فواصل الخلايا الأصلية)" : imported.layout === "pdf" ? " (ملف PDF: النص كما ورد سطرًا سطرًا)" : ""}.
               </p>
             </div>
