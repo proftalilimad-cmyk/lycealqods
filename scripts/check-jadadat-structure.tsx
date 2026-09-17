@@ -24,7 +24,8 @@
        && node /tmp/struct.cjs
    ============================================================ */
 import { renderToString } from "react-dom/server";
-import Jadadat, { assembleFlow, docLead } from "../src/components/Jadadat";
+import Jadadat, { assembleFlow, docLead, FIELD_BAND } from "../src/components/Jadadat";
+import { importedToHtml } from "../src/components/Jadadat";
 import { TC_SCI_CATALOG, collectProduit } from "../src/data/jadadat";
 import type { SrcCell, SrcTable as SrcTableT } from "../src/data/jadadat";
 
@@ -95,6 +96,18 @@ for (const entry of TC_SCI_CATALOG) {
     const refThead = theads.find((ths) => headCells.every((h) => ths.some((t) => t.includes(h))));
     if (!refThead) problems.push(`ترويسة القالب ليست داخل أي thead (لن تتكرر في الصفحات): [${headCells.join("، ")}]`);
     if (hasProduitCol && !(refThead ?? []).some((t) => t.includes("المنتوج"))) problems.push("عمود «المنتوج» ليس خانة ترويسة <th>");
+    /* شريط الحقول الستة الإلزامية: بنفس الصياغة والترتيب، داخل thead المتكرر (عرضًا وتحميلًا) */
+    const bandSeg = /class="fieldband"[\s\S]*?<\/tr>/.exec(html);
+    const bandText = bandSeg ? norm(clean(bandSeg[0].replace(/<[^>]+>/g, " "))) : "";
+    const bandMissing = FIELD_BAND.filter((f) => !bandText.includes(norm(f)));
+    if (bandMissing.length) problems.push(`شريط الحقول الستة ناقص: ${bandMissing.join("، ")}`);
+    else {
+      const idxs = FIELD_BAND.map((f) => bandText.indexOf(norm(f)));
+      if (idxs.some((v, i) => i > 0 && v < idxs[i - 1])) problems.push("ترتيب شريط الحقول الستة مختلف عن الإلزامي");
+    }
+    const dl = importedToHtml(f, entry);
+    const dlBand = /class="fieldband"[\s\S]*?<\/tr>/.exec(dl);
+    if (!dlBand || FIELD_BAND.some((fb) => !dlBand[0].includes(fb))) problems.push("شريط الحقول الستة ناقص في نسخة التحميل");
     if (!hasProduitField) report.push(`${id}: ✓ بنية موحدة — (لا «منتوج» صريح في الأصل: لا يُختلق)`);
     else report.push(`${id}: ✓ بنية موحدة — رئيسي واحد، ${master.rows.length} صفًا، ترويسة [${head.map(ct).filter(Boolean).join(" | ").slice(0, 80)}]${hasProduitCol ? "، المنتوج عمود مستقل" : parts.length ? `، المنتوج خانة مستقلة (${parts.length} جزءًا)` : ""}${iMarhali >= 0 ? "، تقويم مرحلي صف حقل" : ""}${iFinal >= 0 ? "، تقويم نهائي/اجمالي صف حقل" : ""}`);
   }

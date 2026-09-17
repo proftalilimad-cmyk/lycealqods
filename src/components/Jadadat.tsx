@@ -124,6 +124,17 @@ const isTaqwimRow = (row: SrcCell[]) => /^[-–—•*\s]*(?:تقويم|التق
    ============================================================ */
 
 const REF_RE = /مراحل|وضعيات التعلمات|التقويمات|أنشطة التعلم|انشطة التعلم|أشكال الأنشطة|التدبير الديداكتيكي|التقويم المرحلي|التقويم النهائي/;
+/* الحقول الستة الإلزامية للنموذج الرسمي: شريط ثابت بنفس الصياغة والترتيب
+   في كل صفحة طباعة وفي كل جذاذة (داخل thead المتكرر) — والمحتوى تحته حرفيًا من الأصل */
+export const FIELD_BAND = [
+  "أهداف التعلم",
+  "التقويم التشخيصي",
+  "أنشطة التعلم والمحتوى",
+  "التقويم المرحلي",
+  "التقويم النهائي",
+  "المنتوج",
+];
+
 /* ترويسة القالب المرجعي: خانات قصيرة (عناوين أعمدة حقيقية) وليست فقرات */
 const isRefHeadRow = (r: SrcCell[]) => {
   const texts = r.map((c) => cleanLine(cellTexts(c).join(" ")));
@@ -272,7 +283,7 @@ function CellContent({ c, gold, stage }: { c: SrcCell; gold?: boolean; stage?: b
   );
 }
 
-function SrcTable({ t, nested, footerRow }: { t: SrcTable; nested?: boolean; footerRow?: ReactNode }) {
+function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: boolean; footerRow?: ReactNode; fieldBand?: string[] }) {
   const rows = t.rows;
   const headerIdx = rows.findIndex((r) => r.filter(isHeaderCell).length >= 2);
   const produitCol = headerIdx >= 0 ? rows[headerIdx].findIndex((c) => cellTexts(c).some(isProduitHeader)) : -1;
@@ -442,7 +453,32 @@ function SrcTable({ t, nested, footerRow }: { t: SrcTable; nested?: boolean; foo
   return (
     <div className={`${nested ? "" : "mt-3"} overflow-x-auto`}>
       <table className="jadada-table w-full border-collapse" style={{ minWidth: nested ? undefined : cols >= 5 ? 780 : undefined }}>
-        {head >= 0 && <thead>{renderRow(rows[head], head)}</thead>}
+        {head >= 0 && (
+          <thead>
+            {fieldBand && fieldBand.length > 0 && (
+              <tr className="fieldband">
+                <th
+                  colSpan={cols}
+                  className="border px-1.5 py-1"
+                  style={{ background: D.head, borderColor: D.line }}
+                >
+                  <span className="flex flex-wrap gap-1">
+                    {fieldBand.map((fb) => (
+                      <span
+                        key={fb}
+                        className="min-w-[88px] flex-1 whitespace-nowrap rounded-md px-1.5 py-0.5 text-center text-[9.5px] font-black text-white"
+                        style={{ background: D.nest }}
+                      >
+                        {fb}
+                      </span>
+                    ))}
+                  </span>
+                </th>
+              </tr>
+            )}
+            {renderRow(rows[head], head)}
+          </thead>
+        )}
         <tbody>
           {rows.map((row, ri) => (ri === head ? null : renderRow(row, ri)))}
           {footerRow}
@@ -677,6 +713,7 @@ function Blocks({ f, slot }: { f: ImportedFiche; slot: { number: string; title: 
             <SrcTable
               key={i}
               t={b.table}
+              fieldBand={FIELD_BAND}
               footerRow={parts.length ? <ProduitRow parts={parts} cols={masterCols} /> : undefined}
             />
           );
@@ -782,6 +819,11 @@ const DOC_CSS = `
   table.auto-table thead th { background: ${D.nest}; color: #fff; font-weight: 700; }
   table.auto-table td { color: ${D.ink}; }
   table.auto-table td.num { font-weight: 700; white-space: nowrap; }
+  /* شريط الحقول الستة الإلزامية (يتكرر في كل صفحة طباعة) */
+  tr.fieldband th { background: ${D.head}; color: #fff; padding: 4px 5px; }
+  tr.fieldband .fb { display: flex; flex-wrap: wrap; gap: 4px; }
+  tr.fieldband .fb span { flex: 1 1 0; min-width: 88px; background: ${D.nest}; color: #fff; border-radius: 5px;
+                          padding: 2px 6px; font-size: 10px; font-weight: 800; text-align: center; white-space: nowrap; }
   /* خانة «المنتوج» كصف حقل داخل الجدول الرئيسي */
   td.produitlabel { background: ${D.head}; color: #fff; font-weight: 800; text-align: center; vertical-align: middle; }
   td.produitbody { background: ${D.beige}; color: ${D.ink}; }
@@ -839,7 +881,7 @@ function cellToHtml(c: SrcCell, flat?: boolean): string {
   return parts.join("");
 }
 
-function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string): string {
+function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string, fieldBand?: string[]): string {
   const rows = t.rows;
   const headerIdx = rows.findIndex((r) => r.filter(isHeaderCell).length >= 2);
   const produitCol = headerIdx >= 0 ? rows[headerIdx].findIndex((c) => cellTexts(c).some(isProduitHeader)) : -1;
@@ -908,7 +950,11 @@ function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string): string
         .join("")}</tr>`;
   };
   const body = rows.map((row, ri) => (ri === head ? "" : rowHtml(row, ri))).join("\n");
-  const thead = head >= 0 ? `<thead>\n${rowHtml(rows[head], head)}\n</thead>` : "";
+  const bandHtml =
+    fieldBand && fieldBand.length
+      ? `<tr class="fieldband"><th colspan="${cols}"><span class="fb">${fieldBand.map((f) => `<span>${f}</span>`).join("")}</span></th></tr>\n`
+      : "";
+  const thead = head >= 0 ? `<thead>\n${bandHtml}${rowHtml(rows[head], head)}\n</thead>` : "";
   return `<table${nested ? ' class="nested" style="margin-top:6px"' : ""}>${thead}<tbody>\n${body}${footerHtml ? `\n${footerHtml}` : ""}\n</tbody></table>`;
 }
 
@@ -964,7 +1010,7 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
           .map((b) => {
             if ("kind" in b && b.kind === "master") {
               const cols = Math.max(...b.table.rows.map((r) => r.length), 1);
-              return tableToHtml(b.table, false, parts.length ? produitRowHtml(parts, cols) : undefined);
+              return tableToHtml(b.table, false, parts.length ? produitRowHtml(parts, cols) : undefined, FIELD_BAND);
             }
             const blk = b as ImportedFiche["blocks"][number];
             return blk.type === "para"
