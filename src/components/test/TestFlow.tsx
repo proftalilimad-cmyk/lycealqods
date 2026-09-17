@@ -173,6 +173,20 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
     setStudentNo("");
   };
 
+  /* كتابة رقم التلميذ (ر.ت) بعد اختيار القسم → يظهر اسمه من اللائحة الرسمية */
+  const pickNo = (v: string) => {
+    setStudentNo(v);
+    if (!rosterClass) return;
+    const st = rosterClass.students.find((x) => String(x.n) === v.trim());
+    if (st) {
+      setStudentPick(st.massar);
+      setName(st.name);
+    } else {
+      setStudentPick("");
+      setName("");
+    }
+  };
+
   const pickStudent = (massar: string) => {
     setStudentPick(massar);
     const st = rosterClass?.students.find((x) => x.massar === massar);
@@ -184,7 +198,8 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
 
   const start = () => {
     if (!className) return setError("المرجو اختيار القسم.");
-    if (rosterClass && !pickedStudent) return setError("المرجو اختيار اسم التلميذ(ة) من لائحة القسم الرسمية.");
+    if (rosterClass && !pickedStudent)
+      return setError("المرجو كتابة رقم التلميذ(ة) كما في لائحة القسم (أو اختيار اسمه من القائمة) ليظهر اسمه.");
     if (!rosterClass && name.trim().length < 3) return setError("المرجو إدخال الاسم الكامل (3 حروف على الأقل).");
     setError("");
     setStage("run");
@@ -350,7 +365,7 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
                     <option value="">— اختر القسم —</option>
                     {ROSTER_CLASSES.map((c) => (
                       <option key={c.id} value={c.label}>
-                        {c.label} ({c.students.length} تلميذًا)
+                        {c.label}
                       </option>
                     ))}
                     <option value="قسم آخر">قسم آخر (غير موجود في اللوائح)</option>
@@ -360,56 +375,61 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
                   </p>
                 </div>
                 <div>
-                  <label htmlFor="s-student" className="field-label">اختيار الاسم من لائحة القسم <span className="text-rose-500">*</span></label>
-                  <select
-                    id="s-student"
-                    value={studentPick}
-                    onChange={(e) => pickStudent(e.target.value)}
+                  <label htmlFor="s-no" className="field-label">
+                    رقم التلميذ (ر.ت من لائحة القسم) {rosterClass ? <span className="text-rose-500">*</span> : "(اختياري)"}
+                  </label>
+                  <input
+                    id="s-no"
+                    type="text"
+                    inputMode="numeric"
+                    value={studentNo}
+                    onChange={(e) => pickNo(e.target.value)}
+                    placeholder={rosterClass ? "اكتب الرقم ليظهر الاسم" : "مثال: 12"}
                     className="field"
-                    disabled={!rosterClass}
-                  >
-                    <option value="">{rosterClass ? "— اختر اسم التلميذ(ة) —" : "اختر القسم أولًا"}</option>
-                    {rosterClass?.students.map((st) => (
-                      <option key={st.massar} value={st.massar}>
-                        {st.n}. {st.name}
-                      </option>
-                    ))}
-                  </select>
-                  {pickedStudent && (
-                    <p className="mt-1 text-[10px] font-bold leading-relaxed text-brand-700">
-                      رقم مسار: {pickedStudent.massar} · ر.ت: {pickedStudent.n} · تاريخ الازدياد: {pickedStudent.birth || "—"}
+                  />
+                  {rosterClass && studentNo.trim() && !pickedStudent && (
+                    <p className="mt-1 text-[10px] font-bold leading-relaxed text-rose-500">
+                      لا يوجد تلميذ(ة) بهذا الرقم في لائحة هذا القسم.
                     </p>
                   )}
                 </div>
               </div>
               <div>
                 <label htmlFor="s-name" className="field-label">
-                  الاسم الكامل {pickedStudent ? "(معتمد من اللائحة الرسمية)" : <span className="text-rose-500">*</span>}
+                  الاسم الكامل {pickedStudent ? "(يظهر معتمدًا من اللائحة الرسمية)" : rosterClass ? "(يظهر تلقائيًا بعد كتابة الرقم)" : <span className="text-rose-500">*</span>}
                 </label>
                 <input
                   id="s-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder={rosterClass ? "يُعبأ تلقائيًا من اختيار الاسم أعلاه" : "مثال: أمين العلوي"}
+                  placeholder={rosterClass ? "يظهر هنا اسم التلميذ(ة) بعد كتابة رقمه" : "مثال: أمين العلوي"}
                   className="field"
                   autoComplete="name"
                   readOnly={Boolean(pickedStudent)}
                 />
+                {pickedStudent && (
+                  <p className="mt-1 text-[10px] font-bold leading-relaxed text-brand-700">
+                    {pickedStudent.name} — رقم مسار: {pickedStudent.massar} · ر.ت: {pickedStudent.n} · تاريخ الازدياد: {pickedStudent.birth || "—"}
+                  </p>
+                )}
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="s-no" className="field-label">رقم التلميذ (اختياري)</label>
-                  <input
-                    id="s-no"
-                    type="text"
-                    inputMode="numeric"
-                    value={studentNo}
-                    onChange={(e) => setStudentNo(e.target.value)}
-                    placeholder="مثال: 12"
-                    className="field"
-                  />
-                </div>
+              <div>
+                <label htmlFor="s-student" className="field-label">أو: اختيار الاسم مباشرة من لائحة القسم</label>
+                <select
+                  id="s-student"
+                  value={studentPick}
+                  onChange={(e) => pickStudent(e.target.value)}
+                  className="field"
+                  disabled={!rosterClass}
+                >
+                  <option value="">{rosterClass ? "— اختر اسم التلميذ(ة) —" : "اختر القسم أولًا"}</option>
+                  {rosterClass?.students.map((st) => (
+                    <option key={st.massar} value={st.massar}>
+                      {st.n}. {st.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {error && (
