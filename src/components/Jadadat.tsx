@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import {
   BookOpenCheck,
   CheckCircle2,
@@ -31,7 +31,6 @@ import {
   type SrcCell,
   type SrcTable,
 } from "../data/jadadat";
-import type { ProduitPart } from "../data/jadadat";
 import type { Route } from "../routes";
 import { detectSegments, detectedTableToHtml } from "../lib/tableDetect";
 import SmartText, { AutoTableView } from "./SmartText";
@@ -63,19 +62,15 @@ const C = {
 const SUBJECTS = ["التاريخ", "الجغرافيا"] as const;
 
 /* ألوان شكل الوثيقة الأصلية كما وردت في ملف الأستاذ (بني/بيج) — يُحترم هذا الشكل في عرض الجذاذة */
-/* منطقة الوثيقة بألوان الموقع (أخضر العلامة + الذهبي) وفق «وضع ألوان الموقع» —
-   البنية والنصوص بلا تغيير، الألوان فقط */
 const D = {
-  head: C.head,         /* أخضر الموقع لرؤوس الجداول وصناديق المراحل وعنوان الدرس */
-  nest: C.headDark,     /* أخضر غامق لرؤوس الجداول المتداخلة */
-  beige: C.beige,       /* أخضر فاتح للخلايا (التقويم/قيم البطاقة) */
-  beigeLight: "#f6fbf8",
-  beigeDark: C.beigeDark,
-  line: C.line,
-  yellow: C.gold,       /* ذهبي الموقع للخلية المميزة */
-  gold: C.gold,         /* ذهبي خانة المنتوج */
-  goldLine: C.goldLine,
-  ink: "#0b3a2c",       /* حبر أخضر غامق */
+  head: "#8c4b2e",      /* بني رؤوس الجداول وصناديق المراحل وعنوان الدرس */
+  nest: "#8a3a26",      /* بني رؤوس الجداول المتداخلة */
+  beige: "#f6e7c6",     /* بيج الخلايا (المنتوج/التقويم/قيم البطاقة) */
+  beigeLight: "#fbf4e2",
+  beigeDark: "#f0dfb6",
+  line: "#d9c39b",
+  yellow: "#f5d878",    /* الخلية الفارغة في «انجاز الاستاذ» كما في الأصل */
+  ink: "#5d3a24",
 };
 
 /* ترويسات الجداول كما سمّتها الوثائق الأصلية (للتنسيق فقط، لا لتغيير النص) */
@@ -112,313 +107,7 @@ const HEAD_WORDS = [
 const cleanLine = (s: string) => s.replace(/[\u200f\u200e\u0640]/g, "").replace(/\s+/g, " ").trim();
 const cellTexts = (c?: SrcCell): string[] => [...(c?.box ?? []), ...(c?.lines ?? [])];
 const isHeaderCell = (c: SrcCell) => cellTexts(c).some((l) => HEAD_WORDS.some((w) => cleanLine(l).startsWith(w)));
-const isTaqwimRow = (row: SrcCell[]) => /^[-–—•*\s]*(?:تقويم|التقويم)/.test(cleanLine(cellTexts(row[0])[0] ?? ""));
-
-/* ============================================================
-   القالب المرجعي وتجميع التدفق (بنية موحدة لكل صفحات الجذاذة)
-   ------------------------------------------------------------
-   الجدول الأول في الصفحة الأولى الذي يحمل ترويسة مراحل/أهداف/وضعيات
-   هو القالب المرجعي الإلزامي الوحيد. كل الأجزاء اللاحقة من التدفق
-   (أجزاء الجدول بترويسة مطابقة، كتل «تقويم مرحلي/اجمالي/نهائي»
-   المستقلة، أجزاء المحتوى المكملة، والفقرات البينية) تُدمج في
-   جدول رئيسي واحد بتلك الترويسة نفسها — فتتكرر الرؤوس حرفيًا في
-   كل صفحة طباعة، ولا يظهر أبدًا "جدول مختلف" في صفحة تالية.
-   لا يُغيَّر أي اسم أو ترتيب أو محتوى؛ الترويسات المكررة تُعرض
-   مرة واحدة في thead (وهي نفسها تتكرر في كل صفحة عند الطباعة).
-   ============================================================ */
-
-const REF_RE = /مراحل|وضعيات التعلمات|التقويمات|أنشطة التعلم|انشطة التعلم|أشكال الأنشطة|التدبير الديداكتيكي|التقويم المرحلي|التقويم النهائي/;
-/* الحقول الستة الإلزامية للنموذج الرسمي: شريط ثابت بنفس الصياغة والترتيب
-   في كل صفحة طباعة وفي كل جذاذة (داخل thead المتكرر) — والمحتوى تحته حرفيًا من الأصل */
-export const FIELD_BAND = [
-  "أهداف التعلم",
-  "التقويم التشخيصي",
-  "أنشطة التعلم والمحتوى",
-  "التقويم المرحلي",
-  "التقويم النهائي",
-  "المنتوج",
-];
-
-/* ترويسة القالب المرجعي: خانات قصيرة (عناوين أعمدة حقيقية) وليست فقرات */
-const isRefHeadRow = (r: SrcCell[]) => {
-  const texts = r.map((c) => cleanLine(cellTexts(c).join(" ")));
-  const nonEmpty = texts.filter((t) => t.length > 0);
-  return nonEmpty.length >= 2 && nonEmpty.every((t) => t.length <= 40);
-};
-const headerIndexOf = (t: SrcTable): number => t.rows.findIndex((r) => r.filter(isHeaderCell).length >= 2);
-const normCellText = (c: SrcCell) => cleanLine(cellTexts(c).join(" ")).replace(/[ً-ْٰـ]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي");
-const sameHeadCells = (a: SrcCell[], b: SrcCell[]) => a.length === b.length && a.every((c, i) => normCellText(c) === normCellText(b[i]));
-const isTaqwimBlock = (t: SrcTable) => t.rows.length >= 1 && t.rows.every((r) => isTaqwimRow(r));
-
-type FlowItem = ImportedFiche["blocks"][number] | { kind: "master"; table: SrcTable };
-type MergePlan = { skipRow: number } | { skipRow: -1 };
-
-function canMergeInto(t: SrcTable, masterHead: SrcCell[]): MergePlan | null {
-  const hi = headerIndexOf(t);
-  /* جزء الجدول نفسه (ترويسة مطابقة للقالب حرفيًا) → يُدمج دون تكرار الترويسة */
-  if (hi >= 0 && sameHeadCells(t.rows[hi], masterHead)) return { skipRow: hi };
-  /* كتلة تقويم (مرحلي/اجمالي/نهائي) → صفوف حقول داخل الجدول الرئيسي */
-  if (isTaqwimBlock(t)) return { skipRow: -1 };
-  /* جزء محتوى مكمل بلا ترويسة (عموده ≤ 6 وأسطره ≥ 2) → صفوف مكملة بنفس الشبكة */
-  const tCols = Math.max(...t.rows.map((r) => r.length), 1);
-  if (hi === -1 && t.rows.length >= 2 && tCols <= 6) return { skipRow: -1 };
-  return null;
-}
-
-/** تجميع كتل الجذاذة: كتلة أصلية أو جدول رئيسي موحّد (القالب المرجعي) */
-export function assembleFlow(body: ImportedFiche["blocks"]): FlowItem[] {
-  const out: FlowItem[] = [];
-  let master: SrcCell[][] | null = null;
-  let masterHead: SrcCell[] | null = null;
-  /* صف يطابق ترويسة القالب حرفيًا = تكرار رؤوس أصلي: موجود في <thead> المتكرر، فلا يُعاد في الجسم */
-  const pushRows = (rows: SrcCell[][], skipRow: number) => {
-    rows.forEach((r, ri) => {
-      if (ri === skipRow) return;
-      if (masterHead && sameHeadCells(r, masterHead)) return;
-      master!.push(r);
-    });
-  };
-  const flush = () => {
-    if (master) out.push({ kind: "master", table: { rows: master } });
-    master = null;
-    masterHead = null;
-  };
-  for (let i = 0; i < body.length; i += 1) {
-    const b = body[i];
-    if (b.type === "para" || !b.table) {
-      /* فقرة بينية داخل التدفق → صف مدمج بعرض الجدول (نصها حرفيًا) */
-      const txt = (b.text ?? "").trim();
-      const next = body[i + 1];
-      if (master && masterHead && txt && next && next.type !== "para" && next.table && canMergeInto(next.table, masterHead)) {
-        master.push([{ lines: [b.text ?? ""] }]);
-        continue;
-      }
-      flush();
-      out.push(b);
-      continue;
-    }
-    const t = b.table;
-    const opensRef = (tbl: SrcTable): number => {
-      const hi = headerIndexOf(tbl);
-      return hi >= 0 && isRefHeadRow(tbl.rows[hi]) && REF_RE.test(tbl.rows[hi].map((c) => cellTexts(c).join(" ")).join(" ")) ? hi : -1;
-    };
-    if (!master) {
-      const hi = opensRef(t);
-      if (hi >= 0) {
-        masterHead = t.rows[hi];
-        master = [t.rows[hi]];
-        pushRows(t.rows, hi);
-        continue;
-      }
-      out.push(b);
-      continue;
-    }
-    const plan = canMergeInto(t, masterHead!);
-    if (plan) {
-      pushRows(t.rows, plan.skipRow);
-      continue;
-    }
-    /* الكتلة لا تندمج: تُغلق المجموعة، وقد تكون هي نفسها قالبًا مرجعيًا جديدًا */
-    flush();
-    const hi2 = opensRef(t);
-    if (hi2 >= 0) {
-      masterHead = t.rows[hi2];
-      master = [t.rows[hi2]];
-      pushRows(t.rows, hi2);
-      continue;
-    }
-    out.push(b);
-  }
-  flush();
-  return out;
-}
-
-/** هل للجذاذة جدول رئيسي موحّد (قالب مرجعي)؟ */
-export function hasFlowMaster(f: ImportedFiche): boolean {
-  if (f.layout === "pdf") return false;
-  const lead = docLead(f);
-  return assembleFlow(f.blocks.slice(lead.rest)).some((it) => (it as { kind?: string }).kind === "master");
-}
-
-/* ============================================================
-   TABLE VALIDATOR — نظام تدقيق ومراقبة جودة الجداول
-   ------------------------------------------------------------
-   يفحص كل جذاذة قبل عرضها وقبل تصديرها (طباعة/PDF):
-   1) القالب المرجعي = بنية جدول الصفحة الأولى (ترويسة + عدد أعمدة).
-   2) الحقول الستة الإلزامية حاضرة بنفس التسمية والترتيب (شريط ثابت
-      داخل thead المتكرر + صفوف/أعمدة الحقول في الجسم).
-   3) تطابق الصفحات: جدول رئيسي واحد، ترويسة واحدة لا تتكرر في الجسم،
-      عدد أعمدة ثابت، لا تقويم معزول، لا دمج للمنتوج ولا عنوان عام له.
-   4) تصنيف الأخطاء: CRITICAL (حذف/دمج/تغيير حقل) · MAJOR (اختلاف ترتيب
-      أو بنية) · MINOR (تنسيق أو غياب أصلي موثّق بلا اختلاق).
-   5) الإصلاح التلقائي = إعادة البناء من القالب المرجعي (المُجمِّع الموحّد)،
-      ولا يُعتمد إلا بنجاح إعادة الفحص؛ وإلا تُحجب الجذاذة ويُوقف التصدير.
-   ============================================================ */
-export type IssueSeverity = "CRITICAL" | "MAJOR" | "MINOR";
-export interface ValidationIssue {
-  severity: IssueSeverity;
-  page: number;
-  location: string;
-  message: string;
-}
-export interface FicheValidation {
-  id: string;
-  subject: string;
-  title: string;
-  pages: number;
-  tables: number;
-  status: "PASSED" | "FAILED";
-  critical: number;
-  major: number;
-  minor: number;
-  issues: ValidationIssue[];
-  repair: { attempted: boolean; applied: boolean; recheck: "PASSED" | "FAILED" | "NOT_NEEDED" };
-}
-
-const V_MARHALI = /تقويم\s*(?:ال)?\s*مرحلي/;
-const V_FINAL = /تقويم\s*(?:ال)?\s*(نهائي|اجمالي|إجمالي)/;
-const normV = (t: string) =>
-  t.replace(/[ً-ْٰـ]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/\s+/g, " ").trim();
-const cellV = (c?: SrcCell) => normV([...(c?.box ?? []), ...(c?.lines ?? [])].join(" "));
-const rowV = (r: SrcCell[]) => r.map(cellV).join(" ");
-
-/* تقدير صفحات الطباعة: أسطر كل صف مقابل سعة صفحة A4 (الترويسة تتكرر أعلى كل صفحة) */
-const rowLines = (r: SrcCell[]) => Math.max(1, ...r.map((c) => Math.ceil(cellTexts(c).join(" ").length / 52))) + 1;
-function estimatePages(rows: SrcCell[][]): { pages: number; pageOf: number[] } {
-  const CAP = 52;
-  const HEAD = 4;
-  let lines = 0;
-  let page = 1;
-  const pageOf: number[] = [];
-  rows.forEach((r, i) => {
-    const need = rowLines(r);
-    if (lines > 0 && lines + need > CAP) {
-      page += 1;
-      lines = HEAD;
-    }
-    lines += need;
-    pageOf[i] = page;
-  });
-  return { pages: page, pageOf };
-}
-
-function auditFlow(items: FlowItem[], partsCount: number, hadMarhali: boolean, hadFinal: boolean): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-  const masters = items.filter((it) => "kind" in it && it.kind === "master") as { kind: "master"; table: SrcTable }[];
-  if (masters.length === 0) {
-    issues.push({ severity: "CRITICAL", page: 1, location: "جسم الجذاذة", message: "لا قالب مرجعي (جدول رئيسي) — يتعذر التحقق وإعادة البناء" });
-    return issues;
-  }
-  if (masters.length > 1)
-    issues.push({ severity: "MAJOR", page: 1, location: "جسم الجذاذة", message: `${masters.length} جداول رئيسية بدل واحد: البنية تختلف من صفحة إلى أخرى` });
-  const master = masters[0].table;
-  const cols = Math.max(...master.rows.map((r) => r.length), 1);
-  const headText = rowV(master.rows[0]);
-  const { pages, pageOf } = estimatePages(master.rows);
-  master.rows.slice(1).forEach((r, i) => {
-    if (rowV(r) === headText)
-      issues.push({ severity: "MAJOR", page: pageOf[i + 1], location: `صف ${i + 2}`, message: "ترويسة القالب مكررة داخل الجسم (موضعها في thead المتكرر)" });
-  });
-  master.rows.forEach((r, i) => {
-    if (r.length > cols)
-      issues.push({ severity: "MAJOR", page: pageOf[i], location: `صف ${i + 1}`, message: `عدد الأعمدة (${r.length}) يتجاوز القالب المرجعي (${cols})` });
-  });
-  items.forEach((it) => {
-    if ("kind" in it && it.kind === "master") return;
-    const t = (it as { table?: SrcTable }).table;
-    if (!t || !t.rows.length) return;
-    if (t.rows.some((r) => V_MARHALI.test(cellV(r[0])) || V_FINAL.test(cellV(r[0]))))
-      issues.push({ severity: "CRITICAL", page: 1, location: "جدول خارج الرئيسي", message: `صف حقل تقويم معزول خارج الجدول المرجعي: «${cellV(t.rows[0][0]).slice(0, 30)}»` });
-    else {
-      const hi = headerIndexOf(t);
-      if (hi >= 0 && isRefHeadRow(t.rows[hi]) && REF_RE.test(t.rows[hi].map((c) => cellTexts(c).join(" ")).join(" ")))
-        issues.push({ severity: "MAJOR", page: 1, location: "جدول خارج الرئيسي", message: "جدول منفصل بترويسة مطابقة للقالب: بنية مختلفة عن الصفحة الأولى" });
-    }
-  });
-  const bodyRows = master.rows.slice(1);
-  /* الحقل حاضر إن كان عمودًا في ترويسة القالب أو صف حقل في الجسم */
-  const headHasMarhali = master.rows[0].map(cellV).some((t) => V_MARHALI.test(t));
-  const headHasFinal = master.rows[0].map(cellV).some((t) => V_FINAL.test(t));
-  const hasMarhali = headHasMarhali || bodyRows.some((r) => V_MARHALI.test(cellV(r[0])));
-  const hasFinal = headHasFinal || bodyRows.some((r) => V_FINAL.test(cellV(r[0])));
-  if (hadMarhali && !hasMarhali)
-    issues.push({ severity: "CRITICAL", page: pages, location: "حقل إلزامي", message: "التقويم المرحلي موجود في الأصل ومحذوف من الجدول المرجعي" });
-  if (hadFinal && !hasFinal)
-    issues.push({ severity: "CRITICAL", page: pages, location: "حقل إلزامي", message: "التقويم النهائي/الإجمالي موجود في الأصل ومحذوف من الجدول المرجعي" });
-  if (!hadMarhali && !hasMarhali)
-    issues.push({ severity: "MINOR", page: 1, location: "حقل إلزامي", message: "التقويم المرحلي: عنوانه في الشريط الإلزامي المتكرر؛ لا صف مستقل له في الأصل (لم يُختلق محتوى)" });
-  if (!hadFinal && !hasFinal)
-    issues.push({ severity: "MINOR", page: 1, location: "حقل إلزامي", message: "التقويم النهائي: عنوانه في الشريط الإلزامي المتكرر؛ لا صف مستقل له في الأصل (لم يُختلق محتوى)" });
-  const hasProduitCol = master.rows[0].map(cellV).some((t) => t.includes("المنتوج"));
-  if (!hasProduitCol && partsCount === 0)
-    issues.push({ severity: "CRITICAL", page: pages, location: "حقل إلزامي", message: "حقل «المنتوج» مفقود: لا عمود في الترويسة ولا صف حقل مستقل" });
-  const mergedProduit = master.rows.some((r, ri) =>
-    ri > 0 && r.some((c, ci) => ci > 0 && cellV(c).includes("المنتوج") && /أنشطة|انشطة|المحتوى/.test(cellV(c))),
-  );
-  if (mergedProduit)
-    issues.push({ severity: "CRITICAL", page: 1, location: "حقل إلزامي", message: "«المنتوج» مدموج مع «أنشطة التعلم والمحتوى» في خلية واحدة" });
-  bodyRows.forEach((r, i) => {
-    const lab = cellV(r[0]);
-    if ((V_MARHALI.test(lab) || V_FINAL.test(lab)) && r.slice(1).every((c) => cellV(c) === ""))
-      issues.push({ severity: "MINOR", page: pageOf[i + 1], location: `صف ${i + 2}`, message: "صف حقل تقويم بمحتوى فارغ في الأصل" });
-  });
-  issues.push({ severity: "MINOR", page: 1, location: "حقل إلزامي", message: "التقويم التشخيصي: عنوانه ثابت في الشريط الإلزامي؛ لا محتوى له في الأصول الـ25 (لا يُختلاق)" });
-  return issues;
-}
-
-export function validateFiche(entry: { slot: { id: string; subject: string; title: string }; imported?: ImportedFiche | null }): FicheValidation {
-  const base = { id: entry.slot.id, subject: entry.slot.subject, title: entry.slot.title };
-  const f = entry.imported;
-  if (!f)
-    return {
-      ...base, pages: 1, tables: 1, status: "PASSED", critical: 0, major: 0, minor: 1,
-      issues: [{ severity: "MINOR", page: 1, location: "-", message: "لا وثيقة مستوردة: الجذاذة الرقمية الاحتياطية بترويسة موحدة" }],
-      repair: { attempted: false, applied: false, recheck: "NOT_NEEDED" },
-    };
-  if (f.layout === "pdf")
-    return {
-      ...base, pages: 1, tables: 0, status: "PASSED", critical: 0, major: 0, minor: 1,
-      issues: [{ severity: "MINOR", page: 1, location: "-", message: "وثيقة PDF: لا جدول في الأصل (أسطر حرفية) — مستثناة من قالب الجدول" }],
-      repair: { attempted: false, applied: false, recheck: "NOT_NEEDED" },
-    };
-  const lead = docLead(f);
-  const body = f.blocks.slice(lead.rest);
-  const partsCount = collectProduit(f).length;
-  const rawTables = body.filter((b) => b.table).map((b) => b.table!);
-  /* الحقل موجود في الأصل إن كان عنوان صف (خليته الأولى) أو خانة في صف الترويسة — لا ذكرًا نصيًا داخل المحتوى */
-  const rawHas = (re: RegExp) =>
-    rawTables.some((t) => {
-      const hi = headerIndexOf(t);
-      return t.rows.some((r, ri) => (ri === hi ? r.some((c) => re.test(cellV(c))) : re.test(cellV(r[0]))));
-    });
-  const hadMarhali = rawHas(V_MARHALI);
-  const hadFinal = rawHas(V_FINAL);
-  /* تدقيق ما قبل الإصلاح: تشتت الوثيقة الخام (جداول متعددة/تقويمات معزولة) */
-  const rawRef = rawTables.filter((t) => {
-    const hi = headerIndexOf(t);
-    return hi >= 0 && isRefHeadRow(t.rows[hi]) && REF_RE.test(t.rows[hi].map((c) => cellTexts(c).join(" ")).join(" "));
-  }).length;
-  const rawTaqwim = rawTables.filter((t) => t.rows.length > 0 && t.rows.every((r) => isTaqwimRow(r))).length;
-  const fragmented = rawRef > 1 || rawTaqwim > 0;
-  /* الإصلاح التلقائي = إعادة البناء من قالب الصفحة الأولى (المُجمِّع الموحّد) */
-  const items = assembleFlow(body);
-  const issues = auditFlow(items, partsCount, hadMarhali, hadFinal);
-  const critical = issues.filter((i) => i.severity === "CRITICAL").length;
-  const major = issues.filter((i) => i.severity === "MAJOR").length;
-  const minor = issues.filter((i) => i.severity === "MINOR").length;
-  const masterItem = items.find((it) => "kind" in it && it.kind === "master") as { kind: "master"; table: SrcTable } | undefined;
-  const tables = items.filter((it) => ("kind" in it && it.kind === "master") || (it as { table?: SrcTable }).table).length + lead.metas.length;
-  const { pages } = estimatePages(masterItem ? masterItem.table.rows : []);
-  const status: "PASSED" | "FAILED" = critical === 0 && major === 0 ? "PASSED" : "FAILED";
-  return {
-    ...base, pages, tables, status, critical, major, minor, issues,
-    repair: { attempted: fragmented, applied: fragmented && status === "PASSED", recheck: fragmented ? status : "NOT_NEEDED" },
-  };
-}
-
-export function validateAllFiches(): FicheValidation[] {
-  return TC_SCI_CATALOG.map((e) => validateFiche({ slot: e.slot, imported: e.imported }));
-}
+const isTaqwimRow = (row: SrcCell[]) => /^تقويم|^التقويم/.test(cleanLine(cellTexts(row[0])[0] ?? ""));
 
 /* ============================================================
    عرض محتوى الوثيقة الأصلية (خلايا وجداول)
@@ -467,28 +156,7 @@ function CellContent({ c, gold, stage }: { c: SrcCell; gold?: boolean; stage?: b
   );
 }
 
-/* العمود الأول (مراحل/مقاطع): صفوف متتالية بنفس عنوان المقطع = صندوق واحد ممتد
-   عليها (rowSpan) بخلفية العلامة — كما في تنظيم وثيقة الأستاذ المرفق */
-const SECTION_BOX_RE = /^(المقطع|الوضعية|وضعية|مراحل|المرحلة)/;
-const firstCellText = (r: SrcCell[]) => cleanLine(cellTexts(r[0] ?? {}).join(" "));
-export function stageSpanPlan(rows: SrcCell[][], head: number): { span: number[]; skip: boolean[]; box: boolean[] } {
-  const span = rows.map(() => 1);
-  const skip = rows.map(() => false);
-  const box = rows.map(() => false);
-  if (head < 0) return { span, skip, box };
-  for (let ri = head + 1; ri < rows.length; ) {
-    const t = firstCellText(rows[ri]);
-    let j = ri + 1;
-    while (j < rows.length && rows[j].length > 2 && t.length > 6 && firstCellText(rows[j]) === t) j += 1;
-    span[ri] = j - ri;
-    for (let k = ri + 1; k < j; k += 1) skip[k] = true;
-    box[ri] = SECTION_BOX_RE.test(t) || j > ri + 1;
-    ri = j;
-  }
-  return { span, skip, box };
-}
-
-function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: boolean; footerRow?: ReactNode; fieldBand?: string[] }) {
+function SrcTable({ t, nested }: { t: SrcTable; nested?: boolean }) {
   const rows = t.rows;
   const headerIdx = rows.findIndex((r) => r.filter(isHeaderCell).length >= 2);
   const produitCol = headerIdx >= 0 ? rows[headerIdx].findIndex((c) => cellTexts(c).some(isProduitHeader)) : -1;
@@ -517,7 +185,6 @@ function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: b
   const minSum = Math.min(sums[0], sums[1]);
   const labelPair = twoCol && minSum / maxSum <= 0.45;
   const labelCol = labelPair ? (sums[0] <= sums[1] ? 0 : 1) : -1;
-  const plan = stageSpanPlan(rows, head);
 
   const renderRow = (row: SrcCell[], ri: number) => {
     {
@@ -540,41 +207,14 @@ function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: b
             if (isHeader) {
               return (
                 <tr key={ri}>
-                  {row.map((c, ci) => {
-                    /* ترويسة أقصر من شبكة الجدول: آخر خانة تمتد دون تغيير اسم أو ترتيب */
-                    const hSpan = row.length < cols && ci === row.length - 1 ? cols - row.length + 1 : 1;
-                    return (
-                      <th
-                        key={ci}
-                        colSpan={hSpan > 1 ? hSpan : undefined}
-                        className="border px-2.5 py-2 text-start text-[10.5px] font-extrabold text-white"
-                        style={{ background: nested ? D.nest : D.head, borderColor: D.line }}
-                      >
-                        <CellContent c={c} />
-                      </th>
-                    );
-                  })}
-                </tr>
-              );
-            }
-            if (taqwim && row.length === cols) {
-              /* صف تقويم بعدد أعمدة الشبكة: كل خلية في عمودها (بلا دمج يغيّر المعنى) */
-              return (
-                <tr key={ri}>
-                  <td
-                    className="border px-2.5 py-2 text-center text-[10.5px] font-extrabold text-white"
-                    style={{ background: D.head, borderColor: D.line }}
-                  >
-                    <CellContent c={row[0] ?? {}} />
-                  </td>
-                  {row.slice(1).map((c, ci) => (
-                    <td
+                  {row.map((c, ci) => (
+                    <th
                       key={ci}
-                      className="border px-2.5 py-2 text-[10.5px] font-bold leading-relaxed"
-                      style={{ background: D.beige, borderColor: D.line, color: D.ink }}
+                      className="border px-2.5 py-2 text-start text-[10.5px] font-extrabold text-white"
+                      style={{ background: nested ? D.nest : D.head, borderColor: D.line }}
                     >
                       <CellContent c={c} />
-                    </td>
+                    </th>
                   ))}
                 </tr>
               );
@@ -608,11 +248,8 @@ function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: b
             return (
               <tr key={ri}>
                 {row.map((c, ci) => {
-                  if (ci === 0 && plan.skip[ri]) return null;
                   const gold = ci === produitCol && produitCol >= 0;
                   const first = ci === 0;
-                  const boxFirst = first && !merged && plan.box[ri];
-                  const rSpan = first ? plan.span[ri] : 1;
                   const span = merged ? cols : ci === row.length - 1 ? lastSpan : 1;
                   const txt = cellTexts(c).join(" ");
                   /* خلية طويلة أو تحوي جدولًا متداخلًا: يُسمح بقطعها بين صفحتي الطباعة */
@@ -626,7 +263,7 @@ function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: b
                     ? D.beigeDark
                     : gold
                       ? D.beige
-                      : boxFirst || rowLabel
+                      : rowLabel
                         ? D.head
                         : label2
                           ? nested
@@ -643,15 +280,14 @@ function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: b
                     <td
                       key={ci}
                       colSpan={span > 1 ? span : undefined}
-                      rowSpan={rSpan > 1 ? rSpan : undefined}
-                      className={`border px-2.5 py-2 text-[10.5px] leading-relaxed ${boxFirst ? "align-middle text-center" : "align-top"} ${splittable ? "splittable" : ""} ${boxFirst || rowLabel ? "font-extrabold text-white" : label2 ? "font-extrabold" : `font-semibold ${gold ? "font-bold" : ""}`} ${merged ? "font-extrabold" : ""}`}
+                      className={`border px-2.5 py-2 align-top text-[10.5px] leading-relaxed ${splittable ? "splittable" : ""} ${rowLabel ? "font-extrabold text-white" : label2 ? "font-extrabold" : `font-semibold ${gold ? "font-bold" : ""}`} ${merged ? "font-extrabold" : ""}`}
                       style={{
                         background: bg,
                         borderColor: D.line,
-                        color: boxFirst || rowLabel ? undefined : D.ink,
+                        color: rowLabel ? undefined : D.ink,
                       }}
                     >
-                      <CellContent c={c} gold={gold} stage={ci === stageCol && !merged && !rowLabel && !boxFirst} />
+                      <CellContent c={c} gold={gold} stage={ci === stageCol && !merged && !rowLabel} />
                     </td>
                   );
                 })}
@@ -663,36 +299,8 @@ function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: b
   return (
     <div className={`${nested ? "" : "mt-3"} overflow-x-auto`}>
       <table className="jadada-table w-full border-collapse" style={{ minWidth: nested ? undefined : cols >= 5 ? 780 : undefined }}>
-        {head >= 0 && (
-          <thead>
-            {fieldBand && fieldBand.length > 0 && (
-              <tr className="fieldband">
-                <th
-                  colSpan={cols}
-                  className="border px-1.5 py-1"
-                  style={{ background: D.head, borderColor: D.line }}
-                >
-                  <span className="flex flex-wrap gap-1">
-                    {fieldBand.map((fb) => (
-                      <span
-                        key={fb}
-                        className="min-w-[88px] flex-1 whitespace-nowrap rounded-md px-1.5 py-0.5 text-center text-[9.5px] font-black"
-                        style={{ background: D.gold, color: "#6b4d12" }}
-                      >
-                        {fb}
-                      </span>
-                    ))}
-                  </span>
-                </th>
-              </tr>
-            )}
-            {renderRow(rows[head], head)}
-          </thead>
-        )}
-        <tbody>
-          {rows.map((row, ri) => (ri === head ? null : renderRow(row, ri)))}
-          {footerRow}
-        </tbody>
+        {head >= 0 && <thead>{renderRow(rows[head], head)}</thead>}
+        <tbody>{rows.map((row, ri) => (ri === head ? null : renderRow(row, ri)))}</tbody>
       </table>
     </div>
   );
@@ -762,7 +370,7 @@ const isMetaTable = (t?: SrcTable): boolean =>
   );
 
 /** استخراج ترويسة الوثيقة (إن وجدت في ملفها) دون المساس ببقية الكتل */
-export function docLead(f: ImportedFiche): DocLead {
+function docLead(f: ImportedFiche): DocLead {
   const lead: DocLead = { metas: [], rest: 0 };
   let i = 0;
   while (i < f.blocks.length) {
@@ -853,144 +461,6 @@ function DocHeaderBand({ lead, slot }: { lead: DocLead; slot: { number: string; 
   );
 }
 
-/* تنظيم الجذاذة وفق التنظيم الرسمي المرفق (التوجيهات التربوية وديداكتيك المادة):
-   حالة كل حقل إلزامي داخل البنية الموحّدة */
-export function fieldPlan(f: ImportedFiche): { label: string; state: string }[] {
-  if (f.layout === "pdf")
-    return FIELD_BAND.map((label) => ({ label, state: "لا جدول في الأصل (PDF): أسطر حرفية" }));
-  const items = assembleFlow(f.blocks.slice(docLead(f).rest));
-  const masterItem = items.find((it) => "kind" in it && it.kind === "master") as
-    | { kind: "master"; table: SrcTable }
-    | undefined;
-  if (!masterItem) return FIELD_BAND.map((label) => ({ label, state: "—" }));
-  const head = masterItem.table.rows[0].map(cellV);
-  const body = masterItem.table.rows.slice(1);
-  const rowOf = (re: RegExp) => body.some((r) => re.test(cellV(r[0])));
-  const parts = collectProduit(f);
-  return [
-    {
-      label: FIELD_BAND[0],
-      state: head.some((t) => /أهداف التعلم|اهداف التعلم/.test(t))
-        ? "عمود في ترويسة القالب المرجعي"
-        : rowOf(/أهداف|اهداف/)
-          ? "صف حقل مستقل داخل الجدول"
-          : "ضمن أنشطة التعلم والمحتوى",
-    },
-    { label: FIELD_BAND[1], state: "غير وارد في الوثيقة الأصلية — عنوانه ثابت في الشريط الإلزامي المتكرر" },
-    { label: FIELD_BAND[2], state: "أعمدة ترويسة القالب (مراحل إنجاز الدرس وأنشطته ومضمونه)" },
-    {
-      label: FIELD_BAND[3],
-      state: head.some((t) => V_MARHALI.test(t))
-        ? "عمود في ترويسة القالب المرجعي"
-        : rowOf(V_MARHALI)
-          ? "صف حقل مستقل داخل الجدول الرئيسي"
-          : "عنوانه ثابت في الشريط الإلزامي المتكرر",
-    },
-    {
-      label: FIELD_BAND[4],
-      state: head.some((t) => V_FINAL.test(t))
-        ? "عمود في ترويسة القالب المرجعي"
-        : rowOf(V_FINAL)
-          ? "صف حقل مستقل داخل الجدول الرئيسي"
-          : "عنوانه ثابت في الشريط الإلزامي المتكرر",
-    },
-    {
-      label: FIELD_BAND[5],
-      state: head.some((t) => t.includes("المنتوج"))
-        ? "عمود مستقل في ترويسة القالب المرجعي"
-        : parts.length
-          ? `صف حقل مستقل: ملخص ديدكتيكي مركز لـ${parts.length} جزءًا + النص الكامل حرفيًا`
-          : "—",
-    },
-  ];
-}
-
-/* ملخص المنتوج بصياغة استخراجية (جُمل الأصل نفسها مقتطعة عند حدودها)،
-   وفق ديداكتيك المادة: المهارة + المضمون + الخلاصة — دون أي إضافة أو تأليف */
-function summarizeProduit(parts: ProduitPart[]): { phase?: string; lines: string[] }[] {
-  return parts.map((p) => {
-    const lines = [...(p.cell.box ?? []), ...(p.cell.lines ?? [])].map((l) => l.trim()).filter(Boolean);
-    const picks: string[] = [];
-    for (const l of lines) {
-      let sent = l.split(/(?:\.|؛)\s+/)[0].trim();
-      if (sent.length > 110) sent = `${sent.slice(0, 110).replace(/\s+\S*$/, "")}…`;
-      if (sent && !picks.includes(sent)) picks.push(sent);
-      if (picks.length >= 3) break;
-    }
-    return { phase: p.phase, lines: picks.length ? picks : ["—"] };
-  });
-}
-
-/* النص الكامل للمنتوج حرفيًا (بلا حذف ولا اختصار) — يُطوى تحت الملخص */
-function ProduitFullList({ parts }: { parts: ProduitPart[] }) {
-  return (
-    <div className="mt-1.5 divide-y" style={{ borderColor: D.goldLine }}>
-      {parts.map((p, i) => (
-        <div key={i} className="px-2.5 py-2" style={{ background: i % 2 ? D.gold : "#ffffff" }}>
-          {p.phase && (
-            <p className="mb-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: D.nest }}>
-              {p.phase}
-            </p>
-          )}
-          <div className="text-[11px] font-semibold leading-relaxed text-ink-900">
-            <CellContent c={p.cell} gold />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ProduitRow({ parts, cols }: { parts: ProduitPart[]; cols: number }) {
-  const sum = summarizeProduit(parts);
-  return (
-    <tr>
-      <td
-        className="border px-2.5 py-2 text-center text-[10.5px] font-extrabold text-white"
-        style={{ background: D.head, borderColor: D.line }}
-      >
-        المنتوج
-      </td>
-      <td
-        colSpan={Math.max(cols - 1, 1)}
-        className="splittable border px-2.5 py-2 align-top"
-        style={{ background: D.gold, borderColor: D.goldLine, color: D.ink }}
-      >
-        <p className="text-[9.5px] font-black leading-relaxed" style={{ color: D.head }}>
-          ملخص المنتوج — صياغة تركيبية استخراجية من عمود «{parts[0].header}» تحترم التوجيهات التربوية وديداكتيك المادة
-          (المهارة + المضمون + الخلاصة)؛ والنص الكامل حرفيًا قابل للطي أسفله، وموجود كذلك في عموده الأصلي أعلاه.
-        </p>
-        <div className="mt-1.5 space-y-1.5">
-          {sum.map((g, i) => (
-            <div
-              key={i}
-              className="rounded-lg px-2.5 py-1.5"
-              style={{ background: i % 2 ? "#ffffff" : D.beigeLight, border: `1px solid ${D.goldLine}` }}
-            >
-              {g.phase && (
-                <p className="mb-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: D.nest }}>
-                  {g.phase}
-                </p>
-              )}
-              <ul className="list-inside list-disc space-y-0.5 text-[10.5px] font-bold leading-relaxed" style={{ color: D.ink }}>
-                {g.lines.map((l, k) => (
-                  <li key={k}>{l}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-        <details className="mt-2 rounded-lg bg-white px-2.5 py-1.5" style={{ border: `1px solid ${D.goldLine}` }}>
-          <summary className="cursor-pointer text-[10px] font-extrabold" style={{ color: D.head }}>
-            النص الكامل للمنتوج حرفيًا كما في عمود «{parts[0].header}» ({parts.length} جزءًا) — بلا حذف ولا اختصار
-          </summary>
-          <ProduitFullList parts={parts} />
-        </details>
-      </td>
-    </tr>
-  );
-}
-
 function Blocks({ f, slot }: { f: ImportedFiche; slot: { number: string; title: string } }) {
   if (f.layout === "pdf") {
     return (
@@ -1000,38 +470,21 @@ function Blocks({ f, slot }: { f: ImportedFiche; slot: { number: string; title: 
     );
   }
   const lead = docLead(f);
-  /* التدفق كله يُجمع في جدول رئيسي واحد على قالب الصفحة الأولى المرجعي:
-     نفس الترويسة تتكرر في كل صفحة، والتقويمات صفوف حقول داخله، والمنتوج خانة مستقلة */
-  const items = assembleFlow(f.blocks.slice(lead.rest));
-  const master = items.find((it) => (it as { kind?: string }).kind === "master") as { kind: "master"; table: SrcTable } | undefined;
-  const parts = master ? collectProduit(f) : [];
-  const masterCols = master ? Math.max(...master.table.rows.map((r) => r.length), 1) : 1;
   return (
     <div className="px-3 pb-4 pt-1 sm:px-4">
       {lead.rest > 0 && <DocHeaderBand lead={lead} slot={slot} />}
-      {items.map((b, i) => {
-        if ("kind" in b && b.kind === "master") {
-          return (
-            <SrcTable
-              key={i}
-              t={b.table}
-              fieldBand={FIELD_BAND}
-              footerRow={parts.length ? <ProduitRow parts={parts} cols={masterCols} /> : undefined}
-            />
-          );
-        }
-        const blk = b as ImportedFiche["blocks"][number];
-        return blk.type === "para" ? (
+      {f.blocks.slice(lead.rest).map((b, i) =>
+        b.type === "para" ? (
           <SmartText
             key={i}
-            text={blk.text ?? ""}
+            text={b.text ?? ""}
             variant="doc"
-            className={`text-[11.5px] font-bold leading-relaxed text-ink-900 ${blk.frame ? "mt-1" : "mt-2"}`}
+            className={`text-[11.5px] font-bold leading-relaxed text-ink-900 ${b.frame ? "mt-1" : "mt-2"}`}
           />
-        ) : blk.table ? (
-          <SrcTable key={i} t={blk.table} />
-        ) : null;
-      })}
+        ) : b.table ? (
+          <SrcTable key={i} t={b.table} />
+        ) : null,
+      )}
     </div>
   );
 }
@@ -1121,26 +574,6 @@ const DOC_CSS = `
   table.auto-table thead th { background: ${D.nest}; color: #fff; font-weight: 700; }
   table.auto-table td { color: ${D.ink}; }
   table.auto-table td.num { font-weight: 700; white-space: nowrap; }
-  /* شريط الحقول الستة الإلزامية (يتكرر في كل صفحة طباعة) */
-  tr.fieldband th { background: ${D.head}; color: #fff; padding: 4px 5px; }
-  tr.fieldband .fb { display: flex; flex-wrap: wrap; gap: 4px; }
-  tr.fieldband .fb span { flex: 1 1 0; min-width: 88px; background: ${D.gold}; color: #6b4d12; border-radius: 5px;
-                          padding: 2px 6px; font-size: 10px; font-weight: 800; text-align: center; white-space: nowrap; }
-  /* خانة «المنتوج» كصف حقل داخل الجدول الرئيسي */
-  td.produitlabel { background: ${D.head}; color: #fff; font-weight: 800; text-align: center; vertical-align: middle; }
-  td.produitbody { background: ${D.gold}; color: ${D.ink}; }
-  td.produitbody .note { margin: 0 0 6px; font-size: 10px; font-weight: 700; line-height: 1.8; }
-  td.produitbody .part { padding: 6px 4px; border-top: 1px solid ${D.goldLine}; }
-  td.produitbody .part:first-of-type { border-top: 0; }
-  td.produitbody .phase { display: inline-block; background: ${D.nest}; color: #fff; font-size: 10px; font-weight: 800; border-radius: 5px; padding: 1px 7px; margin-bottom: 3px; }
-  ol.plan { margin: 10px 0 0; padding: 10px 16px; background: ${D.gold}; border: 1px solid ${D.goldLine}; border-radius: 12px;
-            font-size: 11px; font-weight: 700; color: #6b4d12; line-height: 2.1; }
-  ol.plan b { color: ${C.headDark}; }
-  td.stagebox { background: ${D.head}; color: #fff; font-weight: 800; text-align: center; vertical-align: middle; }
-  details summary { cursor: pointer; font-weight: 800; font-size: 10.5px; color: ${D.head}; }
-  td.produitbody .sumgroup { padding: 5px 8px; margin-top: 4px; background: #ffffff; border: 1px solid ${D.goldLine}; border-radius: 8px; }
-  td.produitbody .sumgroup ul { margin: 2px 0 0; padding-inline-start: 16px; }
-  td.produitbody .sumgroup li { font-size: 10.5px; font-weight: 700; line-height: 1.8; color: ${D.ink}; }
   td.prod { background: ${D.beige}; }
   td.rowlab { background: ${D.head}; color: #fff; font-weight: 800; }
   td.label2, td.nestfirst { background: ${D.beigeDark}; color: ${D.ink}; font-weight: 800; }
@@ -1191,7 +624,7 @@ function cellToHtml(c: SrcCell, flat?: boolean): string {
   return parts.join("");
 }
 
-function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string, fieldBand?: string[]): string {
+function tableToHtml(t: SrcTable, nested?: boolean): string {
   const rows = t.rows;
   const headerIdx = rows.findIndex((r) => r.filter(isHeaderCell).length >= 2);
   const produitCol = headerIdx >= 0 ? rows[headerIdx].findIndex((c) => cellTexts(c).some(isProduitHeader)) : -1;
@@ -1209,19 +642,12 @@ function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string, fieldBa
   const maxSum = Math.max(sums[0], sums[1], 1);
   const labelPair = twoCol && Math.min(sums[0], sums[1]) / maxSum <= 0.45;
   const labelCol = labelPair ? (sums[0] <= sums[1] ? 0 : 1) : -1;
-  const plan = stageSpanPlan(rows, head);
   const rowHtml = (row: SrcCell[], ri: number) => {
       if (ri === 0 && row.length === 1 && cols > 1 && head !== 0) {
         return `<tr class="head"><th colspan="${cols}">${cellToHtml(row[0] ?? {})}</th></tr>`;
       }
       if (ri === head) {
-        /* ترويسة أقصر من الشبكة: آخر خانة تمتد دون تغيير اسم أو ترتيب */
-        const hLast = row.length < cols ? cols - row.length + 1 : 1;
-        return `<tr class="head">${row.map((c, ci) => `<th${row.length < cols && ci === row.length - 1 ? ` colspan="${hLast}"` : ""}>${cellToHtml(c)}</th>`).join("")}</tr>`;
-      }
-      if (isTaqwimRow(row) && row.length === cols) {
-        /* صف تقويم بعدد أعمدة الشبكة: كل خلية في عمودها (بلا دمج يغيّر المعنى) */
-        return `<tr><td class="taqwim">${cellToHtml(row[0] ?? {})}</td>${row.slice(1).map((c) => `<td class="taqwimbody">${cellToHtml(c)}</td>`).join("")}</tr>`;
+        return `<tr class="head">${row.map((c) => `<th>${cellToHtml(c)}</th>`).join("")}</tr>`;
       }
       if (isTaqwimRow(row)) {
         const rest = row.slice(1).map((c) => cellToHtml(c)).join("<br />");
@@ -1231,11 +657,8 @@ function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string, fieldBa
       const lastSpan = row.length < cols ? cols - row.length + 1 : 1;
       return `<tr>${row
         .map((c, ci) => {
-          if (ci === 0 && plan.skip[ri]) return "";
           const span = merged ? cols : ci === row.length - 1 ? lastSpan : 1;
           const first = ci === 0;
-          const boxFirst = first && !merged && plan.box[ri];
-          const rSpan = first ? plan.span[ri] : 1;
           const rowLabel = first && !merged && cols >= 3 && !(c.box ?? []).length && cleanLine(cellTexts(c).join(" ")).length <= 25;
           const isLabel2 = !merged && twoCol && ci === labelCol;
           const isValue2 = !merged && twoCol && labelPair && ci !== labelCol;
@@ -1244,9 +667,7 @@ function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string, fieldBa
             ? "merged"
             : ci === produitCol
               ? "prod"
-              : boxFirst
-                ? "stagebox"
-                : rowLabel
+              : rowLabel
                 ? "rowlab"
                 : isLabel2
                   ? nested
@@ -1261,17 +682,13 @@ function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string, fieldBa
                       : ci === stageCol
                         ? "stage"
                         : "");
-          return `<td class="${cls}"${span > 1 ? ` colspan="${span}"` : ""}${rSpan > 1 ? ` rowspan="${rSpan}"` : ""}>${cellToHtml(c, ci === produitCol)}</td>`;
+          return `<td class="${cls}"${span > 1 ? ` colspan="${span}"` : ""}>${cellToHtml(c, ci === produitCol)}</td>`;
         })
         .join("")}</tr>`;
   };
   const body = rows.map((row, ri) => (ri === head ? "" : rowHtml(row, ri))).join("\n");
-  const bandHtml =
-    fieldBand && fieldBand.length
-      ? `<tr class="fieldband"><th colspan="${cols}"><span class="fb">${fieldBand.map((f) => `<span>${f}</span>`).join("")}</span></th></tr>\n`
-      : "";
-  const thead = head >= 0 ? `<thead>\n${bandHtml}${rowHtml(rows[head], head)}\n</thead>` : "";
-  return `<table${nested ? ' class="nested" style="margin-top:6px"' : ""}>${thead}<tbody>\n${body}${footerHtml ? `\n${footerHtml}` : ""}\n</tbody></table>`;
+  const thead = head >= 0 ? `<thead>\n${rowHtml(rows[head], head)}\n</thead>` : "";
+  return `<table${nested ? ' class="nested" style="margin-top:6px"' : ""}>${thead}<tbody>\n${body}\n</tbody></table>`;
 }
 
 export function metaTableHtml(t?: SrcTable): string {
@@ -1284,30 +701,6 @@ export function metaTableHtml(t?: SrcTable): string {
           .join("<br />")}</td></tr>`,
     )
     .join("")}</tbody></table>`;
-}
-
-/* «المنتوج» كصف حقل داخل الجدول الرئيسي في نسخة التحميل أيضًا (بنية مطابقة للعرض) */
-function produitRowHtml(parts: ProduitPart[], cols: number): string {
-  const sum = summarizeProduit(parts);
-  return `<tr><td class="produitlabel">المنتوج</td><td class="produitbody splittable" colspan="${Math.max(cols - 1, 1)}">
-    <p class="note">ملخص المنتوج — صياغة تركيبية استخراجية من عمود «${esc(parts[0].header)}» تحترم التوجيهات التربوية وديداكتيك المادة (المهارة + المضمون + الخلاصة)؛ والنص الكامل حرفيًا قابل للطي أسفله.</p>
-    ${sum
-      .map(
-        (g) =>
-          `<div class="sumgroup">${g.phase ? `<span class="phase">${esc(g.phase)}</span>` : ""}<ul>${g.lines
-            .map((l) => `<li>${esc(l)}</li>`)
-            .join("")}</ul></div>`,
-      )
-      .join("")}
-    <details><summary>النص الكامل للمنتوج حرفيًا كما في عمود «${esc(parts[0].header)}» (${parts.length} جزءًا) — بلا حذف ولا اختصار</summary>
-    ${parts
-      .map(
-        (p) =>
-          `<div class="part">${p.phase ? `<span class="phase">${esc(p.phase)}</span>` : ""}${cellToHtml(p.cell)}</div>`,
-      )
-      .join("")}
-    </details>
-  </td></tr>`;
 }
 
 export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
@@ -1323,33 +716,17 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
          ${metaTableHtml(lead.metas.find((t) => t !== (lead.metas.find((x) => cellTexts(x.rows[0]?.[0]).some((l) => l.includes("مادة"))) ?? lead.metas[0])))}</div>`
       : "";
   const bodyBlocks = f.blocks.slice(lead.rest);
-  /* نفس التجميع الموحّد في نسخة التحميل: جدول رئيسي واحد على قالب الصفحة الأولى */
-  const flow: FlowItem[] = f.layout === "pdf" ? [] : assembleFlow(bodyBlocks);
-  const master = flow.find((it) => "kind" in it && it.kind === "master") as { kind: "master"; table: SrcTable } | undefined;
-  const parts = collectProduit(f);
   const blocks =
     f.layout === "pdf"
       ? `<div class="pdfsheet"><p class="pdfnote">الوثيقة المصدر PDF — سطور النص بترتيبها الأصلي كما وردت في الملف، حرفيًا</p>${f.blocks
           .filter((b) => b.type === "para")
           .map((b) => `<p class="pdfline">${esc(b.text ?? "").replace(/\n/g, "<br />")}</p>`)
           .join("")}</div>`
-      : flow
-          .map((b) => {
-            if ("kind" in b && b.kind === "master") {
-              const cols = Math.max(...b.table.rows.map((r) => r.length), 1);
-              return tableToHtml(b.table, false, parts.length ? produitRowHtml(parts, cols) : undefined, FIELD_BAND);
-            }
-            const blk = b as ImportedFiche["blocks"][number];
-            return blk.type === "para"
-              ? `<p class="para">${esc(blk.text ?? "").replace(/\n/g, "<br />")}</p>`
-              : blk.table
-                ? tableToHtml(blk.table)
-                : "";
-          })
+      : bodyBlocks
+          .map((b) => (b.type === "para" ? `<p class="para">${esc(b.text ?? "").replace(/\n/g, "<br />")}</p>` : b.table ? tableToHtml(b.table) : ""))
           .join("\n");
-  const produit = master
-    ? ""
-    : parts.length
+  const parts = collectProduit(f);
+  const produit = parts.length
     ? `<div class="produit"><h2>المنتوج</h2>
        <p class="note">جُمعت أجزاء المنتوج من عمود «${esc(parts[0].header)}» في الجذاذة الأصلية بترتيبها وسياقها نفسه، ونُقلت حرفيًا دون حذف أو اختصار أو إعادة صياغة.</p>
        ${parts
@@ -1374,16 +751,12 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
   <div class="masthead">
     <h1>${esc(SECTION_META.title)}</h1>
     <p>المادة: ${esc(SECTION_META.subject)} · المستوى: ${esc(SECTION_META.level)} · الإطار: ${esc(SECTION_META.frame)}<br />
-       الكتاب المعتمد: ${esc(SECTION_META.book)} — مصاغة وفقه بجذاذات الأستاذ<br />
        ${esc(SECTION_META.authorLabel)} — ${esc(TEACHER_SCHOOL)}</p>
   </div>
   <div class="pad">
     <p class="para"><strong>الجذاذة ${esc(slot.number)} — ${esc(slot.subject)}:</strong> ${esc(slot.title)}
        · ${esc(slot.cycle)} — ${esc(slot.unitTitle)} (مجزوءة ${esc(slot.module)})</p>
 ${headBand}
-<ol class="plan">${fieldPlan(f)
-  .map((it, i) => `<li><b>${i + 1}. ${esc(it.label)}:</b> ${esc(it.state)}</li>`)
-  .join("")}</ol>
 ${blocks}
 ${produit}
     <div class="sign">
@@ -1534,94 +907,8 @@ function StatusBadge({ status, compact }: { status: JadadaStatus; compact?: bool
   );
 }
 
-const VALIDATION_BLOCK_MSG = "تعذر اعتماد الجذاذة بسبب وجود أخطاء في بنية الجدول. تم تحديد الأخطاء وإعادة محاولة الإصلاح تلقائيًا.";
-
-function ValidationFailCard({ v }: { v: FicheValidation }) {
-  return (
-    <div className="px-3 pb-6 pt-4 sm:px-4">
-      <div className="rounded-2xl border-2 border-red-300 bg-red-50 p-4 sm:p-5" role="alert">
-        <p className="text-[13px] font-black leading-relaxed text-red-800">{VALIDATION_BLOCK_MSG}</p>
-        <p className="mt-2 text-[11px] font-bold text-red-700">
-          {v.id} — أخطاء CRITICAL: {v.critical} · أخطاء MAJOR: {v.major} — لا تُعرض الجذاذة عرضًا نهائيًا ولا تُصدَّر إلى PDF
-          قبل نجاح إعادة الفحص.
-        </p>
-        <ul className="mt-3 space-y-1.5">
-          {v.issues
-            .filter((i) => i.severity !== "MINOR")
-            .map((i, k) => (
-              <li key={k} className="rounded-lg bg-white px-3 py-1.5 text-[10.5px] font-bold text-red-700 ring-1 ring-red-200">
-                [{i.severity}] صفحة {i.page} — {i.location}: {i.message}
-              </li>
-            ))}
-        </ul>
-        <p className="mt-3 text-[10px] font-extrabold text-red-600">
-          الإصلاح التلقائي: {v.repair.attempted ? (v.repair.applied ? "طُبّق (إعادة بناء من القالب المرجعي)" : "طُبّق ولم ينجح — الجذاذة محجوبة") : "غير مطلوب"} · إعادة الفحص: {v.repair.recheck}
-        </p>
-      </div>
-      <p className="jadada-print-only px-2 py-3 text-[12px] font-black text-red-700">{VALIDATION_BLOCK_MSG}</p>
-    </div>
-  );
-}
-
-/* لوحة «تنظيم الجذاذة» بالاستعانة بالتنظيم الرسمي المرفق */
-function PedagogyPlan({ f }: { f: ImportedFiche }) {
-  const plan = fieldPlan(f);
-  return (
-    <div
-      className="mx-3 mt-3 rounded-2xl px-4 py-3 sm:mx-4"
-      style={{ background: C.gold, border: `1px solid ${C.goldLine}` }}
-      data-no-print
-    >
-      <p className="text-[11px] font-black" style={{ color: "#6b4d12" }}>
-        تنظيم الجذاذة — بالاستعانة بنفس التنظيم المرفق (التوجيهات التربوية الخاصة بمادتي التاريخ والجغرافيا، وديداكتيك
-        المادة): ستة حقول إلزامية بترتيبها الرسمي، وصناديق المقاطع/الوضعيات ممتدة كما في وثيقة الأستاذ، والمنتوج معرفة
-        مُهَيكَلة مركزة.
-      </p>
-      <ol className="mt-2 grid gap-1.5 sm:grid-cols-2">
-        {plan.map((it, i) => (
-          <li key={it.label} className="flex items-start gap-2 rounded-lg bg-white/80 px-2.5 py-1.5 ring-1 ring-ink-900/10">
-            <span className="grid size-5 shrink-0 place-items-center rounded-md text-[10px] font-black text-white" style={{ background: C.head }}>
-              {i + 1}
-            </span>
-            <span className="text-[10px] font-extrabold leading-relaxed text-ink-800">
-              {it.label}: <span className="font-bold text-ink-600">{it.state}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-function ValidatorReport({ v }: { v: FicheValidation }) {
-  return (
-    <details className="mt-2 rounded-xl bg-white/80 px-3 py-2 ring-1 ring-ink-900/10" data-no-print>
-      <summary className="cursor-pointer text-[10.5px] font-extrabold text-ink-700">
-        تقرير المدقق TABLE VALIDATOR — {v.status} · {v.pages} صفحة (تقدير الطباعة) · {v.tables} جدول · CRITICAL:{v.critical} ·
-        MAJOR:{v.major} · MINOR:{v.minor}
-      </summary>
-      <ul className="mt-2 space-y-1">
-        {v.issues.map((i, k) => (
-          <li key={k} className="text-[10px] font-bold leading-relaxed text-ink-600">
-            <span className={i.severity === "CRITICAL" ? "font-black text-red-600" : i.severity === "MAJOR" ? "font-black text-amber-600" : "font-black text-ink-400"}>
-              [{i.severity}]
-            </span>{" "}
-            صفحة {i.page} — {i.location}: {i.message}
-          </li>
-        ))}
-        <li className="pt-1 text-[10px] font-extrabold text-ink-700">
-          الإصلاح التلقائي: {v.repair.attempted ? (v.repair.applied ? "طُبّق — إعادة البناء من قالب الصفحة الأولى" : "طُبّق وفشل") : "غير مطلوب"} · إعادة
-          الفحص: {v.repair.recheck === "NOT_NEEDED" ? "غير مطلوبة" : v.repair.recheck}
-        </li>
-      </ul>
-    </details>
-  );
-}
-
 function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => void; go: (r: Route) => void }) {
   const { slot, imported, fiche } = entry;
-  const validation = useMemo(() => validateFiche({ slot, imported }), [slot, imported]);
-  const blocked = validation.status === "FAILED";
   const btn =
     "inline-flex items-center gap-1.5 rounded-xl border border-ink-900/10 bg-white px-3.5 py-2 text-[11px] font-extrabold text-ink-700 transition-colors hover:border-brand-300 hover:text-brand-700";
   const ready = Boolean(imported || fiche);
@@ -1644,22 +931,17 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
               الدرس التفاعلي المقابل
             </button>
           )}
-          {ready && !blocked && (
+          {ready && (
             <button type="button" onClick={() => downloadEntry(entry)} className={btn}>
               <Download className="size-3.5" />
               تحميل الجذاذة
             </button>
           )}
-          {ready && !blocked && (
+          {ready && (
             <button type="button" onClick={() => window.print()} className={btn}>
               <Printer className="size-3.5" />
               طباعة الجذاذة
             </button>
-          )}
-          {ready && blocked && (
-            <span className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3.5 py-2 text-[11px] font-extrabold text-white" title={VALIDATION_BLOCK_MSG}>
-              التصدير والطباعة موقوفان: التحقق البنيوي FAILED
-            </span>
           )}
         </div>
       </div>
@@ -1690,30 +972,14 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
           </div>
           <div className="flex flex-wrap items-center gap-1.5" data-no-print>
             <StatusBadge status={entry.status} />
-            <span
-              className={`rounded-full px-3 py-1 text-[10px] font-extrabold text-white ${validation.status === "PASSED" ? "bg-emerald-600" : "bg-red-600"}`}
-            >
-              التحقق البنيوي (TABLE VALIDATOR): {validation.status}
-            </span>
-            <span
-              className="rounded-full px-3 py-1 text-[10px] font-extrabold"
-              style={{ background: C.gold, border: `1px solid ${C.goldLine}`, color: "#6b4d12" }}
-            >
-              مصاغة من كتاب: {SECTION_META.book} — {SECTION_META.level}
-            </span>
           </div>
-          <ValidatorReport v={validation} />
         </div>
 
         {imported ? (
-          blocked ? (
-            <ValidationFailCard v={validation} />
-          ) : (
-            <>
-            <PedagogyPlan f={imported} />
+          <>
             <Blocks f={imported} slot={slot} />
             <div className="px-3 pb-4 sm:px-4">
-              {!hasFlowMaster(imported) && <ProduitPanel f={imported} />}
+              <ProduitPanel f={imported} />
               <div
                 className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3"
                 style={{ background: D.beige, border: `1px solid ${D.line}` }}
@@ -1727,14 +993,12 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
                 </p>
               </div>
               <p className="mt-2 text-[10.5px] font-bold leading-relaxed text-ink-500">
-                جذاذة مصاغة وفق كتاب {SECTION_META.book} للسنة الدراسية الجارية، كما حرّرها الأستاذ في وثيقته الأصلية
-                حرفيًا دون حذف أو اختصار أو تغيير في المصطلحات أو الأرقام أو ترتيب المراحل، مع تحقق آلي من مطابقة كل كلمة
-                بين المصدر والمعروض. بنية الجدول المعروضة هي بنية
+                نُقلت هذه الجذاذة آليًا من وثيقة الأستاذ الأصلية دون حذف أو اختصار أو إعادة صياغة أو تغيير في المصطلحات أو
+                الأرقام أو ترتيب المراحل، مع تحقق آلي من مطابقة كل كلمة بين المصدر والمعروض. بنية الجدول المعروضة هي بنية
                 الوثيقة نفسها{imported.layout === "doc" ? " (ملف Word قديم: أُعيد بناء الجدول من فواصل الخلايا الأصلية)" : imported.layout === "pdf" ? " (ملف PDF: النص كما ورد سطرًا سطرًا)" : ""}.
               </p>
             </div>
-            </>
-          )
+          </>
         ) : fiche ? (
           <>
             <FicheTables j={fiche} />
@@ -1772,7 +1036,7 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2" data-no-print>
-        {ready && !blocked && (
+        {ready && (
           <>
             <button
               type="button"
@@ -1791,11 +1055,6 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
               تحميل الجذاذة (ملف جاهز للطباعة)
             </button>
           </>
-        )}
-        {ready && blocked && (
-          <span className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-extrabold text-white">
-            {VALIDATION_BLOCK_MSG}
-          </span>
         )}
         {slot.lessonKey && (
           <button
@@ -1850,8 +1109,6 @@ export default function Jadadat({ level, open, go }: JadadatProps) {
     }));
     return { total, ready, original, pending: total - ready, perSubject };
   }, []);
-
-  const audit = useMemo(() => validateAllFiches(), []);
 
   const q = normalize(query.trim());
   const visible = useMemo(() => {
@@ -1961,44 +1218,6 @@ export default function Jadadat({ level, open, go }: JadadatProps) {
           ))}
         </div>
       </section>
-
-      {/* ===== تقرير التدقيق الشامل (TABLE VALIDATOR) ===== */}
-      <details className="mt-4 overflow-hidden rounded-2xl bg-white shadow-xl shadow-brand-900/10 ring-1 ring-ink-900/10" data-no-print>
-        <summary className="cursor-pointer px-5 py-3 text-[12px] font-extrabold text-ink-800">
-          تقرير التحقق النهائي — تدقيق بنية جداول جميع الجذاذات (TABLE VALIDATOR): {audit.filter((a) => a.status === "PASSED").length}/
-          {audit.length} PASSED · لا تُعرض ولا تُصدَّر أي جذاذة فاشلة
-        </summary>
-        <div className="overflow-x-auto px-3 pb-4">
-          <table className="w-full min-w-[720px] border-collapse text-[10.5px]">
-            <thead>
-              <tr style={{ background: C.head }}>
-                {["الجذاذة", "المادة", "صفحات", "جداول", "الحالة", "CRITICAL", "MAJOR", "MINOR", "الإصلاح / إعادة الفحص"].map((h) => (
-                  <th key={h} className="px-2 py-1.5 text-start font-extrabold text-white">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {audit.map((a) => (
-                <tr key={a.id} className="border-b border-ink-900/10 odd:bg-white even:bg-brand-50/40">
-                  <td className="px-2 py-1 font-extrabold text-ink-800">{a.id}</td>
-                  <td className="px-2 py-1 font-bold text-ink-600">{a.subject}</td>
-                  <td className="px-2 py-1 font-bold text-ink-600">{a.pages}</td>
-                  <td className="px-2 py-1 font-bold text-ink-600">{a.tables}</td>
-                  <td className={`px-2 py-1 font-black ${a.status === "PASSED" ? "text-emerald-600" : "text-red-600"}`}>{a.status}</td>
-                  <td className="px-2 py-1 font-black text-red-600">{a.critical}</td>
-                  <td className="px-2 py-1 font-black text-amber-600">{a.major}</td>
-                  <td className="px-2 py-1 font-bold text-ink-500">{a.minor}</td>
-                  <td className="px-2 py-1 font-bold text-ink-600">
-                    {a.repair.attempted ? (a.repair.applied ? "طُبّق ✓" : "فشل ✗") : "غير مطلوب"} / {a.repair.recheck === "NOT_NEEDED" ? "—" : a.repair.recheck}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </details>
 
       {/* ===== قاعدة المنتوج ===== */}
       <section className="mt-5 rounded-2xl border p-5" style={{ borderColor: C.goldLine, background: C.gold }}>
