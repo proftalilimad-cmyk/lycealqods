@@ -853,6 +853,58 @@ function DocHeaderBand({ lead, slot }: { lead: DocLead; slot: { number: string; 
   );
 }
 
+/* تنظيم الجذاذة وفق التنظيم الرسمي المرفق (التوجيهات التربوية وديداكتيك المادة):
+   حالة كل حقل إلزامي داخل البنية الموحّدة */
+export function fieldPlan(f: ImportedFiche): { label: string; state: string }[] {
+  if (f.layout === "pdf")
+    return FIELD_BAND.map((label) => ({ label, state: "لا جدول في الأصل (PDF): أسطر حرفية" }));
+  const items = assembleFlow(f.blocks.slice(docLead(f).rest));
+  const masterItem = items.find((it) => "kind" in it && it.kind === "master") as
+    | { kind: "master"; table: SrcTable }
+    | undefined;
+  if (!masterItem) return FIELD_BAND.map((label) => ({ label, state: "—" }));
+  const head = masterItem.table.rows[0].map(cellV);
+  const body = masterItem.table.rows.slice(1);
+  const rowOf = (re: RegExp) => body.some((r) => re.test(cellV(r[0])));
+  const parts = collectProduit(f);
+  return [
+    {
+      label: FIELD_BAND[0],
+      state: head.some((t) => /أهداف التعلم|اهداف التعلم/.test(t))
+        ? "عمود في ترويسة القالب المرجعي"
+        : rowOf(/أهداف|اهداف/)
+          ? "صف حقل مستقل داخل الجدول"
+          : "ضمن أنشطة التعلم والمحتوى",
+    },
+    { label: FIELD_BAND[1], state: "غير وارد في الوثيقة الأصلية — عنوانه ثابت في الشريط الإلزامي المتكرر" },
+    { label: FIELD_BAND[2], state: "أعمدة ترويسة القالب (مراحل إنجاز الدرس وأنشطته ومضمونه)" },
+    {
+      label: FIELD_BAND[3],
+      state: head.some((t) => V_MARHALI.test(t))
+        ? "عمود في ترويسة القالب المرجعي"
+        : rowOf(V_MARHALI)
+          ? "صف حقل مستقل داخل الجدول الرئيسي"
+          : "عنوانه ثابت في الشريط الإلزامي المتكرر",
+    },
+    {
+      label: FIELD_BAND[4],
+      state: head.some((t) => V_FINAL.test(t))
+        ? "عمود في ترويسة القالب المرجعي"
+        : rowOf(V_FINAL)
+          ? "صف حقل مستقل داخل الجدول الرئيسي"
+          : "عنوانه ثابت في الشريط الإلزامي المتكرر",
+    },
+    {
+      label: FIELD_BAND[5],
+      state: head.some((t) => t.includes("المنتوج"))
+        ? "عمود مستقل في ترويسة القالب المرجعي"
+        : parts.length
+          ? `صف حقل مستقل: ملخص ديدكتيكي مركز لـ${parts.length} جزءًا + النص الكامل حرفيًا`
+          : "—",
+    },
+  ];
+}
+
 /* ملخص المنتوج بصياغة استخراجية (جُمل الأصل نفسها مقتطعة عند حدودها)،
    وفق ديداكتيك المادة: المهارة + المضمون + الخلاصة — دون أي إضافة أو تأليف */
 function summarizeProduit(parts: ProduitPart[]): { phase?: string; lines: string[] }[] {
@@ -1081,6 +1133,9 @@ const DOC_CSS = `
   td.produitbody .part { padding: 6px 4px; border-top: 1px solid ${D.goldLine}; }
   td.produitbody .part:first-of-type { border-top: 0; }
   td.produitbody .phase { display: inline-block; background: ${D.nest}; color: #fff; font-size: 10px; font-weight: 800; border-radius: 5px; padding: 1px 7px; margin-bottom: 3px; }
+  ol.plan { margin: 10px 0 0; padding: 10px 16px; background: ${D.gold}; border: 1px solid ${D.goldLine}; border-radius: 12px;
+            font-size: 11px; font-weight: 700; color: #6b4d12; line-height: 2.1; }
+  ol.plan b { color: ${C.headDark}; }
   td.stagebox { background: ${D.head}; color: #fff; font-weight: 800; text-align: center; vertical-align: middle; }
   details summary { cursor: pointer; font-weight: 800; font-size: 10.5px; color: ${D.head}; }
   td.produitbody .sumgroup { padding: 5px 8px; margin-top: 4px; background: #ffffff; border: 1px solid ${D.goldLine}; border-radius: 8px; }
@@ -1326,6 +1381,9 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
     <p class="para"><strong>الجذاذة ${esc(slot.number)} — ${esc(slot.subject)}:</strong> ${esc(slot.title)}
        · ${esc(slot.cycle)} — ${esc(slot.unitTitle)} (مجزوءة ${esc(slot.module)})</p>
 ${headBand}
+<ol class="plan">${fieldPlan(f)
+  .map((it, i) => `<li><b>${i + 1}. ${esc(it.label)}:</b> ${esc(it.state)}</li>`)
+  .join("")}</ol>
 ${blocks}
 ${produit}
     <div class="sign">
@@ -1505,6 +1563,36 @@ function ValidationFailCard({ v }: { v: FicheValidation }) {
   );
 }
 
+/* لوحة «تنظيم الجذاذة» بالاستعانة بالتنظيم الرسمي المرفق */
+function PedagogyPlan({ f }: { f: ImportedFiche }) {
+  const plan = fieldPlan(f);
+  return (
+    <div
+      className="mx-3 mt-3 rounded-2xl px-4 py-3 sm:mx-4"
+      style={{ background: C.gold, border: `1px solid ${C.goldLine}` }}
+      data-no-print
+    >
+      <p className="text-[11px] font-black" style={{ color: "#6b4d12" }}>
+        تنظيم الجذاذة — بالاستعانة بنفس التنظيم المرفق (التوجيهات التربوية الخاصة بمادتي التاريخ والجغرافيا، وديداكتيك
+        المادة): ستة حقول إلزامية بترتيبها الرسمي، وصناديق المقاطع/الوضعيات ممتدة كما في وثيقة الأستاذ، والمنتوج معرفة
+        مُهَيكَلة مركزة.
+      </p>
+      <ol className="mt-2 grid gap-1.5 sm:grid-cols-2">
+        {plan.map((it, i) => (
+          <li key={it.label} className="flex items-start gap-2 rounded-lg bg-white/80 px-2.5 py-1.5 ring-1 ring-ink-900/10">
+            <span className="grid size-5 shrink-0 place-items-center rounded-md text-[10px] font-black text-white" style={{ background: C.head }}>
+              {i + 1}
+            </span>
+            <span className="text-[10px] font-extrabold leading-relaxed text-ink-800">
+              {it.label}: <span className="font-bold text-ink-600">{it.state}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 function ValidatorReport({ v }: { v: FicheValidation }) {
   return (
     <details className="mt-2 rounded-xl bg-white/80 px-3 py-2 ring-1 ring-ink-900/10" data-no-print>
@@ -1622,6 +1710,7 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
             <ValidationFailCard v={validation} />
           ) : (
             <>
+            <PedagogyPlan f={imported} />
             <Blocks f={imported} slot={slot} />
             <div className="px-3 pb-4 sm:px-4">
               {!hasFlowMaster(imported) && <ProduitPanel f={imported} />}
