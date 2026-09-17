@@ -42,6 +42,7 @@ import {
 } from "../data/jadadatFiles";
 import { normalizeArabic } from "../lib/arabic";
 import type { Route } from "../routes";
+import CopyLinkButton from "./CopyLinkButton";
 import Reveal from "./Reveal";
 
 /* ============================================================
@@ -100,6 +101,17 @@ const dateLabel = (iso: string) => {
 };
 
 const arabicCompare = (a: string, b: string) => a.localeCompare(b, "ar");
+
+/**
+ * المجلد(ات) التي جاءت منها ملفات الجذاذة فعلًا داخل وثائق الأستاذ
+ * («منار في التاريخ والجغرافيا» و/أو «مسار التاريخ والجغرافيا»).
+ * تُستنتج من الملفات نفسها — لا تُكتب قيمة افتراضية مُؤلَّفة.
+ */
+const sourceFolders = (files: FicheFile[]): string => {
+  const uniq = Array.from(new Set(files.map((f) => f.folder)));
+  if (uniq.length === 0) return "لا ملف أصلي مستقل — الجذاذة الرقمية منقولة من وثيقة الأستاذ";
+  return uniq.join(" + ");
+};
 
 /* ============================================================
    عارض PDF المدمج (Modal)
@@ -315,6 +327,12 @@ function FicheCard({ f, onPreview, go }: CardProps) {
               <Hash className="size-2.5" aria-hidden="true" />
               الدرس {f.lessonNumber}
             </span>
+            {pdf && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-rose-600">
+                <FileText className="size-2.5" aria-hidden="true" />
+                PDF {pdf.pages ? `· ${pdf.pages} صفحة` : ""}
+              </span>
+            )}
           </p>
           <h3 className="mt-1.5 font-display text-[13.5px] font-black leading-snug text-ink-900">{f.title}</h3>
         </div>
@@ -345,6 +363,19 @@ function FicheCard({ f, onPreview, go }: CardProps) {
       </dl>
 
       <p className="mt-3 line-clamp-3 text-[11px] leading-relaxed text-ink-500">{f.description}</p>
+
+      {/* اسم الملف الأصلي الذي سيُحمَّل */}
+      {f.files.length > 0 && (
+        <p
+          className="mt-2.5 truncate rounded-lg bg-paper-warm/60 px-2.5 py-1.5 text-[10px] font-bold text-ink-600"
+          dir="rtl"
+          title={f.files.map((x) => x.name).join(" · ")}
+        >
+          <span className="font-extrabold text-ink-500">الملف: </span>
+          {(pdf ?? word)?.name}
+          {f.files.length > 1 && <span className="font-semibold text-ink-400"> +{f.files.length - 1} ملفًا آخر في صفحة التفاصيل</span>}
+        </p>
+      )}
 
       {/* الأزرار */}
       <div className="mt-4 flex flex-wrap gap-2 border-t border-ink-900/6 pt-3.5" data-no-print>
@@ -456,7 +487,7 @@ function FicheDetails({ fiche, doc, onPreview, onBack, go }: DetailsProps) {
         ["رقم الدرس / الجذاذة", fiche.lessonNumber],
         ["عدد الحصص", fiche.sessionsCount ? `${fiche.sessionsCount} حصص` : "غير وارد في الوثيقة الأصلية"],
         ["نوع المورد", fiche.files.some((f) => f.kind === "pdf") ? "جذاذة PDF" : fiche.files.length ? "ملف Word" : "جذاذة رقمية من وثيقة الأستاذ"],
-        ["الكتاب المعتمد", "منار التاريخ والجغرافيا"],
+        ["المصدر في وثائق الأستاذ", sourceFolders(fiche.files)],
         ["تاريخ الإضافة", dateLabel(fiche.createdAt)],
       ]
     : [
@@ -465,6 +496,7 @@ function FicheDetails({ fiche, doc, onPreview, onBack, go }: DetailsProps) {
         ["المادة", doc?.subject ?? ""],
         ["الدورة", doc?.semester ?? ""],
         ["نوع المورد", files.some((f) => f.kind === "pdf") ? "ملف PDF" : "ملف Word"],
+        ["المصدر في وثائق الأستاذ", sourceFolders(files)],
         ["تاريخ الإضافة", dateLabel(doc?.createdAt ?? "")],
       ];
 
@@ -489,6 +521,12 @@ function FicheDetails({ fiche, doc, onPreview, onBack, go }: DetailsProps) {
               تتبّع إنجازها في لوحة الأستاذ
             </button>
           )}
+          <CopyLinkButton
+            route={{ view: "jadadatLib", open: fiche?.id ?? doc?.id ?? "" }}
+            label="نسخ رابط الجذاذة"
+            ariaLabel={`نسخ رابط ${title}`}
+            className="px-3.5 py-2 text-[11px]"
+          />
         </div>
       </div>
 
