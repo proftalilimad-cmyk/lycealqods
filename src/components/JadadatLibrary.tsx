@@ -22,6 +22,7 @@ import {
   NotebookPen,
   RotateCcw,
   Search,
+  Sparkles,
   X,
   XCircle,
   ZoomIn,
@@ -993,7 +994,7 @@ export default function JadadatLibrary({ open, go }: JadadatLibraryProps) {
         )}
 
         {/* ===== روابط مفيدة ===== */}
-        <div className="mt-10 grid gap-3 sm:grid-cols-3" data-no-print>
+        <div className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-no-print>
           <button
             type="button"
             onClick={() => go({ view: "jadadat", level: "tc" })}
@@ -1014,6 +1015,17 @@ export default function JadadatLibrary({ open, go }: JadadatLibraryProps) {
             <p className="mt-2 font-display text-[13px] font-black text-ink-900">تتبّع الإنجاز (لوحة الأستاذ)</p>
             <p className="mt-1 text-[11px] leading-relaxed text-ink-500">
               حالة إنجاز كل جذاذة بالتاريخ والقسم — دخول محمي باسم مستعمل وكلمة مرور.
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() => go({ view: "jadadatPrepared" })}
+            className="rounded-2xl border border-ink-900/8 bg-white p-4 text-start transition-all hover:-translate-y-0.5 hover:border-brand-300"
+          >
+            <Sparkles className="size-5 text-brand-600" aria-hidden="true" />
+            <p className="mt-2 font-display text-[13px] font-black text-ink-900">جذاذات مُعدَّة لكل الدروس</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-ink-500">
+              25 جذاذة بُنيت من دروس الموقع وفق التوجيهات التربوية وديداكتيك المادة: كفايات، مقاطع، تدبير، تقويم — للطباعة والتحميل.
             </p>
           </button>
           <div className="rounded-2xl border border-gold-300/70 bg-gold-50 p-4">

@@ -13,6 +13,7 @@ import Resources from "./components/Resources";
 import DocStudio from "./components/DocStudio";
 import Jadadat from "./components/Jadadat";
 import JadadatLibrary from "./components/JadadatLibrary";
+import JadadatPrepared from "./components/JadadatPrepared";
 import SearchOverlay from "./components/SearchOverlay";
 import LessonView from "./components/LessonView";
 import Decks from "./components/decks/Decks";
@@ -20,6 +21,7 @@ import DeckPlayer from "./components/decks/DeckPlayer";
 import { getDeck } from "./data/decks";
 import { getCatalogEntry } from "./data/jadadat";
 import { FICHES_GENERAL_DOCS, getFicheById } from "./data/jadadatFiles";
+import { getPreparedFiche } from "./lib/preparedJadadat";
 import { resolveLesson } from "./data/lessonContent";
 import { BASE_TITLE, VIEW_LABELS, hashToRoute, routeToHash, type Route } from "./routes";
 
@@ -71,6 +73,10 @@ export default function App() {
     () => (route.view === "jadadat" && route.open ? getCatalogEntry(route.open) : undefined),
     [route]
   );
+  const resolvedPrepared = useMemo(
+    () => (route.view === "jadadatPrepared" && route.open ? getPreparedFiche(route.open) : undefined),
+    [route]
+  );
   const resolvedFicheFile = useMemo(
     () =>
       route.view === "jadadatLib" && route.open
@@ -83,7 +89,8 @@ export default function App() {
     resolvedDeck?.title ??
     resolvedJadada?.fiche?.title ??
     resolvedJadada?.slot.title ??
-    resolvedFicheFile?.title;
+    resolvedFicheFile?.title ??
+    resolvedPrepared?.fiche.title;
   useDocumentTitle(route, detail);
   const detailLabel = detail ? `${detail} — ${VIEW_LABELS[route.view]}` : VIEW_LABELS[route.view];
 
@@ -152,6 +159,9 @@ export default function App() {
               );
             return <Decks key={route.subject ?? "all"} go={go} initialSubject={route.subject} />;
           })()}
+        {route.view === "jadadatPrepared" && (
+          <JadadatPrepared key={route.open ?? "list"} open={route.open} go={go} />
+        )}
         {route.view === "jadadatLib" && (
           <JadadatLibrary key={route.open ?? "list"} open={route.open} go={go} />
         )}

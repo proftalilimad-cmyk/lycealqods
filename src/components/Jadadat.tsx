@@ -12,6 +12,7 @@ import {
   Printer,
   ScrollText,
   Search,
+  Sparkles,
   X,
 } from "lucide-react";
 import { ficheFilesOf } from "../data/jadadatFiles";
@@ -66,7 +67,7 @@ const C = {
 const SUBJECTS = ["التاريخ", "الجغرافيا"] as const;
 
 /* ألوان شكل الوثيقة الأصلية كما وردت في ملف الأستاذ (بني/بيج) — يُحترم هذا الشكل في عرض الجذاذة */
-const D = {
+export const D = {
   head: "#8c4b2e",      /* بني رؤوس الجداول وصناديق المراحل وعنوان الدرس */
   nest: "#8a3a26",      /* بني رؤوس الجداول المتداخلة */
   beige: "#f6e7c6",     /* بيج الخلايا (المنتوج/التقويم/قيم البطاقة) */
@@ -545,7 +546,7 @@ function ProduitPanel({ f }: { f: ImportedFiche }) {
    ============================================================ */
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const DOC_CSS = `
+export const DOC_CSS = `
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
   body { margin: 0; padding: 24px; background: #f6f8f7; color: #12211b;
@@ -896,6 +897,7 @@ function FicheTables({ j }: { j: Jadada }) {
 const STATUS_STYLE: Record<JadadaStatus, { icon: typeof CheckCircle2; chip: string }> = {
   original: { icon: CheckCircle2, chip: "bg-brand-600 text-white" },
   model: { icon: PenLine, chip: "bg-gold-100 text-gold-700 ring-1 ring-gold-300" },
+  prepared: { icon: NotebookPen, chip: "bg-brand-100 text-brand-700 ring-1 ring-brand-300" },
   pending: { icon: Hourglass, chip: "bg-paper-warm text-ink-700 ring-1 ring-ink-900/10" },
 };
 
@@ -1243,6 +1245,16 @@ export default function Jadadat({ level, open, go }: JadadatProps) {
           >
             <FileText className="size-4" aria-hidden="true" />
             مكتبة الملفات الأصلية للجذاذات (32 PDF و50 Word) — معاينة وتحميل
+          </button>
+
+          <button
+            type="button"
+            onClick={() => go({ view: "jadadatPrepared" })}
+            data-no-print
+            className="mt-2 inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-colors hover:border-brand-400 hover:bg-brand-100"
+          >
+            <Sparkles className="size-4" aria-hidden="true" />
+            جذاذات مُعدَّة وفق التوجيهات التربوية — لكل الدروس الـ25 (طباعة وتحميل)
           </button>
 
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-ink-500">

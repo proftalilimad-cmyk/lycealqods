@@ -25,6 +25,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import JadadatLibrary from "../src/components/JadadatLibrary";
+import JadadatPrepared from "../src/components/JadadatPrepared";
 import type { Route } from "../src/routes";
 
 /** الجذاذة التي تُلتقط صفحة تفاصيلها (يمكن تغييرها) */
@@ -46,6 +47,8 @@ const banner = (title: string, hash: string) => `
 
 const list = renderToStaticMarkup(<JadadatLibrary go={go} />);
 const details = renderToStaticMarkup(<JadadatLibrary open={DETAILS_ID} go={go} />);
+const prepList = renderToStaticMarkup(<JadadatPrepared go={go} />);
+const prepDoc = renderToStaticMarkup(<JadadatPrepared open={DETAILS_ID} go={go} />);
 
 const page = `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -63,11 +66,18 @@ ${list}
 <div style="height:60px"></div>
 ${banner(`صفحة تفاصيل جذاذة: ${DETAILS_ID}`, `#/jadadat/joth3-mochtrak-scientifique/${DETAILS_ID}`)}
 ${details}
+<div style="height:60px"></div>
+${banner("قسم «جذاذات مُعدَّة» — القائمة الرئيسية (25 جذاذة)", "#/jadadat-prepared")}
+${prepList}
+<div style="height:60px"></div>
+${banner(`وثيقة جذاذة مُعدَّة: ${DETAILS_ID}`, `#/jadadat-prepared/${DETAILS_ID}`)}
+${prepDoc}
 </body>
 </html>`;
 
 mkdirSync("public/exports", { recursive: true });
 writeFileSync("public/exports/jadadat-lib-preview.html", page, "utf8");
 console.log(`✓ كُتبت public/exports/jadadat-lib-preview.html (${(page.length / 1024).toFixed(0)} ك.ب)`);
-console.log(`  القائمة: ${(list.length / 1024).toFixed(0)} ك.ب · التفاصيل: ${(details.length / 1024).toFixed(0)} ك.ب · CSS الموقع: ${(styles.length / 1024).toFixed(0)} ك.ب`);
+console.log(`  مكتبة الملفات: قائمة ${(list.length / 1024).toFixed(0)} ك.ب · تفاصيل ${(details.length / 1024).toFixed(0)} ك.ب`);
+console.log(`  الجذاذات المُعدَّة: قائمة ${(prepList.length / 1024).toFixed(0)} ك.ب · وثيقة ${(prepDoc.length / 1024).toFixed(0)} ك.ب · CSS الموقع ${(styles.length / 1024).toFixed(0)} ك.ب`);
 console.log(`  تُفتح من المعاينة الحية على: /exports/jadadat-lib-preview.html`);

@@ -12,6 +12,7 @@ export type Route =
   | { view: "decks"; id?: string; subject?: string }
   | { view: "jadadat"; level?: string; open?: string }
   | { view: "jadadatLib"; open?: string }
+  | { view: "jadadatPrepared"; open?: string }
   | { view: "studio" };
 
 export const NAV_LINKS: { label: string; route: Route }[] = [
@@ -64,6 +65,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/jadadat/joth3-mochtrak-scientifique        مكتبة ملفات الجذاذات (PDF/Word)
      #/jadadat/joth3-mochtrak-scientifique/<id>   تفاصيل جذاذة وملفاتها الأصلية
      #/jadadat-pdf[/<id>]     الرابط المختصر للمكتبة نفسها
+     #/jadadat-prepared[/<id>] الجذاذات المُعدَّة (من دروس الموقع + التوجيهات التربوية)
   ============================================================ */
 
 export const BASE_TITLE = "فضاء الاجتماعيات — الأستاذ عماد طليل";
@@ -79,6 +81,7 @@ export const VIEW_LABELS: Record<Route["view"], string> = {
   lessons: "الدروس",
   jadadat: "الجذاذات",
   jadadatLib: "جذاذات الجذع المشترك العلمي",
+  jadadatPrepared: "جذاذات مُعدَّة — الجذع المشترك العلمي",
   lesson: "الدرس",
   methods: "المنهجيات",
   apps: "التطبيقات",
@@ -103,6 +106,7 @@ const SEGMENTS: Record<string, Route["view"]> = {
   decks: "decks",
   studio: "studio",
   "jadadat-pdf": "jadadatLib",
+  "jadadat-prepared": "jadadatPrepared",
 };
 
 function encodeSegment(value: string): string {
@@ -150,6 +154,10 @@ export function routeToPath(route: Route): string {
       if (route.open) return `/resources/${encodeSegment(route.type ?? "all")}/${encodeSegment(route.open)}`;
       return route.type ? `/resources/${encodeSegment(route.type)}` : "/resources";
     }
+    case "jadadatPrepared":
+      return route.open
+        ? `/jadadat-prepared/${encodeSegment(route.open)}`
+        : "/jadadat-prepared";
     case "jadadatLib":
       return route.open
         ? `/jadadat/joth3-mochtrak-scientifique/${encodeSegment(route.open)}`
@@ -203,6 +211,8 @@ export function routeFromPath(rawPath: string): Route {
     }
     case "jadadatLib":
       return parts[1] ? { view: "jadadatLib", open: parts[1] } : { view: "jadadatLib" };
+    case "jadadatPrepared":
+      return parts[1] ? { view: "jadadatPrepared", open: parts[1] } : { view: "jadadatPrepared" };
     case "jadadat": {
       /* مكتبة ملفات الجذاذات تشترك في المقطع الأول مع قسم الجذاذات */
       if (parts[1] === "joth3-mochtrak-scientifique")
