@@ -12,12 +12,14 @@ import Applications from "./components/Applications";
 import Resources from "./components/Resources";
 import DocStudio from "./components/DocStudio";
 import Jadadat from "./components/Jadadat";
+import JadadatLibrary from "./components/JadadatLibrary";
 import SearchOverlay from "./components/SearchOverlay";
 import LessonView from "./components/LessonView";
 import Decks from "./components/decks/Decks";
 import DeckPlayer from "./components/decks/DeckPlayer";
 import { getDeck } from "./data/decks";
 import { getCatalogEntry } from "./data/jadadat";
+import { FICHES_GENERAL_DOCS, getFicheById } from "./data/jadadatFiles";
 import { resolveLesson } from "./data/lessonContent";
 import { BASE_TITLE, VIEW_LABELS, hashToRoute, routeToHash, type Route } from "./routes";
 
@@ -69,8 +71,19 @@ export default function App() {
     () => (route.view === "jadadat" && route.open ? getCatalogEntry(route.open) : undefined),
     [route]
   );
+  const resolvedFicheFile = useMemo(
+    () =>
+      route.view === "jadadatLib" && route.open
+        ? getFicheById(route.open) ?? FICHES_GENERAL_DOCS.find((g) => g.id === route.open)
+        : undefined,
+    [route]
+  );
   const detail =
-    resolvedLesson?.content.title ?? resolvedDeck?.title ?? resolvedJadada?.fiche?.title ?? resolvedJadada?.slot.title;
+    resolvedLesson?.content.title ??
+    resolvedDeck?.title ??
+    resolvedJadada?.fiche?.title ??
+    resolvedJadada?.slot.title ??
+    resolvedFicheFile?.title;
   useDocumentTitle(route, detail);
   const detailLabel = detail ? `${detail} — ${VIEW_LABELS[route.view]}` : VIEW_LABELS[route.view];
 
@@ -139,6 +152,9 @@ export default function App() {
               );
             return <Decks key={route.subject ?? "all"} go={go} initialSubject={route.subject} />;
           })()}
+        {route.view === "jadadatLib" && (
+          <JadadatLibrary key={route.open ?? "list"} open={route.open} go={go} />
+        )}
         {route.view === "jadadat" && (
           <Jadadat key={`${route.level ?? "tc"}-${route.open ?? ""}`} level={route.level} open={route.open} go={go} />
         )}

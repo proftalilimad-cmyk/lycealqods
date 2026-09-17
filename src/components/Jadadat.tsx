@@ -14,6 +14,7 @@ import {
   Search,
   X,
 } from "lucide-react";
+import { ficheFilesOf } from "../data/jadadatFiles";
 import {
   JADADA_LEVELS,
   JADADA_STATUS_META,
@@ -932,6 +933,16 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
             <LayoutDashboard className="size-3.5" />
             تتبّع إنجازها في لوحة الأستاذ
           </button>
+          {ficheFilesOf(slot.id).length > 0 && (
+            <button
+              type="button"
+              onClick={() => go({ view: "jadadatLib", open: slot.id })}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-gold-200 bg-gold-100/60 px-3.5 py-2 text-[11px] font-extrabold text-gold-700 transition-colors hover:border-gold-300 hover:bg-gold-100"
+            >
+              <FileText className="size-3.5" />
+              ملفاتها الأصلية ({ficheFilesOf(slot.id).length})
+            </button>
+          )}
           {slot.lessonKey && (
             <button
               type="button"
@@ -1222,6 +1233,16 @@ export default function Jadadat({ level, open, go }: JadadatProps) {
           >
             <LayoutDashboard className="size-4" aria-hidden="true" />
             لوحة تتبّع إنجاز الجذاذات (دخول محمي)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => go({ view: "jadadatLib" })}
+            data-no-print
+            className="mt-2 inline-flex items-center gap-2 rounded-xl border border-gold-200 bg-gold-100/60 px-4 py-2.5 text-xs font-extrabold text-gold-700 transition-colors hover:border-gold-300 hover:bg-gold-100"
+          >
+            <FileText className="size-4" aria-hidden="true" />
+            مكتبة الملفات الأصلية للجذاذات (32 PDF و50 Word) — معاينة وتحميل
           </button>
 
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-ink-500">

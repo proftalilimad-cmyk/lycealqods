@@ -8,6 +8,9 @@
 #      + og-cover.png + images/). لا يحتاج خادمًا: كل شيء ملفات ثابتة.
 #   2) lycealqods-source-YYYY-MM-DD.zip  مصدر المشروع كاملًا بدون
 #      node_modules ولا dist، لفتحه ومتابعة التطوير في مكان آخر.
+#      يضمّ أيضًا مجلد وثائق الأستاذ «جذع مسترك شعبة علوم تجريبية» لأن
+#      ملفات public/files/jadadat/… روابط رمزية إليه: بدونه تصل الروابط
+#      مقطوعة. (أرشيف الموقع dist يحتوي نسخًا حقيقية فلا يحتاجه.)
 #
 # للتحميل مباشرة من المعاينة الحية:
 #   <رابط المعاينة>/dist/exports/lycealqods-site-YYYY-MM-DD.zip
@@ -21,6 +24,7 @@ cd "$ROOT"
 DATE="${EXPORT_DATE:-$(date +%Y-%m-%d)}"
 OUT="$ROOT/dist/exports"
 SITE_ZIP="$OUT/lycealqods-site-$DATE.zip"
+DOCS_DIR="جذع مسترك شعبة علوم تجريبية"
 SRC_ZIP="$OUT/lycealqods-source-$DATE.zip"
 
 if [ "${SKIP_BUILD:-0}" != "1" ]; then
@@ -38,11 +42,15 @@ echo "→ أرشفة الموقع المنشور (dist)…"
 )
 
 echo "→ أرشفة مصدر المشروع…"
+# إضافات اختيارية: تُضمَّن فقط إن وُجدت حتى لا يفشل الأمر
+EXTRA=()
+[ -d "$ROOT/supabase" ] && EXTRA+=("supabase")
+[ -d "$ROOT/$DOCS_DIR" ] && EXTRA+=("$DOCS_DIR")
 (
   cd "$ROOT"
   zip -qrX "$SRC_ZIP" \
     src public index.html package.json package-lock.json tsconfig.json \
-    vite.config.ts scripts .gitignore *.md \
+    vite.config.ts scripts .gitignore *.md "${EXTRA[@]}" \
     -x "scripts/__pycache__/*"
 )
 
@@ -62,6 +70,7 @@ unzip -tq "$SITE_ZIP" | tail -1
 unzip -tq "$SRC_ZIP" | tail -1
 echo
 echo "عدد الملفات داخل أرشيف الموقع: $(unzip -l "$SITE_ZIP" | tail -1 | awk '{print $2}')"
+echo "ملفات الجذاذات داخل أرشيف الموقع (PDF/Word): $(unzip -l "$SITE_ZIP" | grep -Ec 'files/jadadat/joth3-mochtrak-scientifique/.+\.(pdf|docx?|PDF|DOCX?)$')"
 echo "عدد الملفات داخل أرشيف المصدر: $(unzip -l "$SRC_ZIP" | tail -1 | awk '{print $2}')"
 echo
 echo "للتحميل من المعاينة الحية:"

@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Download,
   ExternalLink,
+  FileText,
   Hourglass,
   ListChecks,
   NotebookPen,
@@ -22,6 +23,7 @@ import {
   type TrackerSubject,
 } from "../data/jadadatTracker";
 import { getCatalogEntry } from "../data/jadadat";
+import { ficheFilesOf } from "../data/jadadatFiles";
 import { ROSTER_CLASSES } from "../data/rosters";
 import type { Route } from "../routes";
 import {
@@ -307,6 +309,14 @@ export default function JadadatTracker({ go }: JadadatTrackerProps) {
           </button>
           <button
             type="button"
+            onClick={() => go({ view: "jadadatLib" })}
+            className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-transform hover:-translate-y-0.5"
+          >
+            <FileText className="size-4" aria-hidden="true" />
+            مكتبة ملفات الجذاذات (PDF)
+          </button>
+          <button
+            type="button"
             onClick={() => exportTrackerCsv(map)}
             className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-transform hover:-translate-y-0.5"
           >
@@ -408,6 +418,16 @@ export default function JadadatTracker({ go }: JadadatTrackerProps) {
                                   >
                                     <ExternalLink className="size-3" aria-hidden="true" />
                                     فتح / طباعة الجذاذة
+                                  </button>
+                                )}
+                                {ficheFilesOf(s.id).length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => go({ view: "jadadatLib", open: s.id })}
+                                    className="mt-1 ms-1 inline-flex items-center gap-1.5 rounded-lg border border-gold-200 bg-gold-100/60 px-2 py-1 text-[10px] font-extrabold text-gold-700 transition-colors hover:border-gold-300 hover:bg-gold-100"
+                                  >
+                                    <FileText className="size-3" aria-hidden="true" />
+                                    ملفاتها ({ficheFilesOf(s.id).length})
                                   </button>
                                 )}
                                 <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-ink-500">

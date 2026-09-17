@@ -11,6 +11,7 @@ export type Route =
   | { view: "resources"; type?: string; open?: string }
   | { view: "decks"; id?: string; subject?: string }
   | { view: "jadadat"; level?: string; open?: string }
+  | { view: "jadadatLib"; open?: string }
   | { view: "studio" };
 
 export const NAV_LINKS: { label: string; route: Route }[] = [
@@ -20,6 +21,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "المبارزة", route: { view: "battle" } },
   { label: "الدروس", route: { view: "lessons" } },
   { label: "الجذاذات", route: { view: "jadadat" } },
+  { label: "جذاذات PDF", route: { view: "jadadatLib" } },
   { label: "التطبيقات", route: { view: "apps" } },
   { label: "العروض", route: { view: "decks" } },
   { label: "المنهجيات", route: { view: "methods" } },
@@ -60,6 +62,9 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/jadadat              الجذاذات
      #/jadadat/<level>      جذاذات مستوى (tc / bac1 / bac2)
      #/jadadat/<level>/<id> جذاذة مفتوحة
+     #/jadadat/joth3-mochtrak-scientifique        مكتبة ملفات الجذاذات (PDF/Word)
+     #/jadadat/joth3-mochtrak-scientifique/<id>   تفاصيل جذاذة وملفاتها الأصلية
+     #/jadadat-pdf[/<id>]     الرابط المختصر للمكتبة نفسها
   ============================================================ */
 
 export const BASE_TITLE = "فضاء الاجتماعيات — الأستاذ عماد طليل";
@@ -74,6 +79,7 @@ export const VIEW_LABELS: Record<Route["view"], string> = {
   dashboard: "لوحة الأستاذ",
   lessons: "الدروس",
   jadadat: "الجذاذات",
+  jadadatLib: "جذاذات الجذع المشترك العلمي",
   lesson: "الدرس",
   methods: "المنهجيات",
   apps: "التطبيقات",
@@ -97,6 +103,7 @@ const SEGMENTS: Record<string, Route["view"]> = {
   resources: "resources",
   decks: "decks",
   studio: "studio",
+  "jadadat-pdf": "jadadatLib",
 };
 
 function encodeSegment(value: string): string {
@@ -144,6 +151,10 @@ export function routeToPath(route: Route): string {
       if (route.open) return `/resources/${encodeSegment(route.type ?? "all")}/${encodeSegment(route.open)}`;
       return route.type ? `/resources/${encodeSegment(route.type)}` : "/resources";
     }
+    case "jadadatLib":
+      return route.open
+        ? `/jadadat/joth3-mochtrak-scientifique/${encodeSegment(route.open)}`
+        : "/jadadat/joth3-mochtrak-scientifique";
     case "jadadat": {
       if (route.open) return `/jadadat/${encodeSegment(route.level ?? "tc")}/${encodeSegment(route.open)}`;
       return route.level ? `/jadadat/${encodeSegment(route.level)}` : "/jadadat";
@@ -191,7 +202,12 @@ export function routeFromPath(rawPath: string): Route {
       const open = parts[2] || undefined;
       return open ? { view: "resources", type, open } : type ? { view: "resources", type } : { view: "resources" };
     }
+    case "jadadatLib":
+      return parts[1] ? { view: "jadadatLib", open: parts[1] } : { view: "jadadatLib" };
     case "jadadat": {
+      /* مكتبة ملفات الجذاذات تشترك في المقطع الأول مع قسم الجذاذات */
+      if (parts[1] === "joth3-mochtrak-scientifique")
+        return parts[2] ? { view: "jadadatLib", open: parts[2] } : { view: "jadadatLib" };
       const lvl = parts[1] || undefined;
       const open = parts[2] || undefined;
       return open ? { view: "jadadat", level: lvl, open } : lvl ? { view: "jadadat", level: lvl } : { view: "jadadat" };

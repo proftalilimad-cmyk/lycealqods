@@ -32,6 +32,7 @@ const STATIC_PAGES: SearchResult[] = [
   { id: "p-dash", group: "صفحات", title: "لوحة الأستاذ (دخول محمي)", hint: "نتائج التقويم التشخيصي — باسم مستعمل وكلمة مرور", action: { view: "dashboard", tab: "results" } },
   { id: "p-dash-jadadat", group: "صفحات", title: "تتبّع إنجاز الجذاذات", hint: "25 جذاذة · الحالة والتاريخ والقسم — داخل لوحة الأستاذ", action: { view: "dashboard", tab: "jadadat" } },
   { id: "p-dash-sec", group: "صفحات", title: "الدخول والأمان — لوحة الأستاذ", hint: "تغيير اسم المستعمل وكلمة المرور", action: { view: "dashboard", tab: "security" } },
+  { id: "p-jadadat-pdf", group: "صفحات", title: "جذاذات الجذع المشترك العلمي — ملفات PDF", hint: "82 ملفًا أصليًا: معاينة مدمجة وتحميل حسب المادة والدورة والدرس", action: { view: "jadadatLib" } },
   { id: "p-res", group: "صفحات", title: "الموارد التعليمية", hint: "ملفات وخرائط وجداول ومبيانات", action: { view: "resources" } },
   { id: "p-decks", group: "صفحات", title: "العروض التفاعلية — الأولى باكالوريا علوم", hint: "دروس من الكتاب المدرسي مع الاشتغال على الوثائق", action: { view: "decks" } },
 ];
