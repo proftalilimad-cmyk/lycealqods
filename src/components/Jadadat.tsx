@@ -21,7 +21,6 @@ import {
   TC_SCI_UNITS,
   TEACHER_SCHOOL,
   catalogText,
-  collectProduit,
   getCatalogEntry,
   isProduitHeader,
   type CatalogEntry,
@@ -490,52 +489,6 @@ function Blocks({ f, slot }: { f: ImportedFiche; slot: { number: string; title: 
 }
 
 /* ---------- المنتوج: يُجمع من عموده الأصلي بترتيبه ونصّه الحرفيين ---------- */
-function ProduitPanel({ f }: { f: ImportedFiche }) {
-  const parts = collectProduit(f);
-  if (parts.length === 0) {
-    return (
-      <section className="mt-4 rounded-2xl border p-4" style={{ borderColor: D.line, background: D.beigeLight }}>
-        <h2 className="flex items-center gap-2 font-display text-[13px] font-extrabold" style={{ color: D.head }}>
-          <ScrollText className="size-4" aria-hidden="true" />
-          المنتوج
-        </h2>
-        <p className="mt-2 text-[11px] font-bold leading-relaxed text-ink-700">
-          ورد المنتوج داخل نص الوثيقة الأصلية المعروض أعلاه كما هو (الملف المصدر PDF)، ولم يُضف إليه أو يُحذف منه شيء.
-        </p>
-      </section>
-    );
-  }
-  return (
-    <section className="mt-4 overflow-hidden rounded-2xl border" style={{ borderColor: D.line }}>
-      <h2 className="flex flex-wrap items-center gap-2 px-4 py-2.5 font-display text-[13px] font-extrabold text-white" style={{ background: D.head }}>
-        <ScrollText className="size-4" aria-hidden="true" />
-        المنتوج
-        <span className="rounded-full bg-white/20 px-2 py-0.5 text-[9.5px] font-black">
-          عمود «{parts[0].header}» في الجذاذة الأصلية · {parts.length} جزءًا
-        </span>
-      </h2>
-      <p className="border-b px-4 py-2 text-[10px] font-bold leading-relaxed text-ink-600" style={{ borderColor: D.line, background: D.beigeLight }}>
-        جُمعت أجزاء المنتوج من الجدول الأصلي بترتيبها وسياقها نفسه، ونُقلت حرفيًا دون حذف أو اختصار أو إعادة صياغة أو تغيير
-        في المصطلحات أو الأرقام. (تجدونها كذلك في موضعها الأصلي داخل عمود «{parts[0].header}» أعلاه.)
-      </p>
-      <div className="divide-y" style={{ borderColor: D.line }}>
-        {parts.map((p, i) => (
-          <div key={i} className="px-4 py-3" style={{ background: i % 2 ? D.beigeLight : "#ffffff" }}>
-            {p.phase && (
-              <p className="mb-1.5 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: D.nest }}>
-                {p.phase}
-              </p>
-            )}
-            <div className="text-[11px] font-semibold leading-relaxed text-ink-900">
-              <CellContent c={p.cell} gold />
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 /* ============================================================
    ملف التحميل: نسخة HTML مستقلة من الوثيقة الأصلية
    ============================================================ */
@@ -598,11 +551,6 @@ const DOC_CSS = `
   .num { width: 36px; height: 36px; border-radius: 50%; background: ${D.head}; color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 13px; flex: none; }
   .pill { background: #6b7280; color: #fff; border-radius: 5px; padding: 1px 9px; font-size: 9.5px; font-weight: 800; }
   .titlebox { background: ${D.head}; color: #fff; border-radius: 10px; padding: 8px 12px; text-align: center; font-weight: 800; font-size: 12px; width: 100%; }
-  .produit { margin-top: 16px; border: 1px solid ${D.line}; border-radius: 10px; overflow: hidden; }
-  .produit h2 { margin: 0; padding: 9px 13px; background: ${D.head}; color: #fff; font-size: 13px; }
-  .produit .note { padding: 7px 13px; background: ${D.beigeLight}; font-size: 10.5px; line-height: 1.8; border-bottom: 1px solid ${D.line}; }
-  .produit .part { padding: 9px 13px; border-bottom: 1px solid ${D.line}; font-size: 11.5px; line-height: 1.95; }
-  .produit .phase { display: inline-block; background: ${D.nest}; color: #fff; border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: 700; margin-bottom: 4px; }
   .sign { margin-top: 16px; background: ${D.beige}; border: 1px solid ${D.line}; border-radius: 10px; padding: 11px 14px;
           font-size: 12px; font-weight: 700; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
   .src { margin-top: 9px; font-size: 10.5px; color: #4c5b54; line-height: 1.8; }
@@ -725,18 +673,6 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
       : bodyBlocks
           .map((b) => (b.type === "para" ? `<p class="para">${esc(b.text ?? "").replace(/\n/g, "<br />")}</p>` : b.table ? tableToHtml(b.table) : ""))
           .join("\n");
-  const parts = collectProduit(f);
-  const produit = parts.length
-    ? `<div class="produit"><h2>المنتوج</h2>
-       <p class="note">جُمعت أجزاء المنتوج من عمود «${esc(parts[0].header)}» في الجذاذة الأصلية بترتيبها وسياقها نفسه، ونُقلت حرفيًا دون حذف أو اختصار أو إعادة صياغة.</p>
-       ${parts
-         .map(
-           (p) =>
-             `<div class="part">${p.phase ? `<span class="phase">${esc(p.phase)}</span>` : ""}${cellToHtml(p.cell)}</div>`,
-         )
-         .join("")}
-       </div>`
-    : `<div class="produit"><h2>المنتوج</h2><p class="note">ورد المنتوج داخل نص الوثيقة الأصلية كما هو، ولم يُضف إليه أو يُحذف منه شيء.</p></div>`;
 
   return `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -758,7 +694,6 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
        · ${esc(slot.cycle)} — ${esc(slot.unitTitle)} (مجزوءة ${esc(slot.module)})</p>
 ${headBand}
 ${blocks}
-${produit}
     <div class="sign">
       <span>${esc(SECTION_META.authorLabel)} — ${esc(TEACHER_SCHOOL)}</span>
       <span>الجذاذة ${esc(slot.number)} · ${esc(slot.subject)} · ${esc(slot.cycle)}</span>
@@ -979,7 +914,6 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
           <>
             <Blocks f={imported} slot={slot} />
             <div className="px-3 pb-4 sm:px-4">
-              <ProduitPanel f={imported} />
               <div
                 className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3"
                 style={{ background: D.beige, border: `1px solid ${D.line}` }}
