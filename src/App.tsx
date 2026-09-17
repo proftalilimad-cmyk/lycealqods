@@ -11,14 +11,11 @@ import Methodologies from "./components/Methodologies";
 import Applications from "./components/Applications";
 import Resources from "./components/Resources";
 import DocStudio from "./components/DocStudio";
-import Jadadat from "./components/Jadadat";
-import ManarLibrary from "./components/ManarLibrary";
 import SearchOverlay from "./components/SearchOverlay";
 import LessonView from "./components/LessonView";
 import Decks from "./components/decks/Decks";
 import DeckPlayer from "./components/decks/DeckPlayer";
 import { getDeck } from "./data/decks";
-import { getCatalogEntry } from "./data/jadadat";
 import { resolveLesson } from "./data/lessonContent";
 import { BASE_TITLE, VIEW_LABELS, hashToRoute, routeToHash, type Route } from "./routes";
 
@@ -66,12 +63,7 @@ export default function App() {
     () => (route.view === "decks" && route.id ? getDeck(route.id) : undefined),
     [route]
   );
-  const resolvedJadada = useMemo(
-    () => (route.view === "jadadat" && route.open ? getCatalogEntry(route.open) : undefined),
-    [route]
-  );
-  const detail =
-    resolvedLesson?.content.title ?? resolvedDeck?.title ?? resolvedJadada?.fiche?.title ?? resolvedJadada?.slot.title;
+  const detail = resolvedLesson?.content.title ?? resolvedDeck?.title;
   useDocumentTitle(route, detail);
   const detailLabel = detail ? `${detail} — ${VIEW_LABELS[route.view]}` : VIEW_LABELS[route.view];
 
@@ -140,10 +132,6 @@ export default function App() {
               );
             return <Decks key={route.subject ?? "all"} go={go} initialSubject={route.subject} />;
           })()}
-        {route.view === "jadadat" && (
-          <Jadadat key={`${route.level ?? "tc"}-${route.open ?? ""}`} level={route.level} open={route.open} go={go} />
-        )}
-        {route.view === "manar" && <ManarLibrary key={route.open ?? "list"} open={route.open} go={go} />}
         {route.view === "studio" && <DocStudio />}
         {route.view === "resources" && (
           <Resources key={`${route.type ?? "all"}-${route.open ?? ""}`} go={go} initialType={route.type} openId={route.open} />
