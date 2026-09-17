@@ -14,6 +14,7 @@ import {
   UserRoundPen,
 } from "lucide-react";
 import { getBank, TEST_BANKS, type TestBankDef } from "../../data/testBanks";
+import { ROSTER_CLASSES, ROSTER_SOURCE, ROSTER_YEAR, rosterByLabel, type RosterStudent } from "../../data/rosters";
 import { TEST_DURATION_SECONDS } from "../../data/questions";
 import type { Submission } from "../../types";
 import { addSubmission } from "../../lib/storage";
@@ -149,19 +150,42 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
   const [name, setName] = useState("");
   const [className, setClassName] = useState("");
   const [studentNo, setStudentNo] = useState("");
+  /* اختيار الاسم من اللائحة الرسمية للقسم (رقم مسار = المفتاح) */
+  const [studentPick, setStudentPick] = useState("");
   const [error, setError] = useState("");
   const [report, setReport] = useState<TestReport | null>(null);
 
+  const rosterClass = rosterByLabel(className);
+  const pickedStudent: RosterStudent | undefined = rosterClass?.students.find((st) => st.massar === studentPick);
+
   const pickBank = (b: TestBankDef) => {
     setBank(b);
-    setClassName(b.branch);
+    setClassName("");
+    setStudentPick("");
     setStage("intro");
     window.scrollTo({ top: 0 });
   };
 
+  const pickClass = (label: string) => {
+    setClassName(label);
+    setStudentPick("");
+    setName("");
+    setStudentNo("");
+  };
+
+  const pickStudent = (massar: string) => {
+    setStudentPick(massar);
+    const st = rosterClass?.students.find((x) => x.massar === massar);
+    if (st) {
+      setName(st.name);
+      setStudentNo(String(st.n));
+    }
+  };
+
   const start = () => {
-    if (name.trim().length < 3) return setError("المرجو إدخال الاسم الكامل (3 حروف على الأقل).");
     if (!className) return setError("المرجو اختيار القسم.");
+    if (rosterClass && !pickedStudent) return setError("المرجو اختيار اسم التلميذ(ة) من لائحة القسم الرسمية.");
+    if (!rosterClass && name.trim().length < 3) return setError("المرجو إدخال الاسم الكامل (3 حروف على الأقل).");
     setError("");
     setStage("run");
     window.scrollTo({ top: 0 });
@@ -319,27 +343,61 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
               </div>
             </div>
             <div className="space-y-4 p-7">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="s-class" className="field-label">القسم (من اللوائح الرسمية {ROSTER_YEAR}) <span className="text-rose-500">*</span></label>
+                  <select id="s-class" value={className} onChange={(e) => pickClass(e.target.value)} className="field">
+                    <option value="">— اختر القسم —</option>
+                    {ROSTER_CLASSES.map((c) => (
+                      <option key={c.id} value={c.label}>
+                        {c.label} ({c.students.length} تلميذًا)
+                      </option>
+                    ))}
+                    <option value="قسم آخر">قسم آخر (غير موجود في اللوائح)</option>
+                  </select>
+                  <p className="mt-1 text-[10px] leading-relaxed text-ink-400">
+                    المصدر: {ROSTER_SOURCE} — الثانوية التأهيلية القدس، القنيطرة.
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="s-student" className="field-label">اختيار الاسم من لائحة القسم <span className="text-rose-500">*</span></label>
+                  <select
+                    id="s-student"
+                    value={studentPick}
+                    onChange={(e) => pickStudent(e.target.value)}
+                    className="field"
+                    disabled={!rosterClass}
+                  >
+                    <option value="">{rosterClass ? "— اختر اسم التلميذ(ة) —" : "اختر القسم أولًا"}</option>
+                    {rosterClass?.students.map((st) => (
+                      <option key={st.massar} value={st.massar}>
+                        {st.n}. {st.name}
+                      </option>
+                    ))}
+                  </select>
+                  {pickedStudent && (
+                    <p className="mt-1 text-[10px] font-bold leading-relaxed text-brand-700">
+                      رقم مسار: {pickedStudent.massar} · ر.ت: {pickedStudent.n} · تاريخ الازدياد: {pickedStudent.birth || "—"}
+                    </p>
+                  )}
+                </div>
+              </div>
               <div>
-                <label htmlFor="s-name" className="field-label">الاسم الكامل <span className="text-rose-500">*</span></label>
+                <label htmlFor="s-name" className="field-label">
+                  الاسم الكامل {pickedStudent ? "(معتمد من اللائحة الرسمية)" : <span className="text-rose-500">*</span>}
+                </label>
                 <input
                   id="s-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="مثال: أمين العلوي"
+                  placeholder={rosterClass ? "يُعبأ تلقائيًا من اختيار الاسم أعلاه" : "مثال: أمين العلوي"}
                   className="field"
                   autoComplete="name"
+                  readOnly={Boolean(pickedStudent)}
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="s-class" className="field-label">القسم <span className="text-rose-500">*</span></label>
-                  <select id="s-class" value={className} onChange={(e) => setClassName(e.target.value)} className="field">
-                    <option value="">— اختر القسم —</option>
-                    <option value={bank.branch}>{bank.branch}</option>
-                    <option value="قسم آخر">قسم آخر</option>
-                  </select>
-                </div>
                 <div>
                   <label htmlFor="s-no" className="field-label">رقم التلميذ (اختياري)</label>
                   <input
