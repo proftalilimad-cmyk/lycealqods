@@ -11,6 +11,7 @@ export type Route =
   | { view: "resources"; type?: string; open?: string }
   | { view: "decks"; id?: string; subject?: string }
   | { view: "jadadat"; level?: string; open?: string }
+  | { view: "manar"; open?: string }
   | { view: "studio" };
 
 export const NAV_LINKS: { label: string; route: Route }[] = [
@@ -20,6 +21,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "المبارزة", route: { view: "battle" } },
   { label: "الدروس", route: { view: "lessons" } },
   { label: "الجذاذات", route: { view: "jadadat" } },
+  { label: "كتاب منار", route: { view: "manar" } },
   { label: "التطبيقات", route: { view: "apps" } },
   { label: "العروض", route: { view: "decks" } },
   { label: "المنهجيات", route: { view: "methods" } },
@@ -76,6 +78,7 @@ export const VIEW_LABELS: Record<Route["view"], string> = {
   methods: "المنهجيات",
   apps: "التطبيقات",
   resources: "الموارد",
+  manar: "كتاب منار",
   decks: "العروض التفاعلية",
   studio: "محرر الوثائق",
 };
@@ -95,6 +98,7 @@ const SEGMENTS: Record<string, Route["view"]> = {
   resources: "resources",
   decks: "decks",
   studio: "studio",
+  manar: "manar",
 };
 
 function encodeSegment(value: string): string {
@@ -146,6 +150,8 @@ export function routeToPath(route: Route): string {
       if (route.open) return `/jadadat/${encodeSegment(route.level ?? "tc")}/${encodeSegment(route.open)}`;
       return route.level ? `/jadadat/${encodeSegment(route.level)}` : "/jadadat";
     }
+    case "manar":
+      return route.open ? `/manar/${encodeSegment(route.open)}` : "/manar";
   }
 }
 
@@ -193,6 +199,8 @@ export function routeFromPath(rawPath: string): Route {
       const open = parts[2] || undefined;
       return open ? { view: "jadadat", level: lvl, open } : lvl ? { view: "jadadat", level: lvl } : { view: "jadadat" };
     }
+    case "manar":
+      return parts[1] ? { view: "manar", open: parts[1] } : { view: "manar" };
   }
 }
 

@@ -13,6 +13,7 @@ import {
   Search,
   X,
 } from "lucide-react";
+import { manarForTitle } from "../data/manarSources";
 import {
   JADADA_LEVELS,
   JADADA_STATUS_META,
@@ -972,6 +973,17 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
           </div>
           <div className="flex flex-wrap items-center gap-1.5" data-no-print>
             <StatusBadge status={entry.status} />
+            {manarForTitle(slot.title).map((m) => (
+              <button
+                key={m.file}
+                type="button"
+                onClick={() => go({ view: "manar", open: m.file })}
+                className="rounded-full bg-white px-3 py-1 text-[10px] font-extrabold text-brand-700 ring-1 ring-brand-200 transition-colors hover:ring-brand-400"
+                title={m.title}
+              >
+                مصدر منار: {m.title.length > 42 ? `${m.title.slice(0, 42)}…` : m.title}
+              </button>
+            ))}
           </div>
         </div>
 

@@ -12,6 +12,7 @@ import Applications from "./components/Applications";
 import Resources from "./components/Resources";
 import DocStudio from "./components/DocStudio";
 import Jadadat from "./components/Jadadat";
+import ManarLibrary from "./components/ManarLibrary";
 import SearchOverlay from "./components/SearchOverlay";
 import LessonView from "./components/LessonView";
 import Decks from "./components/decks/Decks";
@@ -142,6 +143,7 @@ export default function App() {
         {route.view === "jadadat" && (
           <Jadadat key={`${route.level ?? "tc"}-${route.open ?? ""}`} level={route.level} open={route.open} go={go} />
         )}
+        {route.view === "manar" && <ManarLibrary key={route.open ?? "list"} open={route.open} go={go} />}
         {route.view === "studio" && <DocStudio />}
         {route.view === "resources" && (
           <Resources key={`${route.type ?? "all"}-${route.open ?? ""}`} go={go} initialType={route.type} openId={route.open} />
