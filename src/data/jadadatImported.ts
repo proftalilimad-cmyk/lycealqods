@@ -198,7 +198,6 @@ export const IMPORTED_FICHES: ImportedFiche[] = [
       [
        {
         "lines": [
-         "tqqqhZq\\+"
         ]
        }
       ],
