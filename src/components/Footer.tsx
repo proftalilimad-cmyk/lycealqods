@@ -82,6 +82,11 @@ export default function Footer({ go }: FooterProps) {
                   </button>
                 </li>
                 <li>
+                  <button type="button" onClick={() => go({ view: "jadadat" })} className="text-sm text-white/55 transition-colors hover:text-white">
+                    قسم الجذاذات (عرض وطباعة)
+                  </button>
+                </li>
+                <li>
                   <button type="button" onClick={() => go({ view: "jadadatLib" })} className="text-sm text-white/55 transition-colors hover:text-white">
                     جذاذات الجذع المشترك العلمي (PDF)
                   </button>

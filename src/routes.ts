@@ -21,7 +21,6 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "المبارزة", route: { view: "battle" } },
   { label: "الدروس", route: { view: "lessons" } },
   { label: "الجذاذات", route: { view: "jadadat" } },
-  { label: "جذاذات PDF", route: { view: "jadadatLib" } },
   { label: "التطبيقات", route: { view: "apps" } },
   { label: "العروض", route: { view: "decks" } },
   { label: "المنهجيات", route: { view: "methods" } },
