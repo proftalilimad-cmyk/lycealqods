@@ -467,6 +467,27 @@ function CellContent({ c, gold, stage }: { c: SrcCell; gold?: boolean; stage?: b
   );
 }
 
+/* العمود الأول (مراحل/مقاطع): صفوف متتالية بنفس عنوان المقطع = صندوق واحد ممتد
+   عليها (rowSpan) بخلفية العلامة — كما في تنظيم وثيقة الأستاذ المرفق */
+const SECTION_BOX_RE = /^(المقطع|الوضعية|وضعية|مراحل|المرحلة)/;
+const firstCellText = (r: SrcCell[]) => cleanLine(cellTexts(r[0] ?? {}).join(" "));
+export function stageSpanPlan(rows: SrcCell[][], head: number): { span: number[]; skip: boolean[]; box: boolean[] } {
+  const span = rows.map(() => 1);
+  const skip = rows.map(() => false);
+  const box = rows.map(() => false);
+  if (head < 0) return { span, skip, box };
+  for (let ri = head + 1; ri < rows.length; ) {
+    const t = firstCellText(rows[ri]);
+    let j = ri + 1;
+    while (j < rows.length && rows[j].length > 2 && t.length > 6 && firstCellText(rows[j]) === t) j += 1;
+    span[ri] = j - ri;
+    for (let k = ri + 1; k < j; k += 1) skip[k] = true;
+    box[ri] = SECTION_BOX_RE.test(t) || j > ri + 1;
+    ri = j;
+  }
+  return { span, skip, box };
+}
+
 function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: boolean; footerRow?: ReactNode; fieldBand?: string[] }) {
   const rows = t.rows;
   const headerIdx = rows.findIndex((r) => r.filter(isHeaderCell).length >= 2);
@@ -496,6 +517,7 @@ function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: b
   const minSum = Math.min(sums[0], sums[1]);
   const labelPair = twoCol && minSum / maxSum <= 0.45;
   const labelCol = labelPair ? (sums[0] <= sums[1] ? 0 : 1) : -1;
+  const plan = stageSpanPlan(rows, head);
 
   const renderRow = (row: SrcCell[], ri: number) => {
     {
@@ -586,8 +608,11 @@ function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: b
             return (
               <tr key={ri}>
                 {row.map((c, ci) => {
+                  if (ci === 0 && plan.skip[ri]) return null;
                   const gold = ci === produitCol && produitCol >= 0;
                   const first = ci === 0;
+                  const boxFirst = first && !merged && plan.box[ri];
+                  const rSpan = first ? plan.span[ri] : 1;
                   const span = merged ? cols : ci === row.length - 1 ? lastSpan : 1;
                   const txt = cellTexts(c).join(" ");
                   /* خلية طويلة أو تحوي جدولًا متداخلًا: يُسمح بقطعها بين صفحتي الطباعة */
@@ -601,7 +626,7 @@ function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: b
                     ? D.beigeDark
                     : gold
                       ? D.beige
-                      : rowLabel
+                      : boxFirst || rowLabel
                         ? D.head
                         : label2
                           ? nested
@@ -618,14 +643,15 @@ function SrcTable({ t, nested, footerRow, fieldBand }: { t: SrcTable; nested?: b
                     <td
                       key={ci}
                       colSpan={span > 1 ? span : undefined}
-                      className={`border px-2.5 py-2 align-top text-[10.5px] leading-relaxed ${splittable ? "splittable" : ""} ${rowLabel ? "font-extrabold text-white" : label2 ? "font-extrabold" : `font-semibold ${gold ? "font-bold" : ""}`} ${merged ? "font-extrabold" : ""}`}
+                      rowSpan={rSpan > 1 ? rSpan : undefined}
+                      className={`border px-2.5 py-2 text-[10.5px] leading-relaxed ${boxFirst ? "align-middle text-center" : "align-top"} ${splittable ? "splittable" : ""} ${boxFirst || rowLabel ? "font-extrabold text-white" : label2 ? "font-extrabold" : `font-semibold ${gold ? "font-bold" : ""}`} ${merged ? "font-extrabold" : ""}`}
                       style={{
                         background: bg,
                         borderColor: D.line,
-                        color: rowLabel ? undefined : D.ink,
+                        color: boxFirst || rowLabel ? undefined : D.ink,
                       }}
                     >
-                      <CellContent c={c} gold={gold} stage={ci === stageCol && !merged && !rowLabel} />
+                      <CellContent c={c} gold={gold} stage={ci === stageCol && !merged && !rowLabel && !boxFirst} />
                     </td>
                   );
                 })}
@@ -827,33 +853,44 @@ function DocHeaderBand({ lead, slot }: { lead: DocLead; slot: { number: string; 
   );
 }
 
-/* «المنتوج» خانة مستقلة داخل الجدول الرئيسي (صف حقل بتسمية كاملة، لا عنوان عام) */
-function ProduitInner({ parts }: { parts: ProduitPart[] }) {
+/* ملخص المنتوج بصياغة استخراجية (جُمل الأصل نفسها مقتطعة عند حدودها)،
+   وفق ديداكتيك المادة: المهارة + المضمون + الخلاصة — دون أي إضافة أو تأليف */
+function summarizeProduit(parts: ProduitPart[]): { phase?: string; lines: string[] }[] {
+  return parts.map((p) => {
+    const lines = [...(p.cell.box ?? []), ...(p.cell.lines ?? [])].map((l) => l.trim()).filter(Boolean);
+    const picks: string[] = [];
+    for (const l of lines) {
+      let sent = l.split(/(?:\.|؛)\s+/)[0].trim();
+      if (sent.length > 110) sent = `${sent.slice(0, 110).replace(/\s+\S*$/, "")}…`;
+      if (sent && !picks.includes(sent)) picks.push(sent);
+      if (picks.length >= 3) break;
+    }
+    return { phase: p.phase, lines: picks.length ? picks : ["—"] };
+  });
+}
+
+/* النص الكامل للمنتوج حرفيًا (بلا حذف ولا اختصار) — يُطوى تحت الملخص */
+function ProduitFullList({ parts }: { parts: ProduitPart[] }) {
   return (
-    <>
-      <p className="text-[9.5px] font-black leading-relaxed" style={{ color: D.head }}>
-        عمود «{parts[0].header}» في الجذاذة الأصلية · {parts.length} جزءًا — جُمعت بترتيبها وسياقها نفسه، ونُقلت حرفيًا دون
-        حذف أو اختصار أو إعادة صياغة أو تغيير في المصطلحات أو الأرقام. (تجدونها كذلك في موضعها الأصلي داخل عمود «{parts[0].header}» أعلاه.)
-      </p>
-      <div className="mt-1.5 divide-y" style={{ borderColor: D.line }}>
-        {parts.map((p, i) => (
-          <div key={i} className="px-2.5 py-2" style={{ background: i % 2 ? D.gold : "#ffffff" }}>
-            {p.phase && (
-              <p className="mb-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: D.nest }}>
-                {p.phase}
-              </p>
-            )}
-            <div className="text-[11px] font-semibold leading-relaxed text-ink-900">
-              <CellContent c={p.cell} gold />
-            </div>
+    <div className="mt-1.5 divide-y" style={{ borderColor: D.goldLine }}>
+      {parts.map((p, i) => (
+        <div key={i} className="px-2.5 py-2" style={{ background: i % 2 ? D.gold : "#ffffff" }}>
+          {p.phase && (
+            <p className="mb-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: D.nest }}>
+              {p.phase}
+            </p>
+          )}
+          <div className="text-[11px] font-semibold leading-relaxed text-ink-900">
+            <CellContent c={p.cell} gold />
           </div>
-        ))}
-      </div>
-    </>
+        </div>
+      ))}
+    </div>
   );
 }
 
 function ProduitRow({ parts, cols }: { parts: ProduitPart[]; cols: number }) {
+  const sum = summarizeProduit(parts);
   return (
     <tr>
       <td
@@ -867,7 +904,36 @@ function ProduitRow({ parts, cols }: { parts: ProduitPart[]; cols: number }) {
         className="splittable border px-2.5 py-2 align-top"
         style={{ background: D.gold, borderColor: D.goldLine, color: D.ink }}
       >
-        <ProduitInner parts={parts} />
+        <p className="text-[9.5px] font-black leading-relaxed" style={{ color: D.head }}>
+          ملخص المنتوج — صياغة تركيبية استخراجية من عمود «{parts[0].header}» تحترم التوجيهات التربوية وديداكتيك المادة
+          (المهارة + المضمون + الخلاصة)؛ والنص الكامل حرفيًا قابل للطي أسفله، وموجود كذلك في عموده الأصلي أعلاه.
+        </p>
+        <div className="mt-1.5 space-y-1.5">
+          {sum.map((g, i) => (
+            <div
+              key={i}
+              className="rounded-lg px-2.5 py-1.5"
+              style={{ background: i % 2 ? "#ffffff" : D.beigeLight, border: `1px solid ${D.goldLine}` }}
+            >
+              {g.phase && (
+                <p className="mb-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: D.nest }}>
+                  {g.phase}
+                </p>
+              )}
+              <ul className="list-inside list-disc space-y-0.5 text-[10.5px] font-bold leading-relaxed" style={{ color: D.ink }}>
+                {g.lines.map((l, k) => (
+                  <li key={k}>{l}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <details className="mt-2 rounded-lg bg-white px-2.5 py-1.5" style={{ border: `1px solid ${D.goldLine}` }}>
+          <summary className="cursor-pointer text-[10px] font-extrabold" style={{ color: D.head }}>
+            النص الكامل للمنتوج حرفيًا كما في عمود «{parts[0].header}» ({parts.length} جزءًا) — بلا حذف ولا اختصار
+          </summary>
+          <ProduitFullList parts={parts} />
+        </details>
       </td>
     </tr>
   );
@@ -1015,6 +1081,11 @@ const DOC_CSS = `
   td.produitbody .part { padding: 6px 4px; border-top: 1px solid ${D.goldLine}; }
   td.produitbody .part:first-of-type { border-top: 0; }
   td.produitbody .phase { display: inline-block; background: ${D.nest}; color: #fff; font-size: 10px; font-weight: 800; border-radius: 5px; padding: 1px 7px; margin-bottom: 3px; }
+  td.stagebox { background: ${D.head}; color: #fff; font-weight: 800; text-align: center; vertical-align: middle; }
+  details summary { cursor: pointer; font-weight: 800; font-size: 10.5px; color: ${D.head}; }
+  td.produitbody .sumgroup { padding: 5px 8px; margin-top: 4px; background: #ffffff; border: 1px solid ${D.goldLine}; border-radius: 8px; }
+  td.produitbody .sumgroup ul { margin: 2px 0 0; padding-inline-start: 16px; }
+  td.produitbody .sumgroup li { font-size: 10.5px; font-weight: 700; line-height: 1.8; color: ${D.ink}; }
   td.prod { background: ${D.beige}; }
   td.rowlab { background: ${D.head}; color: #fff; font-weight: 800; }
   td.label2, td.nestfirst { background: ${D.beigeDark}; color: ${D.ink}; font-weight: 800; }
@@ -1083,6 +1154,7 @@ function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string, fieldBa
   const maxSum = Math.max(sums[0], sums[1], 1);
   const labelPair = twoCol && Math.min(sums[0], sums[1]) / maxSum <= 0.45;
   const labelCol = labelPair ? (sums[0] <= sums[1] ? 0 : 1) : -1;
+  const plan = stageSpanPlan(rows, head);
   const rowHtml = (row: SrcCell[], ri: number) => {
       if (ri === 0 && row.length === 1 && cols > 1 && head !== 0) {
         return `<tr class="head"><th colspan="${cols}">${cellToHtml(row[0] ?? {})}</th></tr>`;
@@ -1104,8 +1176,11 @@ function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string, fieldBa
       const lastSpan = row.length < cols ? cols - row.length + 1 : 1;
       return `<tr>${row
         .map((c, ci) => {
+          if (ci === 0 && plan.skip[ri]) return "";
           const span = merged ? cols : ci === row.length - 1 ? lastSpan : 1;
           const first = ci === 0;
+          const boxFirst = first && !merged && plan.box[ri];
+          const rSpan = first ? plan.span[ri] : 1;
           const rowLabel = first && !merged && cols >= 3 && !(c.box ?? []).length && cleanLine(cellTexts(c).join(" ")).length <= 25;
           const isLabel2 = !merged && twoCol && ci === labelCol;
           const isValue2 = !merged && twoCol && labelPair && ci !== labelCol;
@@ -1114,7 +1189,9 @@ function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string, fieldBa
             ? "merged"
             : ci === produitCol
               ? "prod"
-              : rowLabel
+              : boxFirst
+                ? "stagebox"
+                : rowLabel
                 ? "rowlab"
                 : isLabel2
                   ? nested
@@ -1129,7 +1206,7 @@ function tableToHtml(t: SrcTable, nested?: boolean, footerHtml?: string, fieldBa
                       : ci === stageCol
                         ? "stage"
                         : "");
-          return `<td class="${cls}"${span > 1 ? ` colspan="${span}"` : ""}>${cellToHtml(c, ci === produitCol)}</td>`;
+          return `<td class="${cls}"${span > 1 ? ` colspan="${span}"` : ""}${rSpan > 1 ? ` rowspan="${rSpan}"` : ""}>${cellToHtml(c, ci === produitCol)}</td>`;
         })
         .join("")}</tr>`;
   };
@@ -1156,14 +1233,25 @@ export function metaTableHtml(t?: SrcTable): string {
 
 /* «المنتوج» كصف حقل داخل الجدول الرئيسي في نسخة التحميل أيضًا (بنية مطابقة للعرض) */
 function produitRowHtml(parts: ProduitPart[], cols: number): string {
+  const sum = summarizeProduit(parts);
   return `<tr><td class="produitlabel">المنتوج</td><td class="produitbody splittable" colspan="${Math.max(cols - 1, 1)}">
-    <p class="note">جُمعت أجزاء المنتوج من عمود «${esc(parts[0].header)}» في الجذاذة الأصلية بترتيبها وسياقها نفسه، ونُقلت حرفيًا دون حذف أو اختصار أو إعادة صياغة. (وتوجد كذلك في موضعها الأصلي داخل عمود «${esc(parts[0].header)}» أعلاه.)</p>
+    <p class="note">ملخص المنتوج — صياغة تركيبية استخراجية من عمود «${esc(parts[0].header)}» تحترم التوجيهات التربوية وديداكتيك المادة (المهارة + المضمون + الخلاصة)؛ والنص الكامل حرفيًا قابل للطي أسفله.</p>
+    ${sum
+      .map(
+        (g) =>
+          `<div class="sumgroup">${g.phase ? `<span class="phase">${esc(g.phase)}</span>` : ""}<ul>${g.lines
+            .map((l) => `<li>${esc(l)}</li>`)
+            .join("")}</ul></div>`,
+      )
+      .join("")}
+    <details><summary>النص الكامل للمنتوج حرفيًا كما في عمود «${esc(parts[0].header)}» (${parts.length} جزءًا) — بلا حذف ولا اختصار</summary>
     ${parts
       .map(
         (p) =>
           `<div class="part">${p.phase ? `<span class="phase">${esc(p.phase)}</span>` : ""}${cellToHtml(p.cell)}</div>`,
       )
       .join("")}
+    </details>
   </td></tr>`;
 }
 
