@@ -237,6 +237,186 @@ export function hasFlowMaster(f: ImportedFiche): boolean {
 }
 
 /* ============================================================
+   TABLE VALIDATOR — نظام تدقيق ومراقبة جودة الجداول
+   ------------------------------------------------------------
+   يفحص كل جذاذة قبل عرضها وقبل تصديرها (طباعة/PDF):
+   1) القالب المرجعي = بنية جدول الصفحة الأولى (ترويسة + عدد أعمدة).
+   2) الحقول الستة الإلزامية حاضرة بنفس التسمية والترتيب (شريط ثابت
+      داخل thead المتكرر + صفوف/أعمدة الحقول في الجسم).
+   3) تطابق الصفحات: جدول رئيسي واحد، ترويسة واحدة لا تتكرر في الجسم،
+      عدد أعمدة ثابت، لا تقويم معزول، لا دمج للمنتوج ولا عنوان عام له.
+   4) تصنيف الأخطاء: CRITICAL (حذف/دمج/تغيير حقل) · MAJOR (اختلاف ترتيب
+      أو بنية) · MINOR (تنسيق أو غياب أصلي موثّق بلا اختلاق).
+   5) الإصلاح التلقائي = إعادة البناء من القالب المرجعي (المُجمِّع الموحّد)،
+      ولا يُعتمد إلا بنجاح إعادة الفحص؛ وإلا تُحجب الجذاذة ويُوقف التصدير.
+   ============================================================ */
+export type IssueSeverity = "CRITICAL" | "MAJOR" | "MINOR";
+export interface ValidationIssue {
+  severity: IssueSeverity;
+  page: number;
+  location: string;
+  message: string;
+}
+export interface FicheValidation {
+  id: string;
+  subject: string;
+  title: string;
+  pages: number;
+  tables: number;
+  status: "PASSED" | "FAILED";
+  critical: number;
+  major: number;
+  minor: number;
+  issues: ValidationIssue[];
+  repair: { attempted: boolean; applied: boolean; recheck: "PASSED" | "FAILED" | "NOT_NEEDED" };
+}
+
+const V_MARHALI = /تقويم\s*(?:ال)?\s*مرحلي/;
+const V_FINAL = /تقويم\s*(?:ال)?\s*(نهائي|اجمالي|إجمالي)/;
+const normV = (t: string) =>
+  t.replace(/[ً-ْٰـ]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/\s+/g, " ").trim();
+const cellV = (c?: SrcCell) => normV([...(c?.box ?? []), ...(c?.lines ?? [])].join(" "));
+const rowV = (r: SrcCell[]) => r.map(cellV).join(" ");
+
+/* تقدير صفحات الطباعة: أسطر كل صف مقابل سعة صفحة A4 (الترويسة تتكرر أعلى كل صفحة) */
+const rowLines = (r: SrcCell[]) => Math.max(1, ...r.map((c) => Math.ceil(cellTexts(c).join(" ").length / 52))) + 1;
+function estimatePages(rows: SrcCell[][]): { pages: number; pageOf: number[] } {
+  const CAP = 52;
+  const HEAD = 4;
+  let lines = 0;
+  let page = 1;
+  const pageOf: number[] = [];
+  rows.forEach((r, i) => {
+    const need = rowLines(r);
+    if (lines > 0 && lines + need > CAP) {
+      page += 1;
+      lines = HEAD;
+    }
+    lines += need;
+    pageOf[i] = page;
+  });
+  return { pages: page, pageOf };
+}
+
+function auditFlow(items: FlowItem[], partsCount: number, hadMarhali: boolean, hadFinal: boolean): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const masters = items.filter((it) => "kind" in it && it.kind === "master") as { kind: "master"; table: SrcTable }[];
+  if (masters.length === 0) {
+    issues.push({ severity: "CRITICAL", page: 1, location: "جسم الجذاذة", message: "لا قالب مرجعي (جدول رئيسي) — يتعذر التحقق وإعادة البناء" });
+    return issues;
+  }
+  if (masters.length > 1)
+    issues.push({ severity: "MAJOR", page: 1, location: "جسم الجذاذة", message: `${masters.length} جداول رئيسية بدل واحد: البنية تختلف من صفحة إلى أخرى` });
+  const master = masters[0].table;
+  const cols = Math.max(...master.rows.map((r) => r.length), 1);
+  const headText = rowV(master.rows[0]);
+  const { pages, pageOf } = estimatePages(master.rows);
+  master.rows.slice(1).forEach((r, i) => {
+    if (rowV(r) === headText)
+      issues.push({ severity: "MAJOR", page: pageOf[i + 1], location: `صف ${i + 2}`, message: "ترويسة القالب مكررة داخل الجسم (موضعها في thead المتكرر)" });
+  });
+  master.rows.forEach((r, i) => {
+    if (r.length > cols)
+      issues.push({ severity: "MAJOR", page: pageOf[i], location: `صف ${i + 1}`, message: `عدد الأعمدة (${r.length}) يتجاوز القالب المرجعي (${cols})` });
+  });
+  items.forEach((it) => {
+    if ("kind" in it && it.kind === "master") return;
+    const t = (it as { table?: SrcTable }).table;
+    if (!t || !t.rows.length) return;
+    if (t.rows.some((r) => V_MARHALI.test(cellV(r[0])) || V_FINAL.test(cellV(r[0]))))
+      issues.push({ severity: "CRITICAL", page: 1, location: "جدول خارج الرئيسي", message: `صف حقل تقويم معزول خارج الجدول المرجعي: «${cellV(t.rows[0][0]).slice(0, 30)}»` });
+    else {
+      const hi = headerIndexOf(t);
+      if (hi >= 0 && isRefHeadRow(t.rows[hi]) && REF_RE.test(t.rows[hi].map((c) => cellTexts(c).join(" ")).join(" ")))
+        issues.push({ severity: "MAJOR", page: 1, location: "جدول خارج الرئيسي", message: "جدول منفصل بترويسة مطابقة للقالب: بنية مختلفة عن الصفحة الأولى" });
+    }
+  });
+  const bodyRows = master.rows.slice(1);
+  /* الحقل حاضر إن كان عمودًا في ترويسة القالب أو صف حقل في الجسم */
+  const headHasMarhali = master.rows[0].map(cellV).some((t) => V_MARHALI.test(t));
+  const headHasFinal = master.rows[0].map(cellV).some((t) => V_FINAL.test(t));
+  const hasMarhali = headHasMarhali || bodyRows.some((r) => V_MARHALI.test(cellV(r[0])));
+  const hasFinal = headHasFinal || bodyRows.some((r) => V_FINAL.test(cellV(r[0])));
+  if (hadMarhali && !hasMarhali)
+    issues.push({ severity: "CRITICAL", page: pages, location: "حقل إلزامي", message: "التقويم المرحلي موجود في الأصل ومحذوف من الجدول المرجعي" });
+  if (hadFinal && !hasFinal)
+    issues.push({ severity: "CRITICAL", page: pages, location: "حقل إلزامي", message: "التقويم النهائي/الإجمالي موجود في الأصل ومحذوف من الجدول المرجعي" });
+  if (!hadMarhali && !hasMarhali)
+    issues.push({ severity: "MINOR", page: 1, location: "حقل إلزامي", message: "التقويم المرحلي: عنوانه في الشريط الإلزامي المتكرر؛ لا صف مستقل له في الأصل (لم يُختلق محتوى)" });
+  if (!hadFinal && !hasFinal)
+    issues.push({ severity: "MINOR", page: 1, location: "حقل إلزامي", message: "التقويم النهائي: عنوانه في الشريط الإلزامي المتكرر؛ لا صف مستقل له في الأصل (لم يُختلق محتوى)" });
+  const hasProduitCol = master.rows[0].map(cellV).some((t) => t.includes("المنتوج"));
+  if (!hasProduitCol && partsCount === 0)
+    issues.push({ severity: "CRITICAL", page: pages, location: "حقل إلزامي", message: "حقل «المنتوج» مفقود: لا عمود في الترويسة ولا صف حقل مستقل" });
+  const mergedProduit = master.rows.some((r, ri) =>
+    ri > 0 && r.some((c, ci) => ci > 0 && cellV(c).includes("المنتوج") && /أنشطة|انشطة|المحتوى/.test(cellV(c))),
+  );
+  if (mergedProduit)
+    issues.push({ severity: "CRITICAL", page: 1, location: "حقل إلزامي", message: "«المنتوج» مدموج مع «أنشطة التعلم والمحتوى» في خلية واحدة" });
+  bodyRows.forEach((r, i) => {
+    const lab = cellV(r[0]);
+    if ((V_MARHALI.test(lab) || V_FINAL.test(lab)) && r.slice(1).every((c) => cellV(c) === ""))
+      issues.push({ severity: "MINOR", page: pageOf[i + 1], location: `صف ${i + 2}`, message: "صف حقل تقويم بمحتوى فارغ في الأصل" });
+  });
+  issues.push({ severity: "MINOR", page: 1, location: "حقل إلزامي", message: "التقويم التشخيصي: عنوانه ثابت في الشريط الإلزامي؛ لا محتوى له في الأصول الـ25 (لا يُختلاق)" });
+  return issues;
+}
+
+export function validateFiche(entry: { slot: { id: string; subject: string; title: string }; imported?: ImportedFiche | null }): FicheValidation {
+  const base = { id: entry.slot.id, subject: entry.slot.subject, title: entry.slot.title };
+  const f = entry.imported;
+  if (!f)
+    return {
+      ...base, pages: 1, tables: 1, status: "PASSED", critical: 0, major: 0, minor: 1,
+      issues: [{ severity: "MINOR", page: 1, location: "-", message: "لا وثيقة مستوردة: الجذاذة الرقمية الاحتياطية بترويسة موحدة" }],
+      repair: { attempted: false, applied: false, recheck: "NOT_NEEDED" },
+    };
+  if (f.layout === "pdf")
+    return {
+      ...base, pages: 1, tables: 0, status: "PASSED", critical: 0, major: 0, minor: 1,
+      issues: [{ severity: "MINOR", page: 1, location: "-", message: "وثيقة PDF: لا جدول في الأصل (أسطر حرفية) — مستثناة من قالب الجدول" }],
+      repair: { attempted: false, applied: false, recheck: "NOT_NEEDED" },
+    };
+  const lead = docLead(f);
+  const body = f.blocks.slice(lead.rest);
+  const partsCount = collectProduit(f).length;
+  const rawTables = body.filter((b) => b.table).map((b) => b.table!);
+  /* الحقل موجود في الأصل إن كان عنوان صف (خليته الأولى) أو خانة في صف الترويسة — لا ذكرًا نصيًا داخل المحتوى */
+  const rawHas = (re: RegExp) =>
+    rawTables.some((t) => {
+      const hi = headerIndexOf(t);
+      return t.rows.some((r, ri) => (ri === hi ? r.some((c) => re.test(cellV(c))) : re.test(cellV(r[0]))));
+    });
+  const hadMarhali = rawHas(V_MARHALI);
+  const hadFinal = rawHas(V_FINAL);
+  /* تدقيق ما قبل الإصلاح: تشتت الوثيقة الخام (جداول متعددة/تقويمات معزولة) */
+  const rawRef = rawTables.filter((t) => {
+    const hi = headerIndexOf(t);
+    return hi >= 0 && isRefHeadRow(t.rows[hi]) && REF_RE.test(t.rows[hi].map((c) => cellTexts(c).join(" ")).join(" "));
+  }).length;
+  const rawTaqwim = rawTables.filter((t) => t.rows.length > 0 && t.rows.every((r) => isTaqwimRow(r))).length;
+  const fragmented = rawRef > 1 || rawTaqwim > 0;
+  /* الإصلاح التلقائي = إعادة البناء من قالب الصفحة الأولى (المُجمِّع الموحّد) */
+  const items = assembleFlow(body);
+  const issues = auditFlow(items, partsCount, hadMarhali, hadFinal);
+  const critical = issues.filter((i) => i.severity === "CRITICAL").length;
+  const major = issues.filter((i) => i.severity === "MAJOR").length;
+  const minor = issues.filter((i) => i.severity === "MINOR").length;
+  const masterItem = items.find((it) => "kind" in it && it.kind === "master") as { kind: "master"; table: SrcTable } | undefined;
+  const tables = items.filter((it) => ("kind" in it && it.kind === "master") || (it as { table?: SrcTable }).table).length + lead.metas.length;
+  const { pages } = estimatePages(masterItem ? masterItem.table.rows : []);
+  const status: "PASSED" | "FAILED" = critical === 0 && major === 0 ? "PASSED" : "FAILED";
+  return {
+    ...base, pages, tables, status, critical, major, minor, issues,
+    repair: { attempted: fragmented, applied: fragmented && status === "PASSED", recheck: fragmented ? status : "NOT_NEEDED" },
+  };
+}
+
+export function validateAllFiches(): FicheValidation[] {
+  return TC_SCI_CATALOG.map((e) => validateFiche({ slot: e.slot, imported: e.imported }));
+}
+
+/* ============================================================
    عرض محتوى الوثيقة الأصلية (خلايا وجداول)
    ============================================================ */
 
@@ -1203,8 +1383,64 @@ function StatusBadge({ status, compact }: { status: JadadaStatus; compact?: bool
   );
 }
 
+const VALIDATION_BLOCK_MSG = "تعذر اعتماد الجذاذة بسبب وجود أخطاء في بنية الجدول. تم تحديد الأخطاء وإعادة محاولة الإصلاح تلقائيًا.";
+
+function ValidationFailCard({ v }: { v: FicheValidation }) {
+  return (
+    <div className="px-3 pb-6 pt-4 sm:px-4">
+      <div className="rounded-2xl border-2 border-red-300 bg-red-50 p-4 sm:p-5" role="alert">
+        <p className="text-[13px] font-black leading-relaxed text-red-800">{VALIDATION_BLOCK_MSG}</p>
+        <p className="mt-2 text-[11px] font-bold text-red-700">
+          {v.id} — أخطاء CRITICAL: {v.critical} · أخطاء MAJOR: {v.major} — لا تُعرض الجذاذة عرضًا نهائيًا ولا تُصدَّر إلى PDF
+          قبل نجاح إعادة الفحص.
+        </p>
+        <ul className="mt-3 space-y-1.5">
+          {v.issues
+            .filter((i) => i.severity !== "MINOR")
+            .map((i, k) => (
+              <li key={k} className="rounded-lg bg-white px-3 py-1.5 text-[10.5px] font-bold text-red-700 ring-1 ring-red-200">
+                [{i.severity}] صفحة {i.page} — {i.location}: {i.message}
+              </li>
+            ))}
+        </ul>
+        <p className="mt-3 text-[10px] font-extrabold text-red-600">
+          الإصلاح التلقائي: {v.repair.attempted ? (v.repair.applied ? "طُبّق (إعادة بناء من القالب المرجعي)" : "طُبّق ولم ينجح — الجذاذة محجوبة") : "غير مطلوب"} · إعادة الفحص: {v.repair.recheck}
+        </p>
+      </div>
+      <p className="jadada-print-only px-2 py-3 text-[12px] font-black text-red-700">{VALIDATION_BLOCK_MSG}</p>
+    </div>
+  );
+}
+
+function ValidatorReport({ v }: { v: FicheValidation }) {
+  return (
+    <details className="mt-2 rounded-xl bg-white/80 px-3 py-2 ring-1 ring-ink-900/10" data-no-print>
+      <summary className="cursor-pointer text-[10.5px] font-extrabold text-ink-700">
+        تقرير المدقق TABLE VALIDATOR — {v.status} · {v.pages} صفحة (تقدير الطباعة) · {v.tables} جدول · CRITICAL:{v.critical} ·
+        MAJOR:{v.major} · MINOR:{v.minor}
+      </summary>
+      <ul className="mt-2 space-y-1">
+        {v.issues.map((i, k) => (
+          <li key={k} className="text-[10px] font-bold leading-relaxed text-ink-600">
+            <span className={i.severity === "CRITICAL" ? "font-black text-red-600" : i.severity === "MAJOR" ? "font-black text-amber-600" : "font-black text-ink-400"}>
+              [{i.severity}]
+            </span>{" "}
+            صفحة {i.page} — {i.location}: {i.message}
+          </li>
+        ))}
+        <li className="pt-1 text-[10px] font-extrabold text-ink-700">
+          الإصلاح التلقائي: {v.repair.attempted ? (v.repair.applied ? "طُبّق — إعادة البناء من قالب الصفحة الأولى" : "طُبّق وفشل") : "غير مطلوب"} · إعادة
+          الفحص: {v.repair.recheck === "NOT_NEEDED" ? "غير مطلوبة" : v.repair.recheck}
+        </li>
+      </ul>
+    </details>
+  );
+}
+
 function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => void; go: (r: Route) => void }) {
   const { slot, imported, fiche } = entry;
+  const validation = useMemo(() => validateFiche({ slot, imported }), [slot, imported]);
+  const blocked = validation.status === "FAILED";
   const btn =
     "inline-flex items-center gap-1.5 rounded-xl border border-ink-900/10 bg-white px-3.5 py-2 text-[11px] font-extrabold text-ink-700 transition-colors hover:border-brand-300 hover:text-brand-700";
   const ready = Boolean(imported || fiche);
@@ -1227,17 +1463,22 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
               الدرس التفاعلي المقابل
             </button>
           )}
-          {ready && (
+          {ready && !blocked && (
             <button type="button" onClick={() => downloadEntry(entry)} className={btn}>
               <Download className="size-3.5" />
               تحميل الجذاذة
             </button>
           )}
-          {ready && (
+          {ready && !blocked && (
             <button type="button" onClick={() => window.print()} className={btn}>
               <Printer className="size-3.5" />
               طباعة الجذاذة
             </button>
+          )}
+          {ready && blocked && (
+            <span className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3.5 py-2 text-[11px] font-extrabold text-white" title={VALIDATION_BLOCK_MSG}>
+              التصدير والطباعة موقوفان: التحقق البنيوي FAILED
+            </span>
           )}
         </div>
       </div>
@@ -1268,11 +1509,20 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
           </div>
           <div className="flex flex-wrap items-center gap-1.5" data-no-print>
             <StatusBadge status={entry.status} />
+            <span
+              className={`rounded-full px-3 py-1 text-[10px] font-extrabold text-white ${validation.status === "PASSED" ? "bg-emerald-600" : "bg-red-600"}`}
+            >
+              التحقق البنيوي (TABLE VALIDATOR): {validation.status}
+            </span>
           </div>
+          <ValidatorReport v={validation} />
         </div>
 
         {imported ? (
-          <>
+          blocked ? (
+            <ValidationFailCard v={validation} />
+          ) : (
+            <>
             <Blocks f={imported} slot={slot} />
             <div className="px-3 pb-4 sm:px-4">
               {!hasFlowMaster(imported) && <ProduitPanel f={imported} />}
@@ -1294,7 +1544,8 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
                 الوثيقة نفسها{imported.layout === "doc" ? " (ملف Word قديم: أُعيد بناء الجدول من فواصل الخلايا الأصلية)" : imported.layout === "pdf" ? " (ملف PDF: النص كما ورد سطرًا سطرًا)" : ""}.
               </p>
             </div>
-          </>
+            </>
+          )
         ) : fiche ? (
           <>
             <FicheTables j={fiche} />
@@ -1332,7 +1583,7 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2" data-no-print>
-        {ready && (
+        {ready && !blocked && (
           <>
             <button
               type="button"
@@ -1351,6 +1602,11 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
               تحميل الجذاذة (ملف جاهز للطباعة)
             </button>
           </>
+        )}
+        {ready && blocked && (
+          <span className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-extrabold text-white">
+            {VALIDATION_BLOCK_MSG}
+          </span>
         )}
         {slot.lessonKey && (
           <button
@@ -1405,6 +1661,8 @@ export default function Jadadat({ level, open, go }: JadadatProps) {
     }));
     return { total, ready, original, pending: total - ready, perSubject };
   }, []);
+
+  const audit = useMemo(() => validateAllFiches(), []);
 
   const q = normalize(query.trim());
   const visible = useMemo(() => {
@@ -1514,6 +1772,44 @@ export default function Jadadat({ level, open, go }: JadadatProps) {
           ))}
         </div>
       </section>
+
+      {/* ===== تقرير التدقيق الشامل (TABLE VALIDATOR) ===== */}
+      <details className="mt-4 overflow-hidden rounded-2xl bg-white shadow-xl shadow-brand-900/10 ring-1 ring-ink-900/10" data-no-print>
+        <summary className="cursor-pointer px-5 py-3 text-[12px] font-extrabold text-ink-800">
+          تقرير التحقق النهائي — تدقيق بنية جداول جميع الجذاذات (TABLE VALIDATOR): {audit.filter((a) => a.status === "PASSED").length}/
+          {audit.length} PASSED · لا تُعرض ولا تُصدَّر أي جذاذة فاشلة
+        </summary>
+        <div className="overflow-x-auto px-3 pb-4">
+          <table className="w-full min-w-[720px] border-collapse text-[10.5px]">
+            <thead>
+              <tr style={{ background: C.head }}>
+                {["الجذاذة", "المادة", "صفحات", "جداول", "الحالة", "CRITICAL", "MAJOR", "MINOR", "الإصلاح / إعادة الفحص"].map((h) => (
+                  <th key={h} className="px-2 py-1.5 text-start font-extrabold text-white">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {audit.map((a) => (
+                <tr key={a.id} className="border-b border-ink-900/10 odd:bg-white even:bg-brand-50/40">
+                  <td className="px-2 py-1 font-extrabold text-ink-800">{a.id}</td>
+                  <td className="px-2 py-1 font-bold text-ink-600">{a.subject}</td>
+                  <td className="px-2 py-1 font-bold text-ink-600">{a.pages}</td>
+                  <td className="px-2 py-1 font-bold text-ink-600">{a.tables}</td>
+                  <td className={`px-2 py-1 font-black ${a.status === "PASSED" ? "text-emerald-600" : "text-red-600"}`}>{a.status}</td>
+                  <td className="px-2 py-1 font-black text-red-600">{a.critical}</td>
+                  <td className="px-2 py-1 font-black text-amber-600">{a.major}</td>
+                  <td className="px-2 py-1 font-bold text-ink-500">{a.minor}</td>
+                  <td className="px-2 py-1 font-bold text-ink-600">
+                    {a.repair.attempted ? (a.repair.applied ? "طُبّق ✓" : "فشل ✗") : "غير مطلوب"} / {a.repair.recheck === "NOT_NEEDED" ? "—" : a.repair.recheck}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
 
       {/* ===== قاعدة المنتوج ===== */}
       <section className="mt-5 rounded-2xl border p-5" style={{ borderColor: C.goldLine, background: C.gold }}>

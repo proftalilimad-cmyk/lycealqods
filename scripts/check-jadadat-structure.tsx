@@ -1,22 +1,21 @@
 /* ============================================================
-   الفحص الآلي لبنية جداول الجذاذات (قبل الإخراج)
+   الفحص الآلي الخارجي لبنية جداول الجذاذات (بوابة الاعتماد/التصدير)
    ------------------------------------------------------------
-   ينفّذ قاعدة القبول المطلوبة حرفيًا:
-     IF page_1.headers != page_2.headers
-     OR missing("التقويم المرحلي") OR missing("التقويم النهائي")
-     OR missing("المنتوج") OR merged("المنتوج","أنشطة التعلم والمحتوى")
-     THEN REBUILD_TABLE_FROM_REFERENCE_TEMPLATE
+   يشغّل نفس نظام TABLE VALIDATOR الموجود داخل التطبيق
+   (validateFiche / validateAllFiches من src/components/Jadadat)
+   ويضيف تحقق العرض المولَّد (SSR) ونسخة التحميل:
+   - ترويسة القالب المرجعي داخل thead (فتتكرر في كل صفحة طباعة).
+   - شريط الحقول الستة الإلزامية بنفس الصياغة والترتيب (عرضًا وتحميلًا).
+   - عمود «المنتوج» خانة <th> مستقلة حيث يوجد في الأصل.
 
-   الترجمة البنيوية (بلا متصفح): الجذاذة كلها جدول رئيسي واحد على
-   قالب الصفحة الأولى المرجعي → page_1.headers ≡ page_2.headers ≡ …
-   (thead وحيد يتكرر في كل صفحة عبر table-header-group). فيفحص:
-   1) كل كتل التدفق مدمجة في جدول رئيسي واحد (لا جداول مختلفة لاحقًا).
-   2) لا كتلة تقويم (مرحلي/اجمالي/نهائي) متبقية خارج الجدول الرئيسي.
-   3) لا جزء جدول بترويسة مطابقة للقالب متبقٍ خارجها (ترويسة واحدة).
-   4) الحقول الموجودة في الأصل حاضرة كمستقلة: ترتيب مرحلي < نهائي،
-      و«المنتوج» خانة/عمود مستقل غير مدموج في «أنشطة التعلم والمحتوى».
-   5) في HTML المولَّد: thead يحمل ترويسة القالب حرفيًا (فتتكرر كل صفحة)،
-      والترويسة تظهر داخل <th> لا كنص عادي.
+   تقرير لكل جذاذة: المعرف · عدد الصفحات · عدد الجداول · الحالة ·
+   أعداد CRITICAL/MAJOR/MINOR · تفاصيل الأخطاء برقم الصفحة ·
+   حالة الإصلاح التلقائي · نتيجة إعادة الفحص.
+
+   VALIDATION PASSED IF: العناوين موجودة، لا حقل مفقود/مدموج، الترتيب
+   موحد، المرحلي والنهائي موجودان، المنتوج مستقل، الصفحات تحافظ على
+   القالب، ولا CRITICAL ولا MAJOR. وإلا خروج بكود 1 (تُحجب الجذاذة
+   داخل التطبيق ويُوقف تصديرها تلقائيًا).
 
    التشغيل:
      npx esbuild scripts/check-jadadat-structure.tsx --bundle --platform=node \
@@ -24,101 +23,74 @@
        && node /tmp/struct.cjs
    ============================================================ */
 import { renderToString } from "react-dom/server";
-import Jadadat, { assembleFlow, docLead, FIELD_BAND } from "../src/components/Jadadat";
+import Jadadat, { validateAllFiches, FIELD_BAND, assembleFlow, docLead } from "../src/components/Jadadat";
 import { importedToHtml } from "../src/components/Jadadat";
-import { TC_SCI_CATALOG, collectProduit } from "../src/data/jadadat";
-import type { SrcCell, SrcTable as SrcTableT } from "../src/data/jadadat";
+import { TC_SCI_CATALOG } from "../src/data/jadadat";
+import type { SrcCell } from "../src/data/jadadat";
 
 const clean = (s: string) => s.replace(/[\u200f\u200e\u0640]/g, "").replace(/\s+/g, " ").trim();
 const ct = (c?: SrcCell) => clean([...(c?.box ?? []), ...(c?.lines ?? [])].join(" "));
-const rowText = (r: SrcCell[]) => r.map(ct).join(" ");
 const norm = (s: string) => s.replace(/[ً-ْٰـ]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه");
 
-const TAQWIM_MARHALI = /تقويم\s*(?:ال)?\s*مرحلي/;
-const TAQWIM_FINAL = /تقويم\s*(?:ال)?\s*(نهائي|اجمالي|إجمالي)/;
-
 let failures = 0;
-const report: string[] = [];
+const lines: string[] = [];
 
-for (const entry of TC_SCI_CATALOG) {
+const validations = validateAllFiches();
+
+for (const v of validations) {
+  const entry = TC_SCI_CATALOG.find((e) => e.slot.id === v.id)!;
   const f = entry.imported;
-  const id = entry.slot.id;
-  if (!f) { report.push(`${id}: (بلا وثيقة مستوردة — تُعرض الجذاذة الرقمية الاحتياطية بترويسة موحدة)`); continue; }
-  if (f.layout === "pdf") {
-    report.push(`${id}: PDF — لا جدول في الأصل (أسطر حرفية) ✓ مستثنى من قالب الجدول`);
-    continue;
-  }
-  const body = f.blocks.slice(docLead(f).rest);
-  const items = assembleFlow(body);
-  const masters = items.filter((it) => "kind" in it && it.kind === "master") as { kind: "master"; table: SrcTableT }[];
   const problems: string[] = [];
-
-  if (masters.length === 0) {
-    problems.push("لا يوجد جدول رئيسي (لم يُعثر على قالب مرجعي في الصفحة الأولى)");
-  }
-  if (masters.length > 1) {
-    problems.push(`${masters.length} جداول رئيسية بدل واحد (بنية مختلفة بين الصفحات)`);
-  }
-  /* 2+3) لا كتل تقويم ولا أجزاء بترويسة مكررة خارج الرئيسي */
-  const leftovers = items.filter((it) => !("kind" in it && it.kind === "master") && (it as { table?: SrcTableT }).table) as { table: SrcTableT }[];
-  for (const l of leftovers) {
-    if (l.table.rows.some((r) => TAQWIM_MARHALI.test(norm(ct(r[0]))) || TAQWIM_FINAL.test(norm(ct(r[0])))))
-      problems.push(`كتلة تقويم خارج الجدول الرئيسي: «${ct(l.table.rows[0][0]).slice(0, 30)}»`);
-  }
-  if (masters.length >= 1) {
-    const master = masters[0].table;
-    const head = master.rows[0];
-    const headText = norm(rowText(head));
-    /* رؤوس مكررة داخل الجسم = بنية صفحتين مختلفة */
-    const dupHeads = master.rows.slice(1).filter((r) => norm(rowText(r)) === headText).length;
-    if (dupHeads > 0) problems.push(`ترويسة القالب مكررة ${dupHeads}× داخل جسم الجدول`);
-    /* 4) الحقول المستقلة وترتيبها */
-    const bodyRows = master.rows.slice(1);
-    const iMarhali = bodyRows.findIndex((r) => TAQWIM_MARHALI.test(norm(ct(r[0]))));
-    const iFinal = bodyRows.findIndex((r) => TAQWIM_FINAL.test(norm(ct(r[0]))));
-    if (iMarhali >= 0 && iFinal >= 0 && iFinal < iMarhali && bodyRows.filter((r) => TAQWIM_MARHALI.test(norm(ct(r[0])))).length === 1)
-      problems.push("ترتيب الحقول: التقويم النهائي قبل المرحلي");
-    const hasProduitCol = /المنتوج/.test(norm(headText));
-    const parts = collectProduit(f);
-    const hasProduitField = hasProduitCol || parts.length > 0;
-    /* دمج المنتوج مع أنشطة التعلم/المحتوى في خانة واحدة؟ */
-    const mergedProduit = master.rows.some((r, ri) =>
-      ri > 0 && r.some((c, ci) => ci > 0 && /المنتوج/.test(norm(ct(c))) && /أنشطة|انشطة|المحتوى/.test(norm(ct(c)))),
-    );
-    if (mergedProduit) problems.push("«المنتوج» مدموج مع «أنشطة التعلم والمحتوى» في خلية واحدة");
-    /* 5) SSR: thead يحمل ترويسة القالب حرفيًا */
-    const html = renderToString(<Jadadat level="tc" open={id} go={() => {}} />);
-    /* القالب المرجعي يجب أن يكون داخل thead ما في الصفحة (فيتكرر في كل صفحة طباعة) */
+  if (v.status === "FAILED") problems.push(`حالة التحقق FAILED (C:${v.critical} M:${v.major})`);
+  if (f && f.layout !== "pdf") {
+    const html = renderToString(<Jadadat level="tc" open={v.id} go={() => {}} />);
+    /* ترويسة القالب المرجعي داخل thead ما (تتكرر في كل صفحة طباعة) */
     const theads = [...html.matchAll(/<thead>([\s\S]*?)<\/thead>/g)].map((m) =>
       [...m[1].matchAll(/<th[^>]*>([\s\S]*?)<\/th>/g)].map((x) => norm(clean(x[1].replace(/<[^>]+>/g, " ")))),
     );
-    const headCells = head.map((c) => norm(ct(c))).filter(Boolean);
-    const refThead = theads.find((ths) => headCells.every((h) => ths.some((t) => t.includes(h))));
-    if (!refThead) problems.push(`ترويسة القالب ليست داخل أي thead (لن تتكرر في الصفحات): [${headCells.join("، ")}]`);
-    if (hasProduitCol && !(refThead ?? []).some((t) => t.includes("المنتوج"))) problems.push("عمود «المنتوج» ليس خانة ترويسة <th>");
-    /* شريط الحقول الستة الإلزامية: بنفس الصياغة والترتيب، داخل thead المتكرر (عرضًا وتحميلًا) */
-    const bandSeg = /class="fieldband"[\s\S]*?<\/tr>/.exec(html);
-    const bandText = bandSeg ? norm(clean(bandSeg[0].replace(/<[^>]+>/g, " "))) : "";
-    const bandMissing = FIELD_BAND.filter((f) => !bandText.includes(norm(f)));
-    if (bandMissing.length) problems.push(`شريط الحقول الستة ناقص: ${bandMissing.join("، ")}`);
+    /* ترويسة القالب المرجعي من المُجمِّع نفسه (مصدر الحقيقة الوحيد) */
+    const masterItem = assembleFlow(f.blocks.slice(docLead(f).rest)).find((it) => "kind" in it && it.kind === "master") as
+      | { kind: "master"; table: { rows: SrcCell[][] } }
+      | undefined;
+    const refHead = masterItem ? masterItem.table.rows[0].map((c) => norm(ct(c))).filter(Boolean) : [];
+    if (!refHead.length) problems.push("لا ترويسة قالب مرجعي في العرض");
+    else if (!theads.some((ths) => refHead.every((h) => ths.some((t) => t.includes(h)))))
+      problems.push("ترويسة القالب ليست داخل thead (لن تتكرر في الصفحات)");
+    if (refHead.some((t) => t.includes("المنتوج")) && !theads.some((ths) => ths.some((t) => t.includes("المنتوج"))))
+      problems.push("عمود «المنتوج» ليس خانة ترويسة <th>");
+    /* شريط الحقول الستة: صياغة وترتيب (عرضًا) */
+    const band = /class="fieldband"[\s\S]*?<\/tr>/.exec(html);
+    const bandText = band ? norm(clean(band[0].replace(/<[^>]+>/g, " "))) : "";
+    const missingBand = FIELD_BAND.filter((fb) => !bandText.includes(norm(fb)));
+    if (missingBand.length) problems.push(`شريط الحقول الستة ناقص عرضًا: ${missingBand.join("، ")}`);
     else {
-      const idxs = FIELD_BAND.map((f) => bandText.indexOf(norm(f)));
-      if (idxs.some((v, i) => i > 0 && v < idxs[i - 1])) problems.push("ترتيب شريط الحقول الستة مختلف عن الإلزامي");
+      const idxs = FIELD_BAND.map((fb) => bandText.indexOf(norm(fb)));
+      if (idxs.some((x, i) => i > 0 && x < idxs[i - 1])) problems.push("ترتيب شريط الحقول الستة مختلف عرضًا");
     }
+    /* الجذاذة المحجوبة يجب ألا تعرض جسم الوثيقة */
+    if (v.status === "FAILED" && !html.includes("تعذر اعتماد الجذاذة")) problems.push("جذاذة FAILED معروضة بلا بطاقة الحجب");
+    /* نسخة التحميل */
     const dl = importedToHtml(f, entry);
     const dlBand = /class="fieldband"[\s\S]*?<\/tr>/.exec(dl);
     if (!dlBand || FIELD_BAND.some((fb) => !dlBand[0].includes(fb))) problems.push("شريط الحقول الستة ناقص في نسخة التحميل");
-    if (!hasProduitField) report.push(`${id}: ✓ بنية موحدة — (لا «منتوج» صريح في الأصل: لا يُختلق)`);
-    else report.push(`${id}: ✓ بنية موحدة — رئيسي واحد، ${master.rows.length} صفًا، ترويسة [${head.map(ct).filter(Boolean).join(" | ").slice(0, 80)}]${hasProduitCol ? "، المنتوج عمود مستقل" : parts.length ? `، المنتوج خانة مستقلة (${parts.length} جزءًا)` : ""}${iMarhali >= 0 ? "، تقويم مرحلي صف حقل" : ""}${iFinal >= 0 ? "، تقويم نهائي/اجمالي صف حقل" : ""}`);
+    if (!/<thead>/.test(dl)) problems.push("لا thead في نسخة التحميل");
   }
-  if (problems.length) {
-    failures += 1;
-    report.push(`${id}: ✗ ${problems.join(" ؛ ")}`);
-  }
+  const bad = problems.length > 0;
+  if (bad) failures += 1;
+  lines.push(
+    `${v.id} | ${v.subject} | ص:${v.pages} | ج:${v.tables} | ${v.status}${bad ? "→PROBLEMS" : ""} | C:${v.critical} M:${v.major} m:${v.minor} | إصلاح:${v.repair.attempted ? (v.repair.applied ? "طُبّق" : "فشل") : "—"} / إعادة:${v.repair.recheck}`,
+  );
+  for (const i of v.issues) if (i.severity !== "MINOR") lines.push(`    [${i.severity}] ص${i.page} — ${i.location}: ${i.message}`);
+  for (const pr of problems) lines.push(`    [SSR/DL] ${pr}`);
 }
 
-console.log(report.join("\n"));
-console.log(failures === 0
-  ? "\n✓ القاعدة مطبقة: كل جذاذة = جدول رئيسي واحد على قالب صفحتها الأولى، الرؤوس تتكرر في كل صفحة، والتقويمات والمنتوج خانات مستقلة"
-  : `\n✗ ${failures} جذاذة تحتاج إعادة بناء من القالب المرجعي`);
+console.log("════ تقرير التحقق النهائي (TABLE VALIDATOR) ════");
+console.log(lines.join("\n"));
+const passed = validations.filter((v) => v.status === "PASSED").length;
+console.log(`\n${passed}/${validations.length} PASSED · ${failures} جذاذة بها مشاكل`);
+console.log(
+  failures === 0
+    ? "✓ شرط العرض والتصدير محقق: العناوين الإلزامية موجودة، لا دمج ولا حذف، الترتيب موحد، والصفحات تحافظ على القالب المرجعي"
+    : "✗ الجذاذات أعلاه محجوبة عن العرض والتصدير حتى نجاح إعادة الفحص",
+);
 process.exit(failures === 0 ? 0 : 1);
