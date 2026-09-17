@@ -73,7 +73,12 @@ export default function Footer({ go }: FooterProps) {
               <ul className="mt-4 space-y-3">
                 <li>
                   <button type="button" onClick={() => go({ view: "dashboard" })} className="text-sm text-white/55 transition-colors hover:text-white">
-                    لوحة نتائج الأستاذ
+                    لوحة الأستاذ (دخول محمي)
+                  </button>
+                </li>
+                <li>
+                  <button type="button" onClick={() => go({ view: "dashboard", tab: "jadadat" })} className="text-sm text-white/55 transition-colors hover:text-white">
+                    تتبّع إنجاز الجذاذات
                   </button>
                 </li>
                 <li>

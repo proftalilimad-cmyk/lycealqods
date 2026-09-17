@@ -1,11 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownUp,
   Award,
   BarChart3,
   ChartColumn,
   Download,
+  KeyRound,
   LayoutDashboard,
+  LogOut,
+  NotebookPen,
   PieChart,
   ShieldAlert,
   Trash2,
@@ -13,13 +16,18 @@ import {
   Users,
 } from "lucide-react";
 import { clearAllData, clearDemoData, ensureSeeded, exportCsv, getSubmissions } from "../lib/storage";
+import { activeCreds, isUnlocked, lock } from "../lib/teacherAuth";
 import type { Submission } from "../types";
-import { useEffect } from "react";
+import type { Route } from "../routes";
 import Reveal from "./Reveal";
+import TeacherLogin from "./TeacherLogin";
+import TeacherSecurity from "./TeacherSecurity";
+import JadadatTracker from "./JadadatTracker";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-export default function Dashboard() {
+/* لوحة نتائج التقويم التشخيصي (المحتوى الأصلي) — تُعرض داخل تبويب اللوحة المحمية */
+function TestResultsPanel() {
   const [subs, setSubs] = useState<Submission[]>([]);
   const [confirmClear, setConfirmClear] = useState<null | "demo" | "all">(null);
 
@@ -83,18 +91,12 @@ export default function Dashboard() {
     percent >= 80 ? "bg-emerald-100 text-emerald-700" : percent >= 70 ? "bg-brand-100 text-brand-700" : percent >= 60 ? "bg-sky-100 text-sky-700" : percent >= 50 ? "bg-gold-100 text-gold-700" : "bg-rose-100 text-rose-700";
 
   return (
-    <section className="relative overflow-hidden pt-32 pb-20 md:pt-36">
-      <div className="pointer-events-none absolute inset-0 pattern-zellige-dark opacity-40" aria-hidden="true" />
-      <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
+    <div>
         {/* الترويسة */}
         <Reveal>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold text-brand-700">
-                <LayoutDashboard className="size-3.5" aria-hidden="true" />
-                لوحة الأستاذ
-              </span>
-              <h1 className="mt-4 font-display text-3xl font-black text-ink-900 sm:text-4xl">نتائج التقويم التشخيصي</h1>
+              <h2 className="font-display text-2xl font-black text-ink-900">نتائج التقويم التشخيصي</h2>
               <p className="mt-2 text-sm text-ink-500">الجذع المشترك — التاريخ والجغرافيا · النقطة /20</p>
             </div>
             <div className="flex flex-wrap gap-2.5">
@@ -319,7 +321,6 @@ export default function Dashboard() {
             </div>
           </Reveal>
         )}
-      </div>
 
       {/* تأكيد الحذف */}
       {confirmClear && (
@@ -346,6 +347,132 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+/* ============================================================
+   لوحة الأستاذ — فضاء خاص محمي باسم مستعمل وكلمة مرور
+   ============================================================
+   ثلاثة تبويبات:
+     results  → نتائج التقويم التشخيصي (اللوحة الأصلية كما هي)
+     jadadat  → تتبّع إنجاز جذاذات الجذع المشترك العلمي (25 جذاذة)
+     security → تغيير بيانات الدخول + حدود الحماية على موقع ثابت
+
+   لا يُعرض أي محتوى (نتائج، تصدير، مسح) قبل التحقّق من الدخول؛
+   وعند تسجيل الخروج تُقفل الجلسة وتُحجب اللوحة من جديد.
+   ============================================================ */
+
+const TABS = [
+  { id: "results", label: "نتائج التقويم التشخيصي", icon: ChartColumn },
+  { id: "jadadat", label: "تتبّع الجذاذات", icon: NotebookPen },
+  { id: "security", label: "الدخول والأمان", icon: KeyRound },
+] as const;
+
+export type DashboardTab = (typeof TABS)[number]["id"];
+
+/** هل القيمة معرّف تبويب صالح؟ (للتوجيه والعناوين المباشرة) */
+export const isDashboardTab = (v?: string): v is DashboardTab => TABS.some((t) => t.id === v);
+
+interface DashboardProps {
+  tab?: string;
+  go: (r: Route) => void;
+}
+
+export default function Dashboard({ tab, go }: DashboardProps) {
+  const [unlocked, setUnlocked] = useState<boolean>(() => isUnlocked());
+  const [who, setWho] = useState("");
+
+  useEffect(() => {
+    if (!unlocked) return;
+    let alive = true;
+    activeCreds().then((c) => {
+      if (alive) setWho(c.user);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [unlocked]);
+
+  /* البوابة: لا شيء من اللوحة يُعرض قبل الدخول */
+  if (!unlocked) return <TeacherLogin go={go} onUnlock={() => setUnlocked(true)} />;
+
+  const active: DashboardTab = isDashboardTab(tab) ? tab : "results";
+
+  const signOut = () => {
+    lock();
+    setUnlocked(false);
+    go({ view: "home" });
+  };
+
+  return (
+    <section className="relative overflow-hidden pt-32 pb-20 md:pt-36">
+      <div className="pointer-events-none absolute inset-0 pattern-zellige-dark opacity-40" aria-hidden="true" />
+      <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
+        {/* الترويسة */}
+        <Reveal>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold text-brand-700">
+                <LayoutDashboard className="size-3.5" aria-hidden="true" />
+                لوحة الأستاذ · فضاء محمي
+              </span>
+              <h1 className="mt-4 font-display text-3xl font-black text-ink-900 sm:text-4xl">
+                فضاء الأستاذ الخاص
+              </h1>
+              <p className="mt-2 text-sm leading-relaxed text-ink-500">
+                نتائج التقويم التشخيصي · تتبّع إنجاز الجذاذات
+                {who && (
+                  <>
+                    {" "}
+                    · متصل باسم <strong dir="ltr" className="font-extrabold text-brand-700">{who}</strong>
+                  </>
+                )}
+                <br />
+                إعداد وإنجاز: الأستاذ عماد طليل — ثانوية القدس، القنيطرة
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={signOut}
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-extrabold text-rose-600 transition-transform hover:-translate-y-0.5"
+            >
+              <LogOut className="size-4" aria-hidden="true" />
+              تسجيل الخروج
+            </button>
+          </div>
+        </Reveal>
+
+        {/* التبويبات */}
+        <div className="mt-7 flex flex-wrap gap-2" role="tablist" aria-label="أقسام لوحة الأستاذ">
+          {TABS.map((t) => {
+            const on = active === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => go({ view: "dashboard", tab: t.id })}
+                className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-extrabold transition-all ${
+                  on
+                    ? "border-brand-500 bg-brand-600 text-white shadow-[0_14px_30px_-16px_rgba(12,124,91,0.9)]"
+                    : "border-ink-900/10 bg-white text-ink-700 hover:border-brand-300 hover:text-brand-700"
+                }`}
+              >
+                <t.icon className="size-4" aria-hidden="true" />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* محتوى التبويب */}
+        <div className="mt-7">
+          {active === "results" && <TestResultsPanel />}
+          {active === "jadadat" && <JadadatTracker />}
+          {active === "security" && <TeacherSecurity />}
+        </div>
+      </div>
     </section>
   );
 }

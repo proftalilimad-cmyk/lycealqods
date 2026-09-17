@@ -3,7 +3,7 @@ export type Route =
   | { view: "about" }
   | { view: "test"; bank?: string }
   | { view: "battle"; bank?: string }
-  | { view: "dashboard" }
+  | { view: "dashboard"; tab?: string }
   | { view: "lessons"; level?: string }
   | { view: "methods"; id?: string }
   | { view: "apps"; id?: string; level?: string }
@@ -23,6 +23,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "المنهجيات", route: { view: "methods" } },
   { label: "الموارد", route: { view: "resources" } },
   { label: "محرر الوثائق", route: { view: "studio" } },
+  { label: "لوحة الأستاذ", route: { view: "dashboard" } },
 ];
 
 /* ============================================================
@@ -38,7 +39,8 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/test/<bank>            تقويم بنك معيّن (tc / bac1 / bac2)
      #/battle                 وضع المبارزة
      #/battle/<bank>          مبارزة ببنك معيّن
-     #/dashboard              لوحة التتبع
+     #/dashboard              لوحة الأستاذ (محمية باسم مستعمل وكلمة مرور)
+     #/dashboard/<tab>        تبويب اللوحة (results / jadadat / security)
      #/lessons                الدروس
      #/lessons/<level>        دروس مستوى (tc / bac1 / bac2)
      #/lesson/<id>            درس معيّن (bac1-sci.geography.0.0 …)
@@ -64,7 +66,7 @@ export const VIEW_LABELS: Record<Route["view"], string> = {
   about: "نبذة عن الأستاذ",
   test: "التقويم التشخيصي",
   battle: "المبارزة",
-  dashboard: "لوحة التتبع",
+  dashboard: "لوحة الأستاذ",
   lessons: "الدروس",
   lesson: "الدرس",
   methods: "المنهجيات",
@@ -110,7 +112,7 @@ export function routeToPath(route: Route): string {
     case "about":
       return "/about";
     case "dashboard":
-      return "/dashboard";
+      return route.tab ? `/dashboard/${encodeSegment(route.tab)}` : "/dashboard";
     case "studio":
       return "/studio";
     case "test":
@@ -149,9 +151,10 @@ export function routeFromPath(rawPath: string): Route {
   switch (view) {
     case "home":
     case "about":
-    case "dashboard":
     case "studio":
       return { view };
+    case "dashboard":
+      return parts[1] ? { view: "dashboard", tab: parts[1] } : { view: "dashboard" };
     case "test":
       return parts[1] ? { view: "test", bank: parts[1] } : { view: "test" };
     case "battle":

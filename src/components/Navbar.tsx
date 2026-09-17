@@ -73,8 +73,8 @@ export default function Navbar({ route, go, onSearch }: NavbarProps) {
             <button
               type="button"
               onClick={() => go({ view: "dashboard" })}
-              aria-label="لوحة الأستاذ — نتائج التلاميذ"
-              title="لوحة الأستاذ"
+              aria-label="لوحة الأستاذ — دخول محمي باسم مستعمل وكلمة مرور"
+              title="لوحة الأستاذ (محمية)"
               className={`hidden size-10 place-items-center rounded-xl border transition-all sm:grid ${
                 route.view === "dashboard"
                   ? "border-brand-500 bg-brand-50 text-brand-700"
@@ -120,7 +120,7 @@ export default function Navbar({ route, go, onSearch }: NavbarProps) {
                   className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-brand-700/30"
                 >
                   <LayoutDashboard className="size-4" />
-                  لوحة الأستاذ — النتائج
+                  دخول لوحة الأستاذ (محمية)
                 </button>
               </nav>
             </div>
