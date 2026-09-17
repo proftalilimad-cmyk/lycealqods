@@ -21,6 +21,7 @@ import {
   TC_SCI_UNITS,
   TEACHER_SCHOOL,
   catalogText,
+  collectProduit,
   getCatalogEntry,
   isProduitHeader,
   type CatalogEntry,
@@ -30,7 +31,6 @@ import {
   type SrcCell,
   type SrcTable,
 } from "../data/jadadat";
-import { devPlanFor, type DevPlan } from "../data/jadadatDev";
 import type { Route } from "../routes";
 import { detectSegments, detectedTableToHtml } from "../lib/tableDetect";
 import SmartText, { AutoTableView } from "./SmartText";
@@ -461,47 +461,6 @@ function DocHeaderBand({ lead, slot }: { lead: DocLead; slot: { number: string; 
   );
 }
 
-/* قسم «التطوير الديداكتيكي»: الحقول الرسمية المكمِّلة بترتيبها الديداكتيكي */
-function DevSection({ plan }: { plan: DevPlan }) {
-  const fields: { t: string; items: string[] }[] = [
-    { t: "التقويم التشخيصي", items: plan.diagnostic },
-    { t: "التقويم المرحلي (أثناء سير الدرس)", items: plan.marhali },
-    { t: "التقويم النهائي", items: plan.final },
-    { t: "المنتوج (خلاصة مهيكلة)", items: plan.produit },
-    { t: "الامتداد", items: plan.extension },
-  ];
-  return (
-    <div className="mx-3 mb-4 mt-3 overflow-hidden rounded-2xl border sm:mx-4" style={{ borderColor: C.line }}>
-      <div className="px-4 py-2.5" style={{ background: C.head }}>
-        <p className="text-[12px] font-black text-white">
-          التطوير الديداكتيكي — وفق كتاب منار والتوجيهات التربوية وديداكتيك المادة
-        </p>
-        <p className="mt-0.5 text-[9.5px] font-bold text-white/85">{plan.source}</p>
-      </div>
-      <div className="divide-y" style={{ borderColor: C.line }}>
-        {fields.map((fd, i) =>
-          fd.items.length ? (
-            <div key={fd.t} className="px-4 py-2.5" style={{ background: i % 2 ? C.beige : "#ffffff" }}>
-              <p className="mb-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: C.olive }}>
-                {fd.t}
-              </p>
-              <ol className="list-inside list-decimal space-y-0.5 text-[11px] font-bold leading-relaxed text-ink-800">
-                {fd.items.map((it, k) => (
-                  <li key={k}>{it}</li>
-                ))}
-              </ol>
-            </div>
-          ) : null,
-        )}
-      </div>
-      <p className="px-4 py-2 text-[9.5px] font-bold leading-relaxed text-ink-500" style={{ background: C.gold }}>
-        وثيقة الأستاذ أعلاه معروضة كما هي دون أي تعديل؛ وهذا القسم مكمّل ديداكتيكي رسمي الحقول، لا يحذف ولا يعيد صياغة
-        مضمون الوثيقة الأصلية.
-      </p>
-    </div>
-  );
-}
-
 function Blocks({ f, slot }: { f: ImportedFiche; slot: { number: string; title: string } }) {
   if (f.layout === "pdf") {
     return (
@@ -531,6 +490,52 @@ function Blocks({ f, slot }: { f: ImportedFiche; slot: { number: string; title: 
 }
 
 /* ---------- المنتوج: يُجمع من عموده الأصلي بترتيبه ونصّه الحرفيين ---------- */
+function ProduitPanel({ f }: { f: ImportedFiche }) {
+  const parts = collectProduit(f);
+  if (parts.length === 0) {
+    return (
+      <section className="mt-4 rounded-2xl border p-4" style={{ borderColor: D.line, background: D.beigeLight }}>
+        <h2 className="flex items-center gap-2 font-display text-[13px] font-extrabold" style={{ color: D.head }}>
+          <ScrollText className="size-4" aria-hidden="true" />
+          المنتوج
+        </h2>
+        <p className="mt-2 text-[11px] font-bold leading-relaxed text-ink-700">
+          ورد المنتوج داخل نص الوثيقة الأصلية المعروض أعلاه كما هو (الملف المصدر PDF)، ولم يُضف إليه أو يُحذف منه شيء.
+        </p>
+      </section>
+    );
+  }
+  return (
+    <section className="mt-4 overflow-hidden rounded-2xl border" style={{ borderColor: D.line }}>
+      <h2 className="flex flex-wrap items-center gap-2 px-4 py-2.5 font-display text-[13px] font-extrabold text-white" style={{ background: D.head }}>
+        <ScrollText className="size-4" aria-hidden="true" />
+        المنتوج
+        <span className="rounded-full bg-white/20 px-2 py-0.5 text-[9.5px] font-black">
+          عمود «{parts[0].header}» في الجذاذة الأصلية · {parts.length} جزءًا
+        </span>
+      </h2>
+      <p className="border-b px-4 py-2 text-[10px] font-bold leading-relaxed text-ink-600" style={{ borderColor: D.line, background: D.beigeLight }}>
+        جُمعت أجزاء المنتوج من الجدول الأصلي بترتيبها وسياقها نفسه، ونُقلت حرفيًا دون حذف أو اختصار أو إعادة صياغة أو تغيير
+        في المصطلحات أو الأرقام. (تجدونها كذلك في موضعها الأصلي داخل عمود «{parts[0].header}» أعلاه.)
+      </p>
+      <div className="divide-y" style={{ borderColor: D.line }}>
+        {parts.map((p, i) => (
+          <div key={i} className="px-4 py-3" style={{ background: i % 2 ? D.beigeLight : "#ffffff" }}>
+            {p.phase && (
+              <p className="mb-1.5 inline-block rounded-md px-2 py-0.5 text-[10px] font-black text-white" style={{ background: D.nest }}>
+                {p.phase}
+              </p>
+            )}
+            <div className="text-[11px] font-semibold leading-relaxed text-ink-900">
+              <CellContent c={p.cell} gold />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ============================================================
    ملف التحميل: نسخة HTML مستقلة من الوثيقة الأصلية
    ============================================================ */
@@ -557,12 +562,6 @@ const DOC_CSS = `
            box-decoration-break: clone; -webkit-box-decoration-break: clone; }
   tr { page-break-inside: avoid; break-inside: avoid; }
   td.splittable, th.splittable { page-break-inside: auto; break-inside: auto; }
-  /* قسم التطوير الديداكتيكي */
-  .dev { margin-top: 14px; border: 1px solid ${C.line}; border-radius: 10px; overflow: hidden; }
-  .dev h2 { margin: 0; padding: 9px 13px; background: ${C.head}; color: #fff; font-size: 13px; }
-  .dev h3 { margin: 0; padding: 6px 13px 2px; background: ${C.beige}; color: ${C.headDark}; font-size: 11.5px; }
-  .dev ol { margin: 0; padding: 4px 26px 8px; background: #fff; font-size: 11px; line-height: 2; }
-  .dev .srcnote { margin: 0; padding: 6px 13px; background: ${C.gold}; font-size: 9.5px; line-height: 1.8; }
   tr.head th { page-break-after: avoid; break-after: avoid; }
   tbody td { color: ${D.ink}; }
   tbody td.rowlab, tr.head th { color: #fff; }
@@ -599,6 +598,11 @@ const DOC_CSS = `
   .num { width: 36px; height: 36px; border-radius: 50%; background: ${D.head}; color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 13px; flex: none; }
   .pill { background: #6b7280; color: #fff; border-radius: 5px; padding: 1px 9px; font-size: 9.5px; font-weight: 800; }
   .titlebox { background: ${D.head}; color: #fff; border-radius: 10px; padding: 8px 12px; text-align: center; font-weight: 800; font-size: 12px; width: 100%; }
+  .produit { margin-top: 16px; border: 1px solid ${D.line}; border-radius: 10px; overflow: hidden; }
+  .produit h2 { margin: 0; padding: 9px 13px; background: ${D.head}; color: #fff; font-size: 13px; }
+  .produit .note { padding: 7px 13px; background: ${D.beigeLight}; font-size: 10.5px; line-height: 1.8; border-bottom: 1px solid ${D.line}; }
+  .produit .part { padding: 9px 13px; border-bottom: 1px solid ${D.line}; font-size: 11.5px; line-height: 1.95; }
+  .produit .phase { display: inline-block; background: ${D.nest}; color: #fff; border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: 700; margin-bottom: 4px; }
   .sign { margin-top: 16px; background: ${D.beige}; border: 1px solid ${D.line}; border-radius: 10px; padding: 11px 14px;
           font-size: 12px; font-weight: 700; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
   .src { margin-top: 9px; font-size: 10.5px; color: #4c5b54; line-height: 1.8; }
@@ -711,21 +715,6 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
          <span class="titlebox">${esc(lead.title ?? slot.title)}</span></span></div></div>
          ${metaTableHtml(lead.metas.find((t) => t !== (lead.metas.find((x) => cellTexts(x.rows[0]?.[0]).some((l) => l.includes("مادة"))) ?? lead.metas[0])))}</div>`
       : "";
-  const dev = devPlanFor(slot.id, f, slot.title);
-  const devFields: [string, string[]][] = [
-    ["التقويم التشخيصي", dev.diagnostic],
-    ["التقويم المرحلي (أثناء سير الدرس)", dev.marhali],
-    ["التقويم النهائي", dev.final],
-    ["المنتوج (خلاصة مهيكلة)", dev.produit],
-    ["الامتداد", dev.extension],
-  ];
-  const devHtml = `<div class="dev"><h2>التطوير الديداكتيكي — وفق كتاب منار والتوجيهات التربوية وديداكتيك المادة</h2>
-    <p class="srcnote">${esc(dev.source)}</p>
-    ${devFields
-      .filter(([, items]) => items.length)
-      .map(([t, items]) => `<h3>${esc(t)}</h3><ol>${items.map((it) => `<li>${esc(it)}</li>`).join("")}</ol>`)
-      .join("")}
-    <p class="srcnote">وثيقة الأستاذ أعلاه كما هي دون تعديل؛ وهذا القسم مكمّل ديداكتيكي رسمي الحقول.</p></div>`;
   const bodyBlocks = f.blocks.slice(lead.rest);
   const blocks =
     f.layout === "pdf"
@@ -736,6 +725,18 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
       : bodyBlocks
           .map((b) => (b.type === "para" ? `<p class="para">${esc(b.text ?? "").replace(/\n/g, "<br />")}</p>` : b.table ? tableToHtml(b.table) : ""))
           .join("\n");
+  const parts = collectProduit(f);
+  const produit = parts.length
+    ? `<div class="produit"><h2>المنتوج</h2>
+       <p class="note">جُمعت أجزاء المنتوج من عمود «${esc(parts[0].header)}» في الجذاذة الأصلية بترتيبها وسياقها نفسه، ونُقلت حرفيًا دون حذف أو اختصار أو إعادة صياغة.</p>
+       ${parts
+         .map(
+           (p) =>
+             `<div class="part">${p.phase ? `<span class="phase">${esc(p.phase)}</span>` : ""}${cellToHtml(p.cell)}</div>`,
+         )
+         .join("")}
+       </div>`
+    : `<div class="produit"><h2>المنتوج</h2><p class="note">ورد المنتوج داخل نص الوثيقة الأصلية كما هو، ولم يُضف إليه أو يُحذف منه شيء.</p></div>`;
 
   return `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -757,7 +758,7 @@ export function importedToHtml(f: ImportedFiche, entry: CatalogEntry): string {
        · ${esc(slot.cycle)} — ${esc(slot.unitTitle)} (مجزوءة ${esc(slot.module)})</p>
 ${headBand}
 ${blocks}
-${devHtml}
+${produit}
     <div class="sign">
       <span>${esc(SECTION_META.authorLabel)} — ${esc(TEACHER_SCHOOL)}</span>
       <span>الجذاذة ${esc(slot.number)} · ${esc(slot.subject)} · ${esc(slot.cycle)}</span>
@@ -977,8 +978,8 @@ function FichePage({ entry, onBack, go }: { entry: CatalogEntry; onBack: () => v
         {imported ? (
           <>
             <Blocks f={imported} slot={slot} />
-            <DevSection plan={devPlanFor(slot.id, imported, slot.title)} />
             <div className="px-3 pb-4 sm:px-4">
+              <ProduitPanel f={imported} />
               <div
                 className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3"
                 style={{ background: D.beige, border: `1px solid ${D.line}` }}
