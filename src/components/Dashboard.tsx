@@ -8,7 +8,6 @@ import {
   KeyRound,
   LayoutDashboard,
   LogOut,
-  NotebookPen,
   PieChart,
   ShieldAlert,
   Trash2,
@@ -22,7 +21,6 @@ import type { Route } from "../routes";
 import Reveal from "./Reveal";
 import TeacherLogin from "./TeacherLogin";
 import TeacherSecurity from "./TeacherSecurity";
-import JadadatTracker from "./JadadatTracker";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -353,9 +351,8 @@ function TestResultsPanel() {
 /* ============================================================
    لوحة الأستاذ — فضاء خاص محمي باسم مستعمل وكلمة مرور
    ============================================================
-   ثلاثة تبويبات:
+   تبويبان:
      results  → نتائج التقويم التشخيصي (اللوحة الأصلية كما هي)
-     jadadat  → تتبّع إنجاز جذاذات الجذع المشترك العلمي (25 جذاذة)
      security → تغيير بيانات الدخول + حدود الحماية على موقع ثابت
 
    لا يُعرض أي محتوى (نتائج، تصدير، مسح) قبل التحقّق من الدخول؛
@@ -364,7 +361,6 @@ function TestResultsPanel() {
 
 const TABS = [
   { id: "results", label: "نتائج التقويم التشخيصي", icon: ChartColumn },
-  { id: "jadadat", label: "تتبّع الجذاذات", icon: NotebookPen },
   { id: "security", label: "الدخول والأمان", icon: KeyRound },
 ] as const;
 
@@ -420,7 +416,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
                 فضاء الأستاذ الخاص
               </h1>
               <p className="mt-2 text-sm leading-relaxed text-ink-500">
-                نتائج التقويم التشخيصي · تتبّع إنجاز الجذاذات
+                نتائج التقويم التشخيصي · الدخول والأمان
                 {who && (
                   <>
                     {" "}
@@ -469,7 +465,6 @@ export default function Dashboard({ tab, go }: DashboardProps) {
         {/* محتوى التبويب */}
         <div className="mt-7">
           {active === "results" && <TestResultsPanel />}
-          {active === "jadadat" && <JadadatTracker go={go} />}
           {active === "security" && <TeacherSecurity />}
         </div>
       </div>

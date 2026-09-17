@@ -9,11 +9,7 @@ export type Route =
   | { view: "apps"; id?: string; level?: string }
   | { view: "lesson"; id: string }
   | { view: "resources"; type?: string; open?: string }
-  | { view: "decks"; id?: string; subject?: string }
-  | { view: "jadadat"; level?: string; open?: string }
-  | { view: "jadadatLib"; open?: string }
-  | { view: "jadadatPrepared"; open?: string }
-  | { view: "studio" };
+  | { view: "decks"; id?: string; subject?: string };
 
 export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "الرئيسية", route: { view: "home" } },
@@ -21,12 +17,10 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "التقويم التشخيصي", route: { view: "test" } },
   { label: "المبارزة", route: { view: "battle" } },
   { label: "الدروس", route: { view: "lessons" } },
-  { label: "الجذاذات", route: { view: "jadadat" } },
   { label: "التطبيقات", route: { view: "apps" } },
   { label: "العروض", route: { view: "decks" } },
   { label: "المنهجيات", route: { view: "methods" } },
   { label: "الموارد", route: { view: "resources" } },
-  { label: "محرر الوثائق", route: { view: "studio" } },
   { label: "لوحة الأستاذ", route: { view: "dashboard" } },
 ];
 
@@ -44,7 +38,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/battle                 وضع المبارزة
      #/battle/<bank>          مبارزة ببنك معيّن
      #/dashboard              لوحة الأستاذ (محمية باسم مستعمل وكلمة مرور)
-     #/dashboard/<tab>        تبويب اللوحة (results / jadadat / security)
+     #/dashboard/<tab>        تبويب اللوحة (results / security)
      #/lessons                الدروس
      #/lessons/<level>        دروس مستوى (tc / bac1 / bac2)
      #/lesson/<id>            درس معيّن (bac1-sci.geography.0.0 …)
@@ -59,13 +53,6 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/resources              الموارد
      #/resources/<type>       موارد مصفاة بنوع
      #/resources/<type>/<id>  مورد مفتوح
-     #/jadadat              الجذاذات
-     #/jadadat/<level>      جذاذات مستوى (tc / bac1 / bac2)
-     #/jadadat/<level>/<id> جذاذة مفتوحة
-     #/jadadat/joth3-mochtrak-scientifique        مكتبة ملفات الجذاذات (PDF/Word)
-     #/jadadat/joth3-mochtrak-scientifique/<id>   تفاصيل جذاذة وملفاتها الأصلية
-     #/jadadat-pdf[/<id>]     الرابط المختصر للمكتبة نفسها
-     #/jadadat-prepared[/<id>] الجذاذات المُعدَّة (من دروس الموقع + التوجيهات التربوية)
   ============================================================ */
 
 export const BASE_TITLE = "فضاء الاجتماعيات — الأستاذ عماد طليل";
@@ -79,15 +66,11 @@ export const VIEW_LABELS: Record<Route["view"], string> = {
   battle: "المبارزة",
   dashboard: "لوحة الأستاذ",
   lessons: "الدروس",
-  jadadat: "الجذاذات",
-  jadadatLib: "جذاذات الجذع المشترك العلمي",
-  jadadatPrepared: "جذاذات مُعدَّة — الجذع المشترك العلمي",
   lesson: "الدرس",
   methods: "المنهجيات",
   apps: "التطبيقات",
   resources: "الموارد",
   decks: "العروض التفاعلية",
-  studio: "محرر الوثائق",
 };
 
 const SEGMENTS: Record<string, Route["view"]> = {
@@ -98,15 +81,11 @@ const SEGMENTS: Record<string, Route["view"]> = {
   battle: "battle",
   dashboard: "dashboard",
   lessons: "lessons",
-  jadadat: "jadadat",
   lesson: "lesson",
   methods: "methods",
   apps: "apps",
   resources: "resources",
   decks: "decks",
-  studio: "studio",
-  "jadadat-pdf": "jadadatLib",
-  "jadadat-prepared": "jadadatPrepared",
 };
 
 function encodeSegment(value: string): string {
@@ -130,8 +109,6 @@ export function routeToPath(route: Route): string {
       return "/about";
     case "dashboard":
       return route.tab ? `/dashboard/${encodeSegment(route.tab)}` : "/dashboard";
-    case "studio":
-      return "/studio";
     case "test":
       return route.bank ? `/test/${encodeSegment(route.bank)}` : "/test";
     case "battle":
@@ -154,18 +131,6 @@ export function routeToPath(route: Route): string {
       if (route.open) return `/resources/${encodeSegment(route.type ?? "all")}/${encodeSegment(route.open)}`;
       return route.type ? `/resources/${encodeSegment(route.type)}` : "/resources";
     }
-    case "jadadatPrepared":
-      return route.open
-        ? `/jadadat-prepared/${encodeSegment(route.open)}`
-        : "/jadadat-prepared";
-    case "jadadatLib":
-      return route.open
-        ? `/jadadat/joth3-mochtrak-scientifique/${encodeSegment(route.open)}`
-        : "/jadadat/joth3-mochtrak-scientifique";
-    case "jadadat": {
-      if (route.open) return `/jadadat/${encodeSegment(route.level ?? "tc")}/${encodeSegment(route.open)}`;
-      return route.level ? `/jadadat/${encodeSegment(route.level)}` : "/jadadat";
-    }
   }
 }
 
@@ -180,7 +145,6 @@ export function routeFromPath(rawPath: string): Route {
   switch (view) {
     case "home":
     case "about":
-    case "studio":
       return { view };
     case "dashboard":
       return parts[1] ? { view: "dashboard", tab: parts[1] } : { view: "dashboard" };
@@ -208,18 +172,6 @@ export function routeFromPath(rawPath: string): Route {
       const type = parts[1] && parts[1] !== "all" ? parts[1] : undefined;
       const open = parts[2] || undefined;
       return open ? { view: "resources", type, open } : type ? { view: "resources", type } : { view: "resources" };
-    }
-    case "jadadatLib":
-      return parts[1] ? { view: "jadadatLib", open: parts[1] } : { view: "jadadatLib" };
-    case "jadadatPrepared":
-      return parts[1] ? { view: "jadadatPrepared", open: parts[1] } : { view: "jadadatPrepared" };
-    case "jadadat": {
-      /* مكتبة ملفات الجذاذات تشترك في المقطع الأول مع قسم الجذاذات */
-      if (parts[1] === "joth3-mochtrak-scientifique")
-        return parts[2] ? { view: "jadadatLib", open: parts[2] } : { view: "jadadatLib" };
-      const lvl = parts[1] || undefined;
-      const open = parts[2] || undefined;
-      return open ? { view: "jadadat", level: lvl, open } : lvl ? { view: "jadadat", level: lvl } : { view: "jadadat" };
     }
   }
 }

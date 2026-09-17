@@ -100,7 +100,7 @@ export default function TeacherLogin({ onUnlock, go }: TeacherLoginProps) {
             </span>
             <h1 className="relative mt-4 font-display text-2xl font-black text-white">لوحة الأستاذ — دخول محمي</h1>
             <p className="relative mt-1.5 text-xs font-semibold leading-relaxed text-white/60">
-              نتائج التقويم التشخيصي · تتبّع إنجاز الجذاذات
+              نتائج التقويم التشخيصي · الدخول والأمان
               <br />
               إعداد وإنجاز: الأستاذ عماد طليل — ثانوية القدس، القنيطرة
             </p>

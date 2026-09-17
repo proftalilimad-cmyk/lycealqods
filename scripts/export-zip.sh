@@ -8,9 +8,8 @@
 #      + og-cover.png + images/). لا يحتاج خادمًا: كل شيء ملفات ثابتة.
 #   2) lycealqods-source-YYYY-MM-DD.zip  مصدر المشروع كاملًا بدون
 #      node_modules ولا dist، لفتحه ومتابعة التطوير في مكان آخر.
-#      يضمّ أيضًا مجلد وثائق الأستاذ «جذع مسترك شعبة علوم تجريبية» لأن
-#      ملفات public/files/jadadat/… روابط رمزية إليه: بدونه تصل الروابط
-#      مقطوعة. (أرشيف الموقع dist يحتوي نسخًا حقيقية فلا يحتاجه.)
+#      يضمّ أيضًا مجلد وثائق الأستاذ «جذع مسترك شعبة علوم تجريبية» حفظًا
+#      لملفات الجذاذات الأصلية ضمن النسخة الاحتياطية.
 #
 # للتحميل مباشرة من المعاينة الحية:
 #   <رابط المعاينة>/dist/exports/lycealqods-site-YYYY-MM-DD.zip
@@ -70,7 +69,6 @@ unzip -tq "$SITE_ZIP" | tail -1
 unzip -tq "$SRC_ZIP" | tail -1
 echo
 echo "عدد الملفات داخل أرشيف الموقع: $(unzip -l "$SITE_ZIP" | tail -1 | awk '{print $2}')"
-echo "ملفات الجذاذات داخل أرشيف الموقع (PDF/Word): $(unzip -l "$SITE_ZIP" | grep -Ec 'files/jadadat/joth3-mochtrak-scientifique/.+\.(pdf|docx?|PDF|DOCX?)$')"
 echo "عدد الملفات داخل أرشيف المصدر: $(unzip -l "$SRC_ZIP" | tail -1 | awk '{print $2}')"
 echo
 echo "للتحميل من المعاينة الحية:"

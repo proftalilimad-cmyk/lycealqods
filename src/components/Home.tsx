@@ -11,8 +11,6 @@ import {
   History,
   Library,
   MonitorPlay,
-  NotebookPen,
-  Sparkles,
   PenLine,
   Search,
   Swords,
@@ -42,9 +40,6 @@ interface QuickAction {
 
 const QUICK_ACTIONS: QuickAction[] = [
   { label: "الدروس", desc: "منظمة حسب المستوى والدورتين", icon: BookOpenCheck, route: { view: "lessons" } },
-  { label: "جذاذات الجذع المشترك العلمي", desc: "25 جذاذة (تاريخ وجغرافيا) مصنّفة بالدورة والوحدة — طباعة وتحميل", icon: NotebookPen, route: { view: "jadadat", level: "tc" } },
-  { label: "جذاذات PDF — الجذع المشترك العلمي", desc: "82 ملفًا أصليًا (32 PDF و50 Word): معاينة مدمجة وتحميل مباشر", icon: FileText, route: { view: "jadadatLib" } },
-  { label: "جذاذات مُعدَّة — الجذع المشترك العلمي", desc: "25 جذاذة من دروس الموقع وفق التوجيهات التربوية وديداكتيك المادة", icon: Sparkles, route: { view: "jadadatPrepared" } },
   { label: "التمارين", desc: "تطبيقات بتصحيح نموذجي", icon: FlaskConical, route: { view: "apps" } },
   { label: "الفروض", desc: "تقويمات محروسة ونماذج فروض", icon: ClipboardList, route: { view: "resources", type: "exam" } },
   { label: "الامتحانات الجهوية", desc: "مواضيع رسمية مع عناصر الإجابة", icon: FileText, route: { view: "resources", type: "regional" } },

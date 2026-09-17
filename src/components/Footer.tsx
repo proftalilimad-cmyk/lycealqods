@@ -77,26 +77,6 @@ export default function Footer({ go }: FooterProps) {
                   </button>
                 </li>
                 <li>
-                  <button type="button" onClick={() => go({ view: "dashboard", tab: "jadadat" })} className="text-sm text-white/55 transition-colors hover:text-white">
-                    تتبّع إنجاز الجذاذات
-                  </button>
-                </li>
-                <li>
-                  <button type="button" onClick={() => go({ view: "jadadat" })} className="text-sm text-white/55 transition-colors hover:text-white">
-                    قسم الجذاذات (عرض وطباعة)
-                  </button>
-                </li>
-                <li>
-                  <button type="button" onClick={() => go({ view: "jadadatLib" })} className="text-sm text-white/55 transition-colors hover:text-white">
-                    جذاذات الجذع المشترك العلمي (PDF)
-                  </button>
-                </li>
-                <li>
-                  <button type="button" onClick={() => go({ view: "jadadatPrepared" })} className="text-sm text-white/55 transition-colors hover:text-white">
-                    جذاذات مُعدَّة وفق التوجيهات التربوية
-                  </button>
-                </li>
-                <li>
                   <button type="button" onClick={() => go({ view: "methods" })} className="text-sm text-white/55 transition-colors hover:text-white">
                     منهجيات الاجتماعيات
                   </button>

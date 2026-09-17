@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BookOpenCheck, FileText, FlaskConical, FolderOpen, LayoutGrid, MonitorPlay, NotebookPen, Search, Target, X } from "lucide-react";
+import { ArrowLeft, BookOpenCheck, FileText, FlaskConical, FolderOpen, LayoutGrid, MonitorPlay, Search, Target, X } from "lucide-react";
 import { normalizeArabic } from "../lib/arabic";
 import { METHODOLOGIES } from "../data/methodologies";
 import { APPLICATIONS } from "../data/applications";
@@ -9,12 +9,11 @@ import { LESSON_CONTENT } from "../data/lessonContent";
 import { TEST_BANKS } from "../data/testBanks";
 import { RESOURCES, typeMeta } from "../data/resources";
 import { DECKS } from "../data/decks";
-import { JADADA_STATUS_META, SECTION_META, TC_SCI_CATALOG, catalogText } from "../data/jadadat";
 import type { Route } from "../routes";
 
 interface SearchResult {
   id: string;
-  group: "منهجيات" | "تطبيقات" | "دروس ومحاور" | "جذاذات" | "عروض تفاعلية" | "أسئلة التقويم" | "موارد" | "صفحات";
+  group: "منهجيات" | "تطبيقات" | "دروس ومحاور" | "عروض تفاعلية" | "أسئلة التقويم" | "موارد" | "صفحات";
   title: string;
   hint: string;
   action: Route;
@@ -30,10 +29,7 @@ const STATIC_PAGES: SearchResult[] = [
   { id: "p-test", group: "صفحات", title: "التقويم التشخيصي في الاجتماعيات — الجذع المشترك", hint: "20 سؤالًا · 60 دقيقة · /20", action: { view: "test" } },
   { id: "p-about", group: "صفحات", title: "نبذة عن الأستاذ عماد طليل", hint: "أستاذ الاجتماعيات — ثانوية القدس القنيطرة", action: { view: "about" } },
   { id: "p-dash", group: "صفحات", title: "لوحة الأستاذ (دخول محمي)", hint: "نتائج التقويم التشخيصي — باسم مستعمل وكلمة مرور", action: { view: "dashboard", tab: "results" } },
-  { id: "p-dash-jadadat", group: "صفحات", title: "تتبّع إنجاز الجذاذات", hint: "25 جذاذة · الحالة والتاريخ والقسم — داخل لوحة الأستاذ", action: { view: "dashboard", tab: "jadadat" } },
   { id: "p-dash-sec", group: "صفحات", title: "الدخول والأمان — لوحة الأستاذ", hint: "تغيير اسم المستعمل وكلمة المرور", action: { view: "dashboard", tab: "security" } },
-  { id: "p-jadadat-prepared", group: "صفحات", title: "جذاذات مُعدَّة — الجذع المشترك العلمي", hint: "25 جذاذة من دروس الموقع وفق التوجيهات التربوية وديداكتيك المادة — طباعة وتحميل", action: { view: "jadadatPrepared" } },
-  { id: "p-jadadat-pdf", group: "صفحات", title: "جذاذات الجذع المشترك العلمي — ملفات PDF", hint: "82 ملفًا أصليًا: معاينة مدمجة وتحميل حسب المادة والدورة والدرس", action: { view: "jadadatLib" } },
   { id: "p-res", group: "صفحات", title: "الموارد التعليمية", hint: "ملفات وخرائط وجداول ومبيانات", action: { view: "resources" } },
   { id: "p-decks", group: "صفحات", title: "العروض التفاعلية — الأولى باكالوريا علوم", hint: "دروس من الكتاب المدرسي مع الاشتغال على الوثائق", action: { view: "decks" } },
 ];
@@ -44,7 +40,6 @@ const GROUP_ICONS = {
   منهجيات: FileText,
   تطبيقات: FlaskConical,
   "دروس ومحاور": BookOpenCheck,
-  جذاذات: NotebookPen,
   "عروض تفاعلية": MonitorPlay,
   "أسئلة التقويم": Target,
   موارد: FolderOpen,
@@ -126,30 +121,6 @@ export default function SearchOverlay({ open, onClose, go }: SearchOverlayProps)
     }
 
     /* العروض التفاعلية المبنية على الكتاب المدرسي */
-    /* الجذاذات: اللائحة الرسمية للجذع المشترك العلمي (تاريخ + جغرافيا) */
-    for (const e of TC_SCI_CATALOG) {
-      // البحث يشمل نص الوثيقة الأصلية كاملًا (المراحل، التدبير، الدعامات، المنتوج…)
-      const hay = normalizeArabic(
-        [
-          `جذاذة ${e.slot.number} ${e.slot.title}`,
-          `${e.slot.subject} ${e.slot.cycle} ${e.slot.unitTitle} ${SECTION_META.title} ${SECTION_META.level}`,
-          SECTION_META.authorLabel,
-          e.imported ? `المنتوج ${e.imported.source}` : "",
-          e.sourceFile ?? "",
-          catalogText(e),
-        ].join(" "),
-      );
-      if (hay.includes(qNorm)) {
-        out.push({
-          id: `j-${e.slot.id}`,
-          group: "جذاذات",
-          title: e.slot.title,
-          hint: `الجذاذة ${e.slot.number} · ${e.slot.subject} · ${e.slot.cycle} — ${JADADA_STATUS_META[e.status].short}`,
-          action: { view: "jadadat", level: "tc", open: e.slot.id },
-        });
-      }
-    }
-
     for (const d of DECKS) {
       const hay = normalizeArabic(`${d.title} ${d.module} ${d.problem} ${d.concepts.join(" ")} ${d.slides.map((s) => s.title).join(" ")} عرض تفاعلي`);
       if (hay.includes(qNorm)) {
