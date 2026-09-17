@@ -3,3 +3,6 @@ dist
 .DS_Store
 *.local
 .vite
+
+# لقطة معاينة ساكنة مولَّدة (تُبنى عند الطلب، لا تُرفع إلى جيت)
+public/exports
