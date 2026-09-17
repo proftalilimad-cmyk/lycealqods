@@ -469,7 +469,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
         {/* محتوى التبويب */}
         <div className="mt-7">
           {active === "results" && <TestResultsPanel />}
-          {active === "jadadat" && <JadadatTracker />}
+          {active === "jadadat" && <JadadatTracker go={go} />}
           {active === "security" && <TeacherSecurity />}
         </div>
       </div>

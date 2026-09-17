@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Download,
+  ExternalLink,
   Hourglass,
   ListChecks,
   NotebookPen,
@@ -20,7 +21,9 @@ import {
   type TrackerStatus,
   type TrackerSubject,
 } from "../data/jadadatTracker";
+import { getCatalogEntry } from "../data/jadadat";
 import { ROSTER_CLASSES } from "../data/rosters";
+import type { Route } from "../routes";
 import {
   clearAllProgress,
   emptyProgress,
@@ -56,7 +59,19 @@ const STATUS_ICON: Record<TrackerStatus, typeof CheckCircle2> = {
 
 const CLASS_OPTIONS = ROSTER_CLASSES.map((c) => c.label);
 
-export default function JadadatTracker() {
+/** هل وثيقة الجذاذة مُدرجة في الموقع (قابلة للفتح والطباعة والتحميل)؟ */
+const isAvailable = (slotId: string) => {
+  const e = getCatalogEntry(slotId);
+  return Boolean(e && (e.imported || e.fiche));
+};
+
+const AVAILABLE_COUNT = TRACKER_SLOTS.filter((s) => isAvailable(s.id)).length;
+
+interface JadadatTrackerProps {
+  go: (r: Route) => void;
+}
+
+export default function JadadatTracker({ go }: JadadatTrackerProps) {
   const [map, setMap] = useState<ProgressMap>(() => getProgress());
   const [subject, setSubject] = useState<"all" | TrackerSubject>("all");
   const [cycle, setCycle] = useState<"all" | string>("all");
@@ -140,13 +155,19 @@ export default function JadadatTracker() {
   return (
     <div>
       {/* ---------- شريط الإحصاء ---------- */}
-      <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-7">
         {[
           { icon: NotebookPen, v: String(stats.total), l: "جذاذات المقرر", c: "text-brand-600 bg-brand-50" },
           { icon: CheckCircle2, v: String(stats.done), l: "أُنجزت", c: "text-emerald-600 bg-emerald-50" },
           { icon: Hourglass, v: String(stats.progress), l: "قيد الإنجاز", c: "text-gold-600 bg-gold-50" },
           { icon: ClipboardList, v: String(stats.pending), l: "لم تُنجز بعد", c: "text-ink-500 bg-paper-warm" },
           { icon: ListChecks, v: `${stats.percent}٪`, l: "نسبة الإنجاز", c: "text-brand-600 bg-brand-50" },
+          {
+            icon: ExternalLink,
+            v: `${AVAILABLE_COUNT}/${stats.total}`,
+            l: "وثائقها في الموقع",
+            c: "text-brand-600 bg-brand-50",
+          },
           {
             icon: CalendarCheck2,
             v: stats.lastUpdate ? new Date(stats.lastUpdate).toLocaleDateString("fr-MA") : "—",
@@ -278,6 +299,14 @@ export default function JadadatTracker() {
 
           <button
             type="button"
+            onClick={() => go({ view: "jadadat", level: "tc" })}
+            className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-transform hover:-translate-y-0.5"
+          >
+            <NotebookPen className="size-4" aria-hidden="true" />
+            فتح قسم الجذاذات
+          </button>
+          <button
+            type="button"
             onClick={() => exportTrackerCsv(map)}
             className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-transform hover:-translate-y-0.5"
           >
@@ -371,6 +400,16 @@ export default function JadadatTracker() {
                               </td>
                               <td className="px-4 py-3">
                                 <p className="text-[13px] font-bold leading-snug text-ink-900">{s.title}</p>
+                                {isAvailable(s.id) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => go({ view: "jadadat", level: "tc", open: s.id })}
+                                    className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2 py-1 text-[10px] font-extrabold text-brand-700 transition-colors hover:border-brand-400 hover:bg-brand-100"
+                                  >
+                                    <ExternalLink className="size-3" aria-hidden="true" />
+                                    فتح / طباعة الجذاذة
+                                  </button>
+                                )}
                                 <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-ink-500">
                                   <span>{s.subject}</span>
                                   <span aria-hidden="true">·</span>
@@ -458,7 +497,8 @@ export default function JadadatTracker() {
 
           <p className="border-t border-ink-900/6 bg-paper-warm/40 px-6 py-3 text-[10px] leading-relaxed text-ink-500">
             اللائحة مطابقة للمقرر الرسمي للجذع المشترك العلمي ({TRACKER_TOTAL} جذاذة: 13 تاريخ + 12 جغرافيا) —
-            وحدات: {TRACKER_UNITS.length}. التتبّع محفوظ في هذا المتصفّح فقط؛ صدّر CSV لأرشفته أو نقله.
+            وحدات: {TRACKER_UNITS.length} · وثائق {AVAILABLE_COUNT} جذاذة متاحة للفتح والطباعة والتحميل من قسم الجذاذات.
+            التتبّع محفوظ في هذا المتصفّح فقط؛ صدّر CSV لأرشفته أو نقله.
           </p>
         </div>
       </Reveal>

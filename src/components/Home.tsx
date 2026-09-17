@@ -11,6 +11,7 @@ import {
   History,
   Library,
   MonitorPlay,
+  NotebookPen,
   PenLine,
   Search,
   Swords,
@@ -40,6 +41,7 @@ interface QuickAction {
 
 const QUICK_ACTIONS: QuickAction[] = [
   { label: "الدروس", desc: "منظمة حسب المستوى والدورتين", icon: BookOpenCheck, route: { view: "lessons" } },
+  { label: "جذاذات الجذع المشترك العلمي", desc: "25 جذاذة (تاريخ وجغرافيا) مصنّفة بالدورة والوحدة — طباعة وتحميل", icon: NotebookPen, route: { view: "jadadat", level: "tc" } },
   { label: "التمارين", desc: "تطبيقات بتصحيح نموذجي", icon: FlaskConical, route: { view: "apps" } },
   { label: "الفروض", desc: "تقويمات محروسة ونماذج فروض", icon: ClipboardList, route: { view: "resources", type: "exam" } },
   { label: "الامتحانات الجهوية", desc: "مواضيع رسمية مع عناصر الإجابة", icon: FileText, route: { view: "resources", type: "regional" } },
