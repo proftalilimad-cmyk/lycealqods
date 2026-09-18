@@ -33,6 +33,8 @@ fi
 
 mkdir -p "$OUT"
 rm -f "$OUT"/*.zip
+# النماذج المعروضة في public/exports تُستعمل للمعاينة الحية فقط، ولا تُنشر
+rm -f "$ROOT"/dist/exports/sample-* 2>/dev/null || true
 
 echo "→ أرشفة الموقع المنشور (dist)…"
 (
@@ -50,7 +52,7 @@ EXTRA=()
   zip -qrX "$SRC_ZIP" \
     src public index.html package.json package-lock.json tsconfig.json \
     vite.config.ts scripts .gitignore *.md "${EXTRA[@]}" \
-    -x "scripts/__pycache__/*"
+    -x "scripts/__pycache__/*" "public/exports/*"
 )
 
 # نسخ بالأسماء المختصرة المعتمدة للنسخ الاحتياطي

@@ -154,6 +154,8 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
   const [studentPick, setStudentPick] = useState("");
   const [error, setError] = useState("");
   const [report, setReport] = useState<TestReport | null>(null);
+  /* النتيجة كما حُفظت — تُستعمل لأزرار تحميل ملف التلميذ(ة) */
+  const [savedSub, setSavedSub] = useState<Submission | null>(null);
 
   const rosterClass = rosterByLabel(className);
   const pickedStudent: RosterStudent | undefined = rosterClass?.students.find((st) => st.massar === studentPick);
@@ -215,6 +217,8 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
       studentNo: studentNo.trim() || undefined,
       bankId: bank.id,
       bankLabel: bank.branch,
+      bankLevel: bank.level,
+      massar: pickedStudent?.massar,
       date: new Date().toISOString(),
       history: r.historyScore,
       geography: r.geographyScore,
@@ -222,12 +226,18 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
       percent: r.percent,
       level: r.levelLabel,
       skills: r.skills,
+      /* التفصيل الفردي: تُبنى منه ملفات التحميل (أجوبة، تقرير، Word، Excel) */
+      answers: r.answers,
+      rubric: r.rubric,
+      writingText: r.writingText,
+      timeUsedSeconds: r.timeUsedSeconds,
     };
     try {
       addSubmission(sub);
     } catch {
       /* وضع بدون تخزين */
     }
+    setSavedSub(sub);
     setReport(r);
     setStage("done");
     window.scrollTo({ top: 0 });
@@ -235,6 +245,7 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
 
   const restart = () => {
     setReport(null);
+    setSavedSub(null);
     setName("");
     setClassName(bank ? bank.branch : "");
     setStudentNo("");
@@ -245,6 +256,7 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
   const changeBank = () => {
     setBank(undefined);
     setReport(null);
+    setSavedSub(null);
     setStage("intro");
     setName("");
     setStudentNo("");
@@ -270,6 +282,7 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
         name={name.trim()}
         className={className}
         studentNo={studentNo.trim() || undefined}
+        submission={savedSub ?? undefined}
         onRestart={restart}
         onHome={onHome}
       />

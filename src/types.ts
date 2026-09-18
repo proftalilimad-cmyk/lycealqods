@@ -94,6 +94,10 @@ export interface Submission {
   studentNo?: string;
   bankId?: string;
   bankLabel?: string;
+  /** المستوى الدراسي لبنك الأسئلة (الجذع المشترك / الأولى باك / الثانية باك) */
+  bankLevel?: string;
+  /** رقم مسار التلميذ(ة) من اللائحة الرسمية للقسم */
+  massar?: string;
   date: string;
   history: number;
   geography: number;
@@ -102,6 +106,16 @@ export interface Submission {
   level: string;
   skills: SkillsMap;
   demo?: boolean;
+  /* ---- معطيات التفصيل الفردي (تُحفظ منذ تفعيل التقارير الفردية) ----
+     السجلات المحفوظة قبل هذا التحديث لا تتضمنها، وتُعلن الوثيقة ذلك صراحة. */
+  /** إجابات التلميذ(ة) لكل سؤال، بترتيب بنك الأسئلة */
+  answers?: Answer[];
+  /** شبكة تنقيط الفقرة المكتوبة */
+  rubric?: RubricResult;
+  /** نص الفقرة المكتوبة */
+  writingText?: string;
+  /** المدة المستغرقة بالثواني */
+  timeUsedSeconds?: number;
 }
 
 export interface Methodology {

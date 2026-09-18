@@ -14,10 +14,11 @@ import {
   TrendingUp,
   XCircle,
 } from "lucide-react";
-import type { Answer, Question } from "../../types";
+import type { Answer, Question, Submission } from "../../types";
 import { gradeAutoQuestion, RECOMMENDATIONS } from "../../lib/grading";
 import Ring from "../Ring";
 import Reveal from "../Reveal";
+import StudentDownloads from "../StudentDownloads";
 import type { TestReport } from "./TestRunner";
 
 const LEVEL_STYLES: Record<string, string> = {
@@ -79,13 +80,16 @@ interface TestResultProps {
   name: string;
   className: string;
   studentNo?: string;
+  /** النتيجة كما حُفظت — تُعرض بها أزرار تحميل ملف التلميذ(ة) */
+  submission?: Submission;
   onRestart: () => void;
   onHome: () => void;
 }
 
-export default function TestResult({ questions: QUESTIONS, report, name, className, studentNo, onRestart, onHome }: TestResultProps) {
+export default function TestResult({ questions: QUESTIONS, report, name, className, studentNo, submission, onRestart, onHome }: TestResultProps) {
   const [openReview, setOpenReview] = useState<number | null>(null);
   const [showWriting, setShowWriting] = useState(false);
+  const [downloadNote, setDownloadNote] = useState<string | null>(null);
 
   const skillEntries = Object.entries(report.skills).map(([skill, v]) => ({
     skill,
@@ -415,6 +419,20 @@ export default function TestResult({ questions: QUESTIONS, report, name, classNa
             );
           })}
         </div>
+
+        {/* ============ تحميل ملف التلميذ(ة) ============ */}
+        {submission && (
+          <Reveal delay={120}>
+            <div className="mt-10">
+              <StudentDownloads sub={submission} variant="card" onNotice={setDownloadNote} />
+              {downloadNote && (
+                <p role="status" className="mt-3 rounded-2xl border border-brand-200 bg-white px-5 py-3 text-xs font-bold leading-relaxed text-brand-800">
+                  {downloadNote}
+                </p>
+              )}
+            </div>
+          </Reveal>
+        )}
 
         {/* ============ إجراءات ============ */}
         <Reveal delay={150}>

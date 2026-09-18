@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Archive,
   ArrowDownUp,
   Award,
   BarChart3,
   ChartColumn,
   Download,
+  FileSpreadsheet,
+  FileText,
   KeyRound,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   PieChart,
   ShieldAlert,
@@ -15,6 +19,8 @@ import {
   Users,
 } from "lucide-react";
 import { clearAllData, clearDemoData, ensureSeeded, exportCsv, getSubmissions } from "../lib/storage";
+import { classReportFile, classReportPdf, resultsXlsx, scopeOf, selectionZip } from "../lib/reportExport";
+import StudentDownloads from "./StudentDownloads";
 import { activeCreds, isUnlocked, lock } from "../lib/teacherAuth";
 import type { Submission } from "../types";
 import type { Route } from "../routes";
@@ -28,6 +34,11 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 function TestResultsPanel() {
   const [subs, setSubs] = useState<Submission[]>([]);
   const [confirmClear, setConfirmClear] = useState<null | "demo" | "all">(null);
+  /* تصفية حسب القسم + اختيار عدة تلاميذ للتحميل الجماعي */
+  const [classFilter, setClassFilter] = useState<string>("all");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     ensureSeeded();
@@ -78,6 +89,38 @@ function TestResultsPanel() {
   const maxBin = Math.max(1, ...histBins.map((b) => b.count));
   const hasDemo = subs.some((s) => s.demo);
 
+  /* ---------- التحميل الفردي والجماعي ---------- */
+  const classes = useMemo(() => Array.from(new Set(subs.map((s) => s.className))).sort(), [subs]);
+  const filtered = useMemo(
+    () => (classFilter === "all" ? subs : subs.filter((s) => s.className === classFilter)),
+    [subs, classFilter],
+  );
+  const chosen = useMemo(() => (selected.length > 0 ? filtered.filter((s) => selected.includes(s.id)) : filtered), [filtered, selected]);
+  const allChecked = filtered.length > 0 && filtered.every((s) => selected.includes(s.id));
+
+  const toggleOne = (id: string) => setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const toggleAll = () => setSelected(allChecked ? [] : filtered.map((s) => s.id));
+
+  /** تنفيذ عملية تحميل جماعية مع رسالة نتيجة للأستاذ */
+  const runBulk = async (id: string, task: () => Promise<string>) => {
+    if (chosen.length === 0) {
+      setNotice("لا توجد نتائج للتحميل في هذا الاختيار.");
+      return;
+    }
+    setBusy(id);
+    setNotice(null);
+    try {
+      setNotice(await task());
+    } catch {
+      setNotice("تعذّر إنشاء الملف في هذا المتصفح — جرّب مرة أخرى أو قلّل عدد المحدَّدين.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const scope = () => scopeOf(subs, classFilter === "all" ? undefined : classFilter);
+  const kb = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} م.ب` : `${Math.max(1, Math.round(n / 1024))} ك.ب`);
+
   const doClear = () => {
     if (confirmClear === "demo") clearDemoData();
     else if (confirmClear === "all") clearAllData();
@@ -110,8 +153,9 @@ function TestResultsPanel() {
               )}
               <button
                 type="button"
-                onClick={() => exportCsv(subs)}
-                disabled={subs.length === 0}
+                onClick={() => exportCsv(filtered)}
+                disabled={filtered.length === 0}
+                title="تصدير النتائج المعروضة في الجدول (CSV يفتح في Excel)"
                 className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-40"
               >
                 <Download className="size-4" aria-hidden="true" />
@@ -258,17 +302,160 @@ function TestResultsPanel() {
               </Reveal>
             </div>
 
+            {/* أدوات التحميل الفردي والجماعي */}
+            <Reveal delay={160}>
+              <div className="mt-8 rounded-3xl border border-ink-900/6 bg-white p-5 sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="font-display text-base font-extrabold text-ink-900">تحميل ملفات التلاميذ</p>
+                    <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-ink-500">
+                      لكل تلميذ(ة) في الجدول أسفله خمسة أزرار: أجوبة PDF · تقرير النتائج PDF · طباعة الملف الفردي · Word · Excel.
+                      ولمجموعة من التلاميذ: أرشيف ZIP مرتّب حسب المستوى والقسم، جدول نتائج Excel، وتقرير شامل PDF.
+                      أسماء الملفات تُبنى تلقائيًا بالصيغة: <b className="font-extrabold text-brand-700">اسم_التلميذ_رقم_التلميذ_التقويم_التشخيصي.pdf</b>
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
+                    <span className="whitespace-nowrap">القسم</span>
+                    <select
+                      value={classFilter}
+                      onChange={(e) => {
+                        setClassFilter(e.target.value);
+                        setSelected([]);
+                      }}
+                      className="field min-w-[190px] py-2 text-xs"
+                    >
+                      <option value="all">كل الأقسام ({subs.length})</option>
+                      {classes.map((c) => (
+                        <option key={c} value={c}>
+                          {c} ({subs.filter((s) => s.className === c).length})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleAll}
+                    disabled={filtered.length === 0}
+                    className="inline-flex items-center gap-2 rounded-xl border border-ink-900/10 bg-white px-4 py-2.5 text-xs font-extrabold text-ink-700 transition-all enabled:hover:-translate-y-0.5 enabled:hover:border-brand-300 disabled:opacity-40"
+                  >
+                    <ListChecks className="size-4 text-brand-600" aria-hidden="true" />
+                    {allChecked ? "إلغاء تحديد الكل" : `تحديد كل القسم (${filtered.length})`}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={busy !== null || chosen.length === 0}
+                    onClick={() =>
+                      runBulk("zip-sel", async () => {
+                        const r = await selectionZip(chosen, scope());
+                        return `نزّل الأرشيف «${r.name}» (${kb(r.size)}) — ${r.count} تلميذ(ة)، لكل واحد ملف HTML جاهز للطباعة وملف Word، مع جدول النتائج والتقرير الشامل، مرتّبة في مجلدات حسب المستوى والقسم.`;
+                      })
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-lg shadow-brand-700/20 transition-all enabled:hover:-translate-y-0.5 disabled:opacity-40"
+                  >
+                    <Archive className="size-4" aria-hidden="true" />
+                    {busy === "zip-sel" ? "جارٍ بناء الأرشيف…" : `تحميل أجوبة التلاميذ ZIP (${chosen.length})`}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={busy !== null || filtered.length === 0}
+                    onClick={() =>
+                      runBulk("zip-class", async () => {
+                        const r = await selectionZip(filtered, scope());
+                        return `نزّل أرشيف القسم كاملًا «${r.name}» (${kb(r.size)}) — ${r.count} تلميذ(ة).`;
+                      })
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-all enabled:hover:-translate-y-0.5 disabled:opacity-40"
+                  >
+                    <Download className="size-4" aria-hidden="true" />
+                    تحميل جميع نتائج القسم
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={busy !== null || chosen.length === 0}
+                    onClick={() =>
+                      runBulk("xlsx", async () => {
+                        await resultsXlsx(chosen, scope());
+                        return `نزّل جدول النتائج Excel (.xlsx) لـ${chosen.length} تلميذ(ة): ورقة النتائج، ورقة تحليل المهارات والتوصيات، وورقة الأجوبة سؤالًا بسؤال.`;
+                      })
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-all enabled:hover:-translate-y-0.5 disabled:opacity-40"
+                  >
+                    <FileSpreadsheet className="size-4" aria-hidden="true" />
+                    جدول النتائج Excel
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={busy !== null || chosen.length === 0}
+                    onClick={() =>
+                      runBulk("report-pdf", async () => {
+                        await classReportPdf(chosen, scope());
+                        return `فتحت نافذة طباعة التقرير الشامل لـ${chosen.length} تلميذ(ة) — اختر «حفظ بصيغة PDF» وسيُقترح الاسم تلقائيًا.`;
+                      })
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-all enabled:hover:-translate-y-0.5 disabled:opacity-40"
+                  >
+                    <FileText className="size-4" aria-hidden="true" />
+                    تقرير شامل للقسم PDF
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={chosen.length === 0}
+                    onClick={() => {
+                      classReportFile(chosen, scope());
+                      setNotice(`نزّل التقرير الشامل بصيغة HTML لـ${chosen.length} تلميذ(ة) — يُفتح ويُطبع في أي وقت.`);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl border border-ink-900/10 bg-white px-4 py-2.5 text-xs font-extrabold text-ink-700 transition-all enabled:hover:-translate-y-0.5 disabled:opacity-40"
+                  >
+                    <FileText className="size-4 text-brand-600" aria-hidden="true" />
+                    التقرير الشامل HTML
+                  </button>
+                </div>
+
+                {notice && (
+                  <p role="status" className="mt-4 rounded-2xl border border-brand-200 bg-brand-50 px-5 py-3 text-xs font-bold leading-relaxed text-brand-800">
+                    {notice}
+                  </p>
+                )}
+
+                <p className="mt-3 text-[10.5px] leading-relaxed text-ink-500">
+                  ملاحظة تقنية صريحة: الموقع ثابت بلا خادم، وتوليد PDF عربي سليم يحتاج محرك طباعة وخطوطًا عربية، لذلك أزرار
+                  PDF تفتح نافذة الطباعة باسم الملف جاهزًا — اختر الوجهة «حفظ بصيغة PDF» فيُنزَّل بالاسم المطلوب. أما أرشيف
+                  ZIP فيضمّ لكل تلميذ(ة) ملف HTML جاهزًا للطباعة بنقرة واحدة ونسخة Word، إضافة إلى جدول Excel والتقرير الشامل.
+                  السجلات المحفوظة قبل هذا التحديث (أو التوضيحية) لا تحتوي أجوبة كل سؤال، وتُعلن وثيقتها ذلك صراحة.
+                </p>
+              </div>
+            </Reveal>
+
             {/* الجدول */}
             <Reveal delay={200}>
               <div className="mt-8 overflow-hidden rounded-3xl border border-ink-900/6 bg-white">
-                <div className="flex items-center justify-between border-b border-ink-900/6 px-6 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-900/6 px-6 py-4">
                   <p className="font-display text-base font-extrabold text-ink-900">جدول نتائج التلاميذ</p>
-                  <span className="text-xs font-semibold text-ink-500">{subs.length} مشاركًا</span>
+                  <span className="text-xs font-semibold text-ink-500">
+                    {filtered.length} مشاركًا{selected.length > 0 ? ` · ${selected.length} محدَّد` : ""}
+                  </span>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[680px] text-sm">
+                  <table className="w-full min-w-[980px] text-sm">
                     <thead>
                       <tr className="bg-brand-50 text-brand-800">
+                        <th className="px-3 py-3.5 text-center font-display text-xs font-extrabold">
+                          <input
+                            type="checkbox"
+                            checked={allChecked}
+                            onChange={toggleAll}
+                            aria-label="تحديد كل التلاميذ المعروضين"
+                            className="size-4 cursor-pointer accent-brand-600"
+                          />
+                        </th>
                         <th className="px-6 py-3.5 text-start font-display text-xs font-extrabold">التلميذ(ة)</th>
                         <th className="px-4 py-3.5 text-start font-display text-xs font-extrabold">القسم</th>
                         <th className="px-4 py-3.5 text-start font-display text-xs font-extrabold">المستوى / المسلك</th>
@@ -276,13 +463,23 @@ function TestResultsPanel() {
                         <th className="px-4 py-3.5 text-center font-display text-xs font-extrabold">الجغرافيا /10</th>
                         <th className="px-4 py-3.5 text-center font-display text-xs font-extrabold">المجموع /20</th>
                         <th className="px-4 py-3.5 text-center font-display text-xs font-extrabold">المستوى</th>
+                        <th className="px-3 py-3.5 text-center font-display text-xs font-extrabold">تحميل ملف التلميذ(ة)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {[...subs]
+                      {[...filtered]
                         .sort((a, b) => b.total - a.total)
                         .map((s, i) => (
-                          <tr key={s.id} className={i % 2 === 0 ? "bg-white" : "bg-paper-warm/40"}>
+                          <tr key={s.id} className={`${i % 2 === 0 ? "bg-white" : "bg-paper-warm/40"} ${selected.includes(s.id) ? "ring-1 ring-inset ring-brand-300 bg-brand-50/40" : ""}`}>
+                            <td className="px-3 py-3.5 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selected.includes(s.id)}
+                                onChange={() => toggleOne(s.id)}
+                                aria-label={`اختيار ${s.name}`}
+                                className="size-4 cursor-pointer accent-brand-600"
+                              />
+                            </td>
                             <td className="px-6 py-3.5">
                               <span className="font-bold text-ink-900">{s.name}</span>
                               {s.studentNo && <span className="ms-1.5 text-[11px] text-ink-500">(رقم {s.studentNo})</span>}
@@ -297,6 +494,9 @@ function TestResultsPanel() {
                             <td className="px-4 py-3.5 text-center font-display text-base font-black text-ink-900">{s.total}</td>
                             <td className="px-4 py-3.5 text-center">
                               <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-extrabold ${lvlColor(s.percent)}`}>{s.level}</span>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <StudentDownloads sub={s} variant="row" onNotice={setNotice} />
                             </td>
                           </tr>
                         ))}
