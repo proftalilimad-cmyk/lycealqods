@@ -55,7 +55,7 @@ function downloadFiche(fiche: JadadaFiche): void {
   downloadText(jadadaToHtml(fiche), jadadaFileName(fiche, "html"), "text/html;charset=utf-8");
 }
 
-function FicheActions({ fiche, go, compact = false }: { fiche: JadadaFiche; go: (route: Route) => void; compact?: boolean }) {
+function FicheActions({ fiche, go, compact = false, onOpen }: { fiche: JadadaFiche; go: (route: Route) => void; compact?: boolean; onOpen?: () => void }) {
   const base = compact
     ? "inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-extrabold transition-all"
     : "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all";
@@ -64,7 +64,10 @@ function FicheActions({ fiche, go, compact = false }: { fiche: JadadaFiche; go: 
     <div className={`flex flex-wrap items-center gap-2 ${compact ? "" : "mt-5"}`}>
       <button
         type="button"
-        onClick={() => go({ view: "jadadat", id: fiche.key })}
+        onClick={() => {
+          onOpen?.();
+          go({ view: "jadadat", id: fiche.key });
+        }}
         className={`${base} bg-gradient-to-l from-brand-600 to-brand-700 text-white shadow-lg shadow-brand-700/20 hover:-translate-y-0.5`}
       >
         <FileText className={compact ? "size-3.5" : "size-4"} aria-hidden="true" />
@@ -100,7 +103,7 @@ function FicheActions({ fiche, go, compact = false }: { fiche: JadadaFiche; go: 
   );
 }
 
-function CatalogCard({ entry, go }: { entry: JadadaEntry; go: (route: Route) => void }) {
+function CatalogCard({ entry, go, onOpen }: { entry: JadadaEntry; go: (route: Route) => void; onOpen: (key: string) => void }) {
   const fiche = useMemo(() => getJadada(entry.key), [entry.key]);
   if (!fiche) return null;
   const Icon = SUBJECT_ICONS[entry.subjectId] ?? BookOpen;
@@ -136,7 +139,7 @@ function CatalogCard({ entry, go }: { entry: JadadaEntry; go: (route: Route) => 
         {entry.hasApplication && <span className="rounded-full bg-sky-50 px-2.5 py-1 text-sky-700">تطبيق</span>}
       </div>
 
-      <FicheActions fiche={fiche} go={go} compact />
+      <FicheActions fiche={fiche} go={go} onOpen={() => onOpen(entry.key)} compact />
     </article>
   );
 }
@@ -157,7 +160,7 @@ function FilterSelect({ label, value, onChange, children, disabled = false }: { 
   );
 }
 
-function JadadatCatalog({ go, initialLevel }: { go: (route: Route) => void; initialLevel?: string }) {
+function JadadatCatalog({ go, initialLevel, onOpen }: { go: (route: Route) => void; initialLevel?: string; onOpen: (key: string) => void }) {
   const catalog = useMemo(() => getJadadatCatalog(), []);
   const stats = useMemo(() => getJadadatStats(), []);
   const [levelId, setLevelId] = useState(initialLevel && stats.levels.some((l) => l.id === initialLevel) ? initialLevel : ALL);
@@ -279,7 +282,7 @@ function JadadatCatalog({ go, initialLevel }: { go: (route: Route) => void; init
                     </span>
                   </div>
                   <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3">
-                    {group.map(({ entry }) => <CatalogCard key={entry.key} entry={entry} go={go} />)}
+                    {group.map(({ entry }) => <CatalogCard key={entry.key} entry={entry} go={go} onOpen={onOpen} />)}
                   </div>
                 </section>
               </Reveal>
@@ -291,7 +294,7 @@ function JadadatCatalog({ go, initialLevel }: { go: (route: Route) => void; init
   );
 }
 
-function JadadaDetail({ fiche, go }: { fiche: JadadaFiche; go: (route: Route) => void }) {
+function JadadaDetail({ fiche, go, onBack }: { fiche: JadadaFiche; go: (route: Route) => void; onBack: () => void }) {
   return (
     <section className="pt-32 pb-20 md:pt-36">
       <style dangerouslySetInnerHTML={{ __html: jadadaCss(".jadada-screen") }} />
@@ -300,7 +303,7 @@ function JadadaDetail({ fiche, go }: { fiche: JadadaFiche; go: (route: Route) =>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
-              onClick={() => go({ view: "jadadat", level: fiche.levelId })}
+              onClick={onBack}
               className="inline-flex items-center gap-2 text-sm font-extrabold text-brand-700 transition-colors hover:text-brand-900"
             >
               <ArrowLeft className="size-4 rotate-180" aria-hidden="true" />
@@ -345,10 +348,23 @@ function JadadaDetail({ fiche, go }: { fiche: JadadaFiche; go: (route: Route) =>
 }
 
 export default function Jadadat({ go, detailId, initialLevel }: JadadatProps) {
-  const fiche = detailId ? getJadada(detailId) : null;
+  const [localDetailId, setLocalDetailId] = useState<string>();
+  const activeDetailId = detailId ?? localDetailId;
+  const fiche = activeDetailId ? getJadada(activeDetailId) : null;
   const stats = useMemo(() => getJadadatStats(), []);
 
-  if (detailId && fiche) return <JadadaDetail fiche={fiche} go={go} />;
+  if (activeDetailId && fiche) {
+    return (
+      <JadadaDetail
+        fiche={fiche}
+        go={go}
+        onBack={() => {
+          setLocalDetailId(undefined);
+          go({ view: "jadadat", level: fiche.levelId });
+        }}
+      />
+    );
+  }
 
   return (
     <section className="relative overflow-hidden pt-32 pb-20 md:pt-36">
@@ -382,7 +398,11 @@ export default function Jadadat({ go, detailId, initialLevel }: JadadatProps) {
           </div>
         </Reveal>
 
-        <JadadatCatalog go={go} initialLevel={initialLevel} />
+        <JadadatCatalog
+          go={go}
+          initialLevel={initialLevel}
+          onOpen={(key) => setLocalDetailId(key)}
+        />
       </div>
     </section>
   );
