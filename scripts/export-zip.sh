@@ -45,6 +45,7 @@ echo "→ أرشفة الموقع المنشور (dist)…"
 echo "→ أرشفة مصدر المشروع…"
 # إضافات اختيارية: تُضمَّن فقط إن وُجدت حتى لا يفشل الأمر
 EXTRA=()
+[ -d "$ROOT/docs" ] && EXTRA+=("docs")
 [ -d "$ROOT/supabase" ] && EXTRA+=("supabase")
 [ -d "$ROOT/$DOCS_DIR" ] && EXTRA+=("$DOCS_DIR")
 (
