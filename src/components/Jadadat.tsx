@@ -24,6 +24,7 @@ import {
   jadadaBodyHtml,
   jadadaCss,
   jadadaFileName,
+  jadadaPrintHtml,
   jadadaToHtml,
   type JadadaEntry,
   type JadadaFiche,
@@ -48,7 +49,8 @@ const SUBJECT_ICONS: Record<string, typeof History> = {
 const ALL = "all";
 
 function printFiche(fiche: JadadaFiche): void {
-  void printDocument(jadadaToHtml(fiche), jadadaFileName(fiche, "pdf").replace(/\.pdf$/, ""));
+  /* نسخة الطباعة مختصرة ومهيأة لتبقى في صفحتين أو ثلاث كحد أقصى. */
+  void printDocument(jadadaPrintHtml(fiche), jadadaFileName(fiche, "pdf").replace(/\.pdf$/, ""));
 }
 
 function downloadFiche(fiche: JadadaFiche): void {
@@ -79,7 +81,7 @@ function FicheActions({ fiche, go, compact = false, onOpen }: { fiche: JadadaFic
         className={`${base} border border-gold-300 bg-gold-50 text-gold-700 hover:-translate-y-0.5 hover:border-gold-500 hover:bg-gold-100`}
       >
         <Printer className={compact ? "size-3.5" : "size-4"} aria-hidden="true" />
-        طباعة / PDF
+        طباعة / PDF (2–3 صفحات)
       </button>
       {!compact && (
         <button
@@ -316,7 +318,7 @@ function JadadaDetail({ fiche, go, onBack }: { fiche: JadadaFiche; go: (route: R
                 className="inline-flex items-center gap-2 rounded-xl border border-gold-300 bg-gold-50 px-4 py-2.5 text-xs font-extrabold text-gold-700 transition-all hover:-translate-y-0.5 hover:border-gold-500 hover:bg-gold-100"
               >
                 <Printer className="size-4" aria-hidden="true" />
-                طباعة / حفظ PDF
+                طباعة / حفظ PDF (2–3 صفحات)
               </button>
               <button
                 type="button"
