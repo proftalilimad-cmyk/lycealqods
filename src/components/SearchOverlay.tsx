@@ -31,6 +31,7 @@ const STATIC_PAGES: SearchResult[] = [
   { id: "p-dash", group: "صفحات", title: "لوحة الأستاذ (دخول محمي)", hint: "نتائج التقويم التشخيصي — باسم مستعمل وكلمة مرور", action: { view: "dashboard", tab: "results" } },
   { id: "p-dash-sec", group: "صفحات", title: "الدخول والأمان — لوحة الأستاذ", hint: "تغيير اسم المستعمل وكلمة المرور", action: { view: "dashboard", tab: "security" } },
   { id: "p-res", group: "صفحات", title: "الموارد التعليمية", hint: "ملفات وخرائط وجداول ومبيانات", action: { view: "resources" } },
+  { id: "p-jadadat", group: "صفحات", title: "الجذاذات — جذاذات الاجتماعيات", hint: "161 جذاذة مبنية على الدروس المنشورة · إعداد وإنجاز الأستاذ عماد طليل", action: { view: "jadadat" } },
   { id: "p-decks", group: "صفحات", title: "العروض التفاعلية — الأولى باكالوريا علوم", hint: "دروس من الكتاب المدرسي مع الاشتغال على الوثائق", action: { view: "decks" } },
 ];
 

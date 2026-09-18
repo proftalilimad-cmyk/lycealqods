@@ -5,6 +5,7 @@ export type Route =
   | { view: "battle"; bank?: string }
   | { view: "dashboard"; tab?: string }
   | { view: "lessons"; level?: string }
+  | { view: "jadadat"; id?: string; level?: string }
   | { view: "methods"; id?: string }
   | { view: "apps"; id?: string; level?: string }
   | { view: "lesson"; id: string }
@@ -17,6 +18,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "التقويم التشخيصي", route: { view: "test" } },
   { label: "المبارزة", route: { view: "battle" } },
   { label: "الدروس", route: { view: "lessons" } },
+  { label: "الجذاذات", route: { view: "jadadat" } },
   { label: "التطبيقات", route: { view: "apps" } },
   { label: "العروض", route: { view: "decks" } },
   { label: "المنهجيات", route: { view: "methods" } },
@@ -41,6 +43,8 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/dashboard/<tab>        تبويب اللوحة (results / security)
      #/lessons                الدروس
      #/lessons/<level>        دروس مستوى (tc / bac1 / bac2)
+     #/jadadat                فهرس الجذاذات
+     #/jadadat/<id>           جذاذة درس كاملة
      #/lesson/<id>            درس معيّن (bac1-sci.geography.0.0 …)
      #/methods                المنهجيات
      #/methods/<id>           منهجية معيّنة
@@ -66,6 +70,7 @@ export const VIEW_LABELS: Record<Route["view"], string> = {
   battle: "المبارزة",
   dashboard: "لوحة الأستاذ",
   lessons: "الدروس",
+  jadadat: "الجذاذات",
   lesson: "الدرس",
   methods: "المنهجيات",
   apps: "التطبيقات",
@@ -81,6 +86,7 @@ const SEGMENTS: Record<string, Route["view"]> = {
   battle: "battle",
   dashboard: "dashboard",
   lessons: "lessons",
+  jadadat: "jadadat",
   lesson: "lesson",
   methods: "methods",
   apps: "apps",
@@ -115,6 +121,9 @@ export function routeToPath(route: Route): string {
       return route.bank ? `/battle/${encodeSegment(route.bank)}` : "/battle";
     case "lessons":
       return route.level ? `/lessons/${encodeSegment(route.level)}` : "/lessons";
+    case "jadadat":
+      if (route.id) return `/jadadat/${encodeSegment(route.id)}`;
+      return route.level ? `/jadadat?level=${encodeSegment(route.level)}` : "/jadadat";
     case "lesson":
       return `/lesson/${encodeSegment(route.id)}`;
     case "methods":
@@ -154,6 +163,11 @@ export function routeFromPath(rawPath: string): Route {
       return parts[1] ? { view: "battle", bank: parts[1] } : { view: "battle" };
     case "lessons":
       return parts[1] ? { view: "lessons", level: parts[1] } : { view: "lessons" };
+    case "jadadat": {
+      if (parts[1]) return { view: "jadadat", id: parts[1] };
+      const level = query.get("level");
+      return level ? { view: "jadadat", level } : { view: "jadadat" };
+    }
     case "lesson":
       return parts[1] ? { view: "lesson", id: parts[1] } : { view: "lessons" };
     case "methods":

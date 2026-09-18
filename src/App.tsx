@@ -7,6 +7,7 @@ import TestFlow from "./components/test/TestFlow";
 import Battle from "./components/battle/Battle";
 import Dashboard from "./components/Dashboard";
 import Lessons from "./components/Lessons";
+import Jadadat from "./components/Jadadat";
 import Methodologies from "./components/Methodologies";
 import Applications from "./components/Applications";
 import Resources from "./components/Resources";
@@ -16,6 +17,7 @@ import Decks from "./components/decks/Decks";
 import DeckPlayer from "./components/decks/DeckPlayer";
 import { getDeck } from "./data/decks";
 import { resolveLesson } from "./data/lessonContent";
+import { getJadada } from "./lib/jadadatLessons";
 import { BASE_TITLE, VIEW_LABELS, hashToRoute, routeToHash, type Route } from "./routes";
 
 /** عنوان الصفحة حسب الشاشة المعروضة (يظهر في تبويب المتصفح ونتائج البحث) */
@@ -63,8 +65,10 @@ export default function App() {
     [route]
   );
   const detail = resolvedLesson?.content.title ?? resolvedDeck?.title;
-  useDocumentTitle(route, detail);
-  const detailLabel = detail ? `${detail} — ${VIEW_LABELS[route.view]}` : VIEW_LABELS[route.view];
+  const jadadaDetail = route.view === "jadadat" && route.id ? getJadada(route.id) : undefined;
+  const routeDetail = jadadaDetail?.title ?? detail;
+  useDocumentTitle(route, routeDetail);
+  const detailLabel = routeDetail ? `${routeDetail} — ${VIEW_LABELS[route.view]}` : VIEW_LABELS[route.view];
 
   return (
     <>
@@ -89,6 +93,9 @@ export default function App() {
         {route.view === "battle" && <Battle key={route.bank ?? "all"} initialBank={route.bank} go={go} />}
         {route.view === "dashboard" && <Dashboard key={route.tab ?? "results"} tab={route.tab} go={go} />}
         {route.view === "lessons" && <Lessons key={route.level ?? "default"} go={go} initialLevel={route.level} />}
+        {route.view === "jadadat" && (
+          <Jadadat key={`${route.level ?? "all"}-${route.id ?? "catalog"}`} go={go} detailId={route.id} initialLevel={route.level} />
+        )}
         {route.view === "methods" && (
           <Methodologies key={route.id ?? "list"} detailId={route.id} onSelect={(id) => go({ view: "methods", id })} />
         )}

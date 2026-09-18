@@ -454,6 +454,12 @@ export interface ResolvedLesson {
   unit: CurriculumUnit;
 }
 
+/** هل محتوى الدرس مشتركًا مع درس آخر؟ (يُستعمل للتصريح بمصدر المحتوى في الجذاذات) */
+export function lessonAliasOf(key: string): { key: string; title?: string } | undefined {
+  if (LESSON_CONTENT[key]) return undefined;
+  return ALIASES[key];
+}
+
 /** استخراج الدرس ومساره الكامل من مفتاحه */
 export function resolveLesson(key: string): ResolvedLesson | undefined {
   const content = getLessonContent(key);
