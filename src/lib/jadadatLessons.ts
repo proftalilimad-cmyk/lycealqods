@@ -999,12 +999,7 @@ function compactText(value: string, max: number): string {
   return `${cut}…`;
 }
 
-function compactListHtml(items: string[], maxItems: number, maxChars = 130): string {
-  const selected = items.filter(Boolean).slice(0, maxItems).map((item) => compactText(item, maxChars));
-  return selected.length ? `<ul class="p-list">${selected.map((item) => `<li>${esc(item)}</li>`).join("")}</ul>` : "";
-}
-
-function compactSectionText(section: { title: string; blocks: LessonBlock[] }): string {
+function compactSectionText(section: { title: string; blocks: LessonBlock[] }, max = 270): string {
   const pieces: string[] = [];
   for (const block of section.blocks) {
     if (block.type === "p") pieces.push(block.text);
@@ -1014,110 +1009,171 @@ function compactSectionText(section: { title: string; blocks: LessonBlock[] }): 
       pieces.push(`${block.head.join(" / ")} — ${block.rows.slice(0, 2).map((row) => row.join(": ")).join("؛ ")}`);
     }
   }
-  return compactText(pieces.join(" "), 270);
+  return compactText(pieces.join(" "), max);
 }
 
-function printStageHtml(stage: JadadaStage): string {
-  return `<article class="p-stage">
-  <div class="p-stage-title"><strong>${esc(stage.name)}</strong><span>${esc(stage.duration)}</span></div>
-  <p><b>الهدف:</b> ${esc(compactText(stage.objective, 105))}</p>
-  <p><b>النشاط:</b> ${esc(compactText(stage.activities[0] ?? "مناقشة الوثائق وبناء الخلاصة", 115))}</p>
-  <p><b>الدعامة:</b> ${esc(compactText(stage.supports.join("، "), 90))}</p>
-</article>`;
+function printListHtml(items: string[], maxItems: number, maxChars = 125): string {
+  const selected = items.filter(Boolean).slice(0, maxItems).map((item) => compactText(item, maxChars));
+  return selected.length ? `<ul class="f-list">${selected.map((item) => `<li>${esc(item)}</li>`).join("")}</ul>` : "";
+}
+
+function printTableHead(): string {
+  return `<thead><tr>
+    <th class="f-phase">مراحل إنجاز الدرس</th>
+    <th>أهداف التعلم المرتبطة بالنشاط</th>
+    <th>التدبير الديداكتيكي</th>
+    <th>الدعامات الديداكتيكية</th>
+    <th class="f-product">المنتوج / الأثر المنتظر</th>
+  </tr></thead>`;
+}
+
+function printStageRow(stage: JadadaStage, product: string): string {
+  return `<tr>
+    <td class="f-phase"><b>${esc(stage.name)}</b><span class="f-time">${esc(stage.duration)}</span></td>
+    <td><p>${esc(compactText(stage.objective, 145))}</p>${printListHtml(stage.expected, 2, 125)}</td>
+    <td>${esc(compactText(stage.management, 180))}</td>
+    <td>${printListHtml(stage.supports, 4, 85)}</td>
+    <td class="f-product"><div class="f-product-title">${esc(compactText(stage.name, 85))}</div>${product}</td>
+  </tr>`;
+}
+
+function printSectionRow(stage: JadadaStage, section: { title: string; blocks: LessonBlock[] }): string {
+  const product = `<b>${esc(compactText(section.title, 110))}</b><p>${esc(compactSectionText(section, 340))}</p>${printListHtml(stage.activities.slice(0, 2), 2, 110)}`;
+  return printStageRow(stage, product);
+}
+
+function printQuestionRows(f: JadadaFiche): string {
+  return f.quiz
+    .slice(0, 10)
+    .map(
+      (q, i) => `<tr><td class="f-q-number">${i + 1}</td><td><b>${esc(compactText(q.q, 220))}</b><br><span class="f-answer">الجواب: ${esc(compactText(q.answer, 170))}</span>${q.why ? `<br><small>${esc(compactText(q.why, 125))}</small>` : ""}</td></tr>`,
+    )
+    .join("");
 }
 
 /**
- * جسم مختصر للطباعة: ثلاث صفحات A4 ثابتة كحد أقصى.
- * لا يمس النسخة الكاملة الظاهرة على الشاشة؛ يختصر العبارات المتكررة
- * ويحافظ على بطاقة الدرس، التخطيط، المضمون الأساس، التقويم، والتوقيع.
+ * جسم الطباعة المطوَّر على نموذج الصورة المرجعية: جداول RTL، مراحل
+ * الدرس في العمود الأيمن، المنتوج في الأيسر، وألوان بني/برتقالي/أصفر.
+ * تُقسم المخرجات إلى ثلاث صفحات A4 كحد أقصى.
  */
 export function jadadaPrintBodyHtml(f: JadadaFiche): string {
-  const coreStageCount = 1 + f.sourceSections.length + 2;
-  const coreStages = f.stages.slice(0, coreStageCount);
-  const sections = f.sourceSections;
-  const conceptRows = f.concepts.slice(0, 14).map((item) => `<tr><th>${esc(compactText(item.term, 55))}</th><td>${esc(compactText(item.def, 120))}</td></tr>`).join("");
-  const timelineRows = f.timeline.slice(0, 8).map((item) => `<tr><th>${esc(compactText(item.date, 32))}</th><td>${esc(compactText(item.event, 135))}</td></tr>`).join("");
-  const quizHtml = f.quiz.slice(0, 10).map((q, i) => `<article class="p-q"><strong>${i + 1}. ${esc(compactText(q.q, 190))}</strong><span><b>الجواب:</b> ${esc(compactText(q.answer, 130))}${q.why ? ` — ${esc(compactText(q.why, 100))}` : ""}</span></article>`).join("");
-  const docsHtml = f.docs.slice(0, 3).map((doc) => `<article class="p-doc"><h3>${esc(compactText(doc.label, 90))}</h3><p>${esc(compactText(doc.text, 180))}</p>${doc.questions.slice(0, 2).map((q) => `<p><b>س:</b> ${esc(compactText(q.q, 105))} <b>ج:</b> ${esc(compactText(q.answer, 130))}</p>`).join("")}</article>`).join("");
-  const omittedDocs = Math.max(0, f.docs.length - 3);
-  const omittedQuiz = Math.max(0, f.quiz.length - 10);
+  const sectionCount = f.sourceSections.length;
+  const sectionStages = f.stages.slice(1, 1 + sectionCount);
+  const synthesis = f.stages[1 + sectionCount];
+  const assessment = f.stages[2 + sectionCount];
+  const split = Math.max(1, Math.ceil(sectionCount / 2));
+  const firstSectionRows = sectionStages
+    .slice(0, split)
+    .map((stage, i) => printSectionRow(stage, f.sourceSections[i]))
+    .join("");
+  const secondSectionRows = sectionStages
+    .slice(split)
+    .map((stage, i) => printSectionRow(stage, f.sourceSections[split + i]))
+    .join("");
+  const introRow = f.stages[0]
+    ? printStageRow(
+        f.stages[0],
+        `<p>${esc(compactText(f.intro, 280))}</p>${printListHtml(f.stages[0].activities.slice(1), 2, 135)}`,
+      )
+    : "";
+  const synthesisRow = synthesis
+    ? printStageRow(
+        synthesis,
+        `<p>${esc(f.summary.slice(0, 2).map((item) => compactText(item, 190)).join(" · "))}</p>${printListHtml(f.examTips, 1, 150)}`,
+      )
+    : "";
+  const assessmentRow = assessment
+    ? printStageRow(
+        assessment,
+        `${printListHtml(assessment.activities, 3, 155)}${printListHtml(assessment.expected, 3, 130)}`,
+      )
+    : "";
+  const objectiveRows = [
+    ["معرفية", f.cognitiveObjectives.slice(0, 4)],
+    ["مهارية", f.methodObjectives.slice(0, 3)],
+    ["قيمية", f.valueObjectives.slice(0, 2)],
+  ]
+    .map(([label, items]) => `<div><b>${esc(label as string)}</b>${printListHtml(items as string[], 4, 110)}</div>`)
+    .join("");
+  const concepts = f.concepts.slice(0, 12).map((item) => `<tr><th>${esc(compactText(item.term, 48))}</th><td>${esc(compactText(item.def, 125))}</td></tr>`).join("");
+  const timeline = f.timeline.slice(0, 7).map((item) => `<tr><th>${esc(compactText(item.date, 30))}</th><td>${esc(compactText(item.event, 145))}</td></tr>`).join("");
+  const docs = f.docs.slice(0, 3).map((doc) => `<article class="f-doc"><h3>${esc(compactText(doc.label, 90))}</h3><p>${esc(compactText(doc.text, 210))}</p>${doc.questions.slice(0, 2).map((q) => `<p><b>س:</b> ${esc(compactText(q.q, 100))}<br><b>ج:</b> ${esc(compactText(q.answer, 130))}</p>`).join("")}</article>`).join("");
+  const extraDocs = Math.max(0, f.docs.length - 3);
+  const extraQuiz = Math.max(0, f.quiz.length - 10);
 
-  return `<div class="print-document" dir="rtl">
-  <section class="print-page p-page-one">
-    <header class="p-header">
-      <div><b>ثانوية <em>القدس</em> — القنيطرة</b><small>مواد الاجتماعيات · ${esc(f.authorLabel)}</small></div>
-      <span>جذاذة درس · ${esc(f.subjectLabel)}</span>
-    </header>
-    <h1>${esc(f.title)}</h1>
-    <div class="p-chips"><span>${esc(f.levelLabel)} — ${esc(f.branchLabel)}</span><span>الوحدة ${f.unitIndex + 1}: ${esc(f.unitTitle)}</span><span>الدرس ${esc(f.lessonNumber)}</span><span>${esc(f.duration)}</span></div>
-    <table class="p-info"><tbody>
-      <tr><th>المستوى والشعبة</th><td>${esc(f.levelLabel)} — ${esc(f.branchLabel)}</td><th>المادة</th><td>${esc(f.subjectLabel)}</td></tr>
-      <tr><th>الكتاب</th><td>${esc(f.book)}</td><th>الحيز الزمني</th><td>${esc(`${f.durationMinutes} دقيقة${f.durationApprox ? " (توزيع مقترح)" : ""}`)}</td></tr>
-      <tr><th>إعداد وإنجاز</th><td colspan="3">${esc(f.teacher)} — ${esc(f.school)}</td></tr>
+  const header = (pageLabel: string) => `<header class="f-header">
+    <div class="f-meta-left"><table><tbody><tr><th>مدة الإنجاز</th><td>${esc(f.duration)}</td></tr><tr><th>الكتاب المعتمد</th><td>${esc(f.book)}</td></tr><tr><th>إعداد الأستاذ</th><td>${esc(f.teacher)}</td></tr></tbody></table></div>
+    <div class="f-title"><span class="f-number">${String(f.lessonIndex + 1).padStart(2, "0")}</span><b>${esc(f.title)}</b><small>${esc(f.authorLabel)} · ${esc(f.school)}</small></div>
+    <div class="f-meta-right"><table><tbody><tr><th>مادة</th><td>${esc(f.subjectLabel)}</td></tr><tr><th>المستوى</th><td>${esc(f.branchLabel)}</td></tr><tr><th>المجزوءة</th><td>${String(f.unitIndex + 1).padStart(2, "0")}</td></tr></tbody></table></div>
+  </header><div class="f-page-label">${esc(pageLabel)}</div>`;
+
+  return `<div class="print-document fiche-print" dir="rtl">
+  <section class="print-page f-page">
+    ${header("الجذاذة — بطاقة الدرس")}
+    <table class="f-problem"><tbody>
+      <tr><th>الكفاية / الإشكالية المركزية للمجزوءة</th><td>${esc(compactText(f.unitKifaya, 310))}</td></tr>
+      <tr><th>الإشكالية المحورية للدرس</th><td>${esc(compactText(f.coreQuestion, 390))}</td></tr>
     </tbody></table>
-    <div class="p-callout"><b>الإشكالية:</b> ${esc(compactText(f.coreQuestion, 360))}</div>
-    <div class="p-grid-2">
-      <div class="p-box"><h2>الكفايات المستهدفة</h2>${compactListHtml(f.kifayat, 4, 125)}</div>
-      <div class="p-box"><h2>الأهداف التعلمية</h2>${compactListHtml(f.cognitiveObjectives, 4, 120)}${compactListHtml(f.methodObjectives, 2, 120)}</div>
-    </div>
-    <h2>مراحل الحصة وتدبيرها</h2>
-    <div class="p-stages">${coreStages.map(printStageHtml).join("")}</div>
-    <div class="p-footer"><span>${esc(f.sign)}</span><span>الصفحة 1 / 3</span></div>
+    <div class="f-objectives">${objectiveRows}</div>
+    <table class="f-table">${printTableHead()}<tbody>${introRow}${firstSectionRows}</tbody></table>
+    <div class="f-footer"><span>${esc(f.sign)}</span><span>1 / 3</span></div>
   </section>
 
-  <section class="print-page p-page-two">
-    <header class="p-mini-header"><b>جذاذة: ${esc(f.title)}</b><span>المضمون الأساس والأثر الكتابي</span></header>
-    <h2>مضامين المحاور الأساسية</h2>
-    <div class="p-sections">${sections.map((section) => `<article><h3>${esc(compactText(section.title, 90))}</h3><p>${esc(compactSectionText(section))}</p></article>`).join("")}</div>
-    <div class="p-grid-2 p-tables">
-      <div class="p-box"><h2>المفاهيم الأساس</h2><table><thead><tr><th>المفهوم</th><th>الدلالة</th></tr></thead><tbody>${conceptRows}</tbody></table>${f.concepts.length > 14 ? `<small>+ ${f.concepts.length - 14} مفاهيم في النسخة الكاملة.</small>` : ""}</div>
-      <div class="p-box"><h2>الكرونولوجيا / المجالات</h2><table><thead><tr><th>التاريخ</th><th>الحدث</th></tr></thead><tbody>${timelineRows}</tbody></table>${f.timeline.length > 8 ? `<small>+ ${f.timeline.length - 8} معطيات في النسخة الكاملة.</small>` : ""}</div>
+  <section class="print-page f-page">
+    ${header("الجذاذة — بناء التعلمات")}
+    <div class="f-strip">المقاطع الأساسية للدرس والأثر الكتابي</div>
+    <table class="f-table">${printTableHead()}<tbody>${secondSectionRows}${synthesisRow}</tbody></table>
+    <div class="f-grid-2">
+      <div class="f-box"><h2>المفاهيم الأساس</h2><table><thead><tr><th>المفهوم</th><th>الدلالة</th></tr></thead><tbody>${concepts}</tbody></table>${f.concepts.length > 12 ? `<small>+ ${f.concepts.length - 12} مفاهيم في النسخة الكاملة.</small>` : ""}</div>
+      <div class="f-box"><h2>الكرونولوجيا والمجالات</h2><table><thead><tr><th>التاريخ</th><th>الحدث</th></tr></thead><tbody>${timeline}</tbody></table>${f.timeline.length > 7 ? `<small>+ ${f.timeline.length - 7} معطيات في النسخة الكاملة.</small>` : ""}</div>
     </div>
-    <div class="p-callout"><b>الخلاصة / الأثر الكتابي:</b> ${esc(f.summary.slice(0, 3).map((item) => compactText(item, 190)).join(" · "))}</div>
-    ${f.schema ? `<div class="p-box"><h2>${esc(f.schema.title)}</h2><p>${esc(f.schema.rows.slice(0, 4).map((row) => `${row.label}: ${compactText(row.value, 110)}`).join(" · "))}</p></div>` : ""}
-    <div class="p-footer"><span>${esc(f.sign)}</span><span>الصفحة 2 / 3</span></div>
+    <div class="f-callout"><b>الخلاصة:</b> ${esc(f.summary.slice(0, 3).map((item) => compactText(item, 180)).join(" · "))}</div>
+    <div class="f-footer"><span>${esc(f.sign)}</span><span>2 / 3</span></div>
   </section>
 
-  <section class="print-page p-page-three">
-    <header class="p-mini-header"><b>جذاذة: ${esc(f.title)}</b><span>التقويم والدعم والمراجع</span></header>
-    <h2>التقويم الإجمالي والتغذية الراجعة</h2>
-    <div class="p-quiz">${quizHtml || "<p>لا يتوفر تقويم لهذا الدرس.</p>"}</div>
-    ${omittedQuiz ? `<p class="p-more">+ ${omittedQuiz} أسئلة في النسخة الكاملة داخل الموقع.</p>` : ""}
-    ${docsHtml ? `<h2>وثائق مختارة وأسئلة تحليلها</h2><div class="p-docs">${docsHtml}</div>` : ""}
-    ${omittedDocs ? `<p class="p-more">+ ${omittedDocs} وثائق في النسخة الكاملة داخل الموقع.</p>` : ""}
-    ${f.application ? `<div class="p-callout"><b>الوضعية التطبيقية:</b> ${esc(compactText(f.application.title, 100))} — ${esc(compactText(f.application.prompt, 260))}<br><b>الخطوات:</b> ${esc(f.application.guide.slice(0, 3).map((item) => compactText(item, 100)).join(" · "))}</div>` : ""}
-    ${f.examTips.length ? `<div class="p-box"><h2>توجيهات الدعم والامتحان</h2>${compactListHtml(f.examTips, 3, 170)}</div>` : ""}
-    ${f.references.length ? `<div class="p-box"><h2>مراجع مختارة</h2>${compactListHtml(f.references.slice(0, 4).map((item) => item.name), 4, 145)}</div>` : ""}
-    <div class="p-note">النسخة المطبوعة مختصرة لتناسب صفحتين أو ثلاثًا. التفاصيل الكاملة للمحاور والوثائق والتقويم متاحة في الجذاذة داخل الموقع. ${esc(f.sourceNote)}</div>
-    <div class="p-sign"><b>${esc(f.sign)}</b><span>إعداد الجذاذة انطلاقًا من الدرس المنشور في قسم «الدروس».</span></div>
-    <div class="p-footer"><span>${esc(f.sign)}</span><span>الصفحة 3 / 3</span></div>
+  <section class="print-page f-page">
+    ${header("الجذاذة — التقويم والدعم")}
+    <div class="f-strip f-strip-orange">التقويم المرحلي والإجمالي</div>
+    <table class="f-table f-assessment">${printTableHead()}<tbody>${assessmentRow}</tbody></table>
+    <table class="f-quiz"><tbody>${printQuestionRows(f)}</tbody></table>
+    ${extraQuiz ? `<p class="f-more">+ ${extraQuiz} أسئلة تقويمية في النسخة الكاملة داخل الموقع.</p>` : ""}
+    ${docs ? `<div class="f-strip">الوثائق والدعامات وأسئلة الاشتغال</div><div class="f-docs">${docs}</div>` : ""}
+    ${extraDocs ? `<p class="f-more">+ ${extraDocs} وثائق في النسخة الكاملة داخل الموقع.</p>` : ""}
+    ${f.application ? `<div class="f-callout"><b>الوضعية التطبيقية:</b> ${esc(compactText(f.application.title, 100))} — ${esc(compactText(f.application.prompt, 230))}<br><b>خطوات الإنجاز:</b> ${esc(f.application.guide.slice(0, 3).map((item) => compactText(item, 100)).join(" · "))}</div>` : ""}
+    <div class="f-callout"><b>ملاحظة الطباعة:</b> هذه نسخة مختصرة من الجذاذة، صممت على نموذج الصورة المرجعية لتناسب صفحتين أو ثلاثًا. التفاصيل الكاملة متاحة داخل الموقع.</div>
+    <div class="f-sign"><b>${esc(f.sign)}</b><span>المضمون من الدرس المنشور في قسم «الدروس».</span></div>
+    <div class="f-footer"><span>${esc(f.sign)}</span><span>3 / 3</span></div>
   </section>
 </div>`;
 }
 
 /** CSS مستقل للطباعة المختصرة — صفحة A4 مضغوطة بثلاث صفحات كحد أقصى */
 export function jadadaPrintCss(): string {
-  const c = SITE_COLORS;
+  const brown = "#6a5141";
+  const brownLight = "#8a6b56";
+  const orange = "#c95f0b";
+  const amber = "#d49b00";
+  const yellow = "#ffe393";
+  const cream = "#fbfaf4";
+  const line = "#8c887c";
   return `
 @page{size:A4 portrait;margin:6mm}
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#fff;color:${c.ink};font-family:"Readex Pro","Cairo","Segoe UI",Tahoma,sans-serif;font-size:8.3pt;line-height:1.28}
-body{direction:rtl}
-.print-export{display:none}
-.print-page{height:285mm;overflow:hidden;position:relative;break-after:page;page-break-after:always;padding:0 0.5mm}
-.print-page:last-child{break-after:auto;page-break-after:auto}
-.p-header{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1.2px solid ${c.brand600};padding-bottom:3mm;margin-bottom:2mm;color:${c.brand700}}
-.p-header b{font-family:"Cairo",sans-serif;font-size:11pt}.p-header em{font-style:normal;color:${c.gold500}}.p-header small{display:block;color:${c.inkSoft};font-size:7.3pt;font-weight:400;margin-top:1mm}.p-header>span{border:1px solid ${c.gold400};border-radius:999px;padding:1.2mm 3mm;background:${c.goldSoft};color:${c.goldInk};font-size:7.5pt;font-weight:700}
-h1{font-family:"Cairo",sans-serif;font-size:15pt;line-height:1.35;margin:1mm 0 1.5mm;color:${c.ink}}
-h2{font-family:"Cairo",sans-serif;font-size:9.4pt;line-height:1.25;margin:2.3mm 0 1mm;padding:1.3mm 2mm;background:${c.brand600};border-inline-start:3px solid ${c.gold400};border-radius:1.2mm;color:#fff;font-weight:700}
-h3{font-family:"Cairo",sans-serif;font-size:8.3pt;color:${c.brand700};margin:1.2mm 0 .6mm;font-weight:700}
-p{margin:.7mm 0}table{width:100%;border-collapse:collapse;margin:1mm 0;font-size:7.4pt}th,td{border:.35px solid ${c.line};padding:1mm 1.2mm;text-align:start;vertical-align:top}thead th{background:${c.brand700};color:#fff;font-weight:700}tbody tr:nth-child(even){background:${c.brandSofter}}
-.p-chips{display:flex;flex-wrap:wrap;gap:1mm;margin:1mm 0 1.5mm}.p-chips span{border:1px solid ${c.gold400};background:${c.goldSoft};color:${c.goldInk};border-radius:999px;padding:.7mm 2mm;font-size:7pt;font-weight:700}
-.p-info th{background:${c.brandSoft};color:${c.brand700};width:14%;white-space:nowrap}.p-info td{width:36%}.p-callout,.p-box,.p-doc{border:1px solid ${c.line};background:${c.brandSofter};border-radius:1.5mm;padding:1.6mm 2mm;margin:1.2mm 0}.p-callout{border-inline-start:3px solid ${c.gold500};background:${c.goldSoft}}.p-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:2mm}.p-list{margin:.5mm 0;padding-inline-start:4mm}.p-list li{margin:.4mm 0}.p-list li::marker{color:${c.brand500}}
-.p-stages{display:grid;grid-template-columns:1fr 1fr;gap:1.3mm}.p-stage{border:1px solid ${c.line};border-radius:1.2mm;padding:1.2mm 1.6mm;background:#fff;break-inside:avoid}.p-stage-title{display:flex;align-items:center;justify-content:space-between;gap:1mm;color:${c.brand700};font-size:7.7pt}.p-stage-title span{white-space:nowrap;border-radius:999px;background:${c.goldSoft};color:${c.goldInk};padding:.4mm 1.4mm;font-size:6.8pt}.p-stage p{font-size:7pt;color:${c.inkSoft};margin:.45mm 0}.p-stage b{color:${c.brand700}}
-.p-mini-header{display:flex;justify-content:space-between;gap:4mm;border-bottom:1px solid ${c.line};padding-bottom:2mm;margin-bottom:2mm;color:${c.brand700};font-size:8pt}.p-mini-header b{font-family:"Cairo",sans-serif}.p-mini-header span{color:${c.inkSoft}}
-.p-sections{columns:2;column-gap:4mm}.p-sections article{break-inside:avoid;border-bottom:.5px solid ${c.line};padding-bottom:1.3mm;margin-bottom:1.3mm}.p-sections article p{font-size:7.35pt;color:${c.inkSoft};text-align:justify}.p-tables{align-items:start}.p-box table{font-size:7pt}.p-box small,.p-more{display:block;color:${c.inkSoft};font-size:6.8pt;margin-top:.8mm}.p-quiz{display:grid;grid-template-columns:1fr 1fr;gap:1.2mm}.p-q{border:1px solid ${c.line};border-radius:1.2mm;padding:1.2mm 1.6mm;break-inside:avoid;background:#fff}.p-q strong{display:block;color:${c.brand700};font-size:7.25pt}.p-q span{display:block;color:${c.inkSoft};font-size:6.8pt;margin-top:.5mm}.p-docs{display:grid;grid-template-columns:1fr 1fr;gap:1.2mm}.p-doc{margin:0;background:${c.brandSofter}}.p-doc h3{margin:0 0 .5mm}.p-doc p{font-size:6.9pt}.p-note{border:1px dashed ${c.line};border-radius:1.2mm;padding:1.4mm 1.8mm;color:${c.inkSoft};font-size:6.7pt;margin-top:2mm}.p-sign{display:flex;justify-content:space-between;gap:3mm;border-top:1px solid ${c.brandSoft};padding-top:2mm;margin-top:2mm;color:${c.brand700};font-size:7.1pt}.p-footer{position:absolute;inset-inline:0;bottom:0;border-top:1px solid ${c.line};padding-top:1.5mm;display:flex;justify-content:space-between;color:${c.inkSoft};font-size:6.6pt}
-@media screen{body{background:${c.paper};padding:8mm}.print-page{height:auto;min-height:285mm;margin:0 auto 6mm;max-width:198mm;background:#fff;padding:5mm;box-shadow:0 5px 25px rgba(4,36,26,.16)}.p-footer{position:static;margin-top:3mm}.p-page-three{min-height:0}}
+html,body{margin:0;padding:0;background:#fff;color:#211c18;font-family:"Readex Pro","Cairo","Segoe UI",Tahoma,sans-serif;font-size:7.2pt;line-height:1.25}
+body{direction:rtl}.print-export{display:none}
+.print-page{height:285mm;overflow:hidden;position:relative;break-after:page;page-break-after:always;background:#fff;padding:0 .5mm}.print-page:last-child{break-after:auto;page-break-after:auto}
+.f-page{background:${cream};border:1px solid #e4e0d5;padding:2.5mm 2.2mm 7mm;box-shadow:inset 0 0 0 .7mm #fff}
+.f-header{display:grid;grid-template-columns:1fr 1.65fr 1fr;gap:2mm;align-items:stretch;direction:ltr;margin-bottom:2mm}.f-header>div{direction:rtl}
+.f-header table{height:100%;width:100%;border-collapse:collapse;margin:0;background:#fff;font-size:7pt}.f-header th,.f-header td{border:.45px solid ${line};padding:1.1mm 1.4mm;vertical-align:middle}.f-header th{width:40%;background:${orange};color:#fff;font-weight:700}.f-header td{background:#fff;color:#312821;font-weight:600}
+.f-title{position:relative;display:flex;min-height:25mm;align-items:center;justify-content:center;flex-direction:column;text-align:center;border-radius:4mm;background:linear-gradient(135deg,${brownLight},${brown});color:#fff;padding:4mm 7mm 2.5mm;box-shadow:0 1mm 0 rgba(0,0,0,.08)}.f-title b{font-family:"Cairo",sans-serif;font-size:13pt;line-height:1.45}.f-title small{font-size:6.7pt;color:#f9e8d0;margin-top:1.3mm}.f-number{position:absolute;inset-block-start:-2.5mm;inset-inline-end:-2mm;display:grid;place-items:center;width:10mm;height:10mm;border:1mm solid #fff;border-radius:50%;background:#171411;color:#fff;font-family:"Cairo",sans-serif;font-size:9pt;font-weight:800}
+.f-page-label{background:${brown};color:#fff;text-align:center;font-family:"Cairo",sans-serif;font-size:8pt;font-weight:700;padding:1.2mm 2mm;margin:1.5mm 0}
+.f-problem{width:100%;border-collapse:collapse;margin:1.5mm 0;font-size:7.1pt}.f-problem th,.f-problem td{border:.45px solid ${line};padding:1.3mm 1.8mm;vertical-align:middle}.f-problem th{width:27%;background:${brown};color:#fff;font-weight:700}.f-problem td{background:${yellow};font-weight:600}
+.f-objectives{display:grid;grid-template-columns:repeat(3,1fr);gap:1mm;margin:1.5mm 0}.f-objectives>div{border:.45px solid ${line};background:#fff;padding:1.2mm 1.6mm;min-height:17mm}.f-objectives b{display:block;text-align:center;background:${orange};color:#fff;margin:-1.2mm -1.6mm .7mm;padding:.9mm;font-size:7.2pt}.f-list{margin:.5mm 0;padding-inline-start:3.5mm}.f-list li{margin:.35mm 0}.f-list li::marker{color:${orange}}
+.f-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:1.5mm 0;font-size:6.75pt;line-height:1.25}.f-table th,.f-table td{border:.5px solid ${line};padding:1.15mm 1.3mm;vertical-align:top;text-align:start;overflow-wrap:anywhere}.f-table thead th{background:${brown};color:#fff;text-align:center;font-family:"Cairo",sans-serif;font-size:6.8pt;padding:1.5mm .8mm}.f-table th:nth-child(1),.f-table td:nth-child(1){width:14%}.f-table th:nth-child(2),.f-table td:nth-child(2){width:19%}.f-table th:nth-child(3),.f-table td:nth-child(3){width:18%}.f-table th:nth-child(4),.f-table td:nth-child(4){width:16%}.f-table th:nth-child(5),.f-table td:nth-child(5){width:33%}.f-table tbody tr:nth-child(even) td{background:#fff}.f-table tbody tr:nth-child(odd) td{background:#fdfcf9}.f-phase{background:#f0ece3!important;text-align:center!important;color:${brown};font-family:"Cairo",sans-serif}.f-time{display:block;background:${orange};color:#fff;font-family:"Readex Pro",sans-serif;font-size:6.3pt;padding:.55mm;margin-top:1mm;border-radius:.7mm}.f-product{background:#fffdf7!important}.f-product-title{color:${orange};font-family:"Cairo",sans-serif;font-weight:800;font-size:7.1pt;margin-bottom:.5mm}.f-table p{margin:.45mm 0}.f-table .f-list{font-size:6.55pt}.f-table small{font-size:6.1pt;color:#5f554c}
+.f-strip{background:${brown};color:#fff;font-family:"Cairo",sans-serif;font-size:8pt;font-weight:700;text-align:center;padding:1.25mm 2mm;margin:1.8mm 0}.f-strip-orange{background:${orange}}
+.f-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.8mm;align-items:start}.f-box{border:.5px solid ${line};background:#fff;padding:1.2mm 1.5mm}.f-box h2{margin:-1.2mm -1.5mm 1mm;background:${brown};color:#fff;font-family:"Cairo",sans-serif;font-size:7.5pt;padding:1mm;text-align:center}.f-box table{width:100%;border-collapse:collapse;font-size:6.5pt}.f-box th,.f-box td{border:.4px solid ${line};padding:.8mm 1mm;text-align:start;vertical-align:top}.f-box th{background:${yellow};width:30%}.f-box small,.f-more{display:block;color:#6b5b4c;font-size:6.2pt;margin:1mm 0}
+.f-callout{border:.5px solid ${line};border-inline-start:3px solid ${amber};background:#fff4bd;padding:1.5mm 2mm;margin:1.5mm 0;font-size:6.8pt}.f-quiz{width:100%;border-collapse:collapse;margin:1.5mm 0;font-size:6.7pt}.f-quiz td{border:.45px solid ${line};padding:1mm 1.3mm;vertical-align:top}.f-q-number{width:8mm;background:${yellow};color:${brown};font-family:"Cairo",sans-serif;font-weight:800;text-align:center!important}.f-answer{color:${orange};font-weight:700}.f-quiz small{color:#665b52}.f-docs{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2mm}.f-doc{border:.5px solid ${line};background:#fff;padding:1.2mm 1.5mm;font-size:6.45pt}.f-doc h3{margin:0 0 .7mm;color:${orange};font-family:"Cairo",sans-serif;font-size:7pt}.f-doc p{margin:.6mm 0}.f-sign{display:flex;justify-content:space-between;gap:3mm;border-top:1px solid ${brownLight};padding-top:1.8mm;margin-top:1.7mm;color:${brown};font-size:6.7pt}.f-footer{position:absolute;inset-inline:2.2mm;bottom:1.5mm;border-top:.5px solid ${line};padding-top:1mm;display:flex;justify-content:space-between;color:#76685c;font-size:6.2pt}
+@media screen{body{background:#eee8dc;padding:7mm}.print-page{height:auto;min-height:285mm;max-width:198mm;margin:0 auto 7mm;padding:5mm 4mm 12mm;box-shadow:0 2mm 10mm rgba(66,45,29,.18)}.f-footer{position:static;margin-top:4mm}.f-page{min-height:285mm}}
 @media print{.p-toolbar{display:none!important}.screen-export{display:none!important}.print-export{display:block!important}.print-page{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 `;
 }
@@ -1139,16 +1195,13 @@ export function jadadaToHtml(f: JadadaFiche): string {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>${jadadaCss("", true)}${jadadaPrintCss()}</style>
+<style>${jadadaCss("", true)}</style>
 </head>
 <body>
-<div class="screen-export">
-  <div class="toolbar">
-    <button class="btn" type="button" onclick="window.print()">طباعة / حفظ PDF (2–3 صفحات)</button>
-  </div>
-  ${jadadaBodyHtml(f)}
+<div class="toolbar">
+  <button class="btn" type="button" onclick="window.print()">طباعة / حفظ PDF</button>
 </div>
-<div class="print-export">${jadadaPrintBodyHtml(f)}</div>
+${jadadaBodyHtml(f)}
 </body>
 </html>`;
 }
