@@ -49,6 +49,8 @@ const COLORS = {
   line: "#d7e5dd",
   ink: "#0b1d17",
   muted: "#3d554c",
+  header: "#e7f2ed",
+  headerText: "#000000",
   white: "#ffffff",
 };
 
@@ -101,12 +103,12 @@ function fillCell(doc: any, x: number, y: number, width: number, height: number,
 }
 
 function drawTableCell(doc: any, text: string, x: number, y: number, width: number, height: number, options: { header?: boolean; phase?: boolean; product?: boolean; size?: number; bold?: boolean } = {}): void {
-  const background = options.header ? COLORS.brown : options.phase ? "#f0ece3" : options.product ? "#fffdf7" : COLORS.white;
+  const background = options.header ? COLORS.header : options.phase ? "#e7f2ed" : options.product ? "#f7f5ef" : COLORS.white;
   fillCell(doc, x, y, width, height, background);
   drawText(doc, text, x, y, width, height, {
     size: options.size ?? (options.header ? 6.6 : 6.2),
     bold: options.bold ?? options.header,
-    color: options.header ? COLORS.white : options.phase ? COLORS.brown : COLORS.ink,
+    color: options.header ? COLORS.headerText : options.phase ? COLORS.brown : COLORS.ink,
   });
 }
 
@@ -115,8 +117,8 @@ function drawMetaTable(doc: any, x: number, y: number, width: number, rows: [str
   const labelW = Math.min(58, width * 0.4);
   rows.forEach(([label, value], index) => {
     const yy = y + index * rowH;
-    fillCell(doc, x, yy, labelW, rowH, COLORS.orange);
-    drawText(doc, label, x, yy, labelW, rowH, { size: 6.2, bold: true, color: COLORS.white, align: "center" });
+    fillCell(doc, x, yy, labelW, rowH, COLORS.header);
+    drawText(doc, label, x, yy, labelW, rowH, { size: 6.2, bold: true, color: COLORS.headerText, align: "center" });
     fillCell(doc, x + labelW, yy, width - labelW, rowH, COLORS.white);
     drawText(doc, value, x + labelW, yy, width - labelW, rowH, { size: 6.1, bold: true });
   });
@@ -148,9 +150,8 @@ function drawHeader(doc: any, fiche: JadadaFiche, label: string): number {
     ["المجزوءة", String(fiche.unitIndex + 1).padStart(2, "0")],
   ]);
 
-  drawText(doc, label, MARGIN, top + boxH + 5, CONTENT_W, 18, { size: 7, bold: true, color: COLORS.white, align: "center", pad: 3 });
-  fillCell(doc, MARGIN, top + boxH + 5, CONTENT_W, 18, COLORS.brown);
-  drawText(doc, label, MARGIN, top + boxH + 5, CONTENT_W, 18, { size: 7, bold: true, color: COLORS.white, align: "center", pad: 3 });
+  fillCell(doc, MARGIN, top + boxH + 5, CONTENT_W, 18, COLORS.header);
+  drawText(doc, label, MARGIN, top + boxH + 5, CONTENT_W, 18, { size: 7, bold: true, color: COLORS.headerText, align: "center", pad: 3 });
   return top + boxH + 27;
 }
 
@@ -164,8 +165,8 @@ function drawProblem(doc: any, fiche: JadadaFiche, y: number): number {
   ];
   rows.forEach(([label, value], index) => {
     const yy = y + index * rowH;
-    fillCell(doc, MARGIN, yy, labelW, rowH, COLORS.brown);
-    drawText(doc, label, MARGIN, yy, labelW, rowH, { size: 6.2, bold: true, color: COLORS.white, align: "center" });
+    fillCell(doc, MARGIN, yy, labelW, rowH, COLORS.header);
+    drawText(doc, label, MARGIN, yy, labelW, rowH, { size: 6.2, bold: true, color: COLORS.headerText, align: "center" });
     fillCell(doc, MARGIN + labelW, yy, valueW, rowH, COLORS.yellow);
     drawText(doc, value, MARGIN + labelW, yy, valueW, rowH, { size: 6.4, bold: true });
   });
@@ -184,8 +185,8 @@ function drawObjectives(doc: any, fiche: JadadaFiche, y: number): number {
   rows.forEach(([label, value], i) => {
     const x = MARGIN + i * (width + gap);
     fillCell(doc, x, y, width, h, COLORS.white);
-    fillCell(doc, x, y, width, 18, COLORS.orange);
-    drawText(doc, label, x, y, width, 18, { size: 6.4, bold: true, color: COLORS.white, align: "center" });
+    fillCell(doc, x, y, width, 18, COLORS.header);
+    drawText(doc, label, x, y, width, 18, { size: 6.4, bold: true, color: COLORS.headerText, align: "center" });
     drawText(doc, value, x, y + 18, width, h - 18, { size: 5.9 });
   });
   return y + h + 6;
@@ -255,8 +256,8 @@ function drawSmallTables(doc: any, fiche: JadadaFiche, y: number): number {
 }
 
 function drawQuiz(doc: any, fiche: JadadaFiche, y: number, maxBottom: number): number {
-  fillCell(doc, MARGIN, y, CONTENT_W, 18, COLORS.amber);
-  drawText(doc, "التقويم الإجمالي وأسئلة الدعم", MARGIN, y, CONTENT_W, 18, { size: 7, bold: true, color: COLORS.white, align: "center" });
+  fillCell(doc, MARGIN, y, CONTENT_W, 18, COLORS.header);
+  drawText(doc, "التقويم الإجمالي وأسئلة الدعم", MARGIN, y, CONTENT_W, 18, { size: 7, bold: true, color: COLORS.headerText, align: "center" });
   y += 20;
   for (const [index, q] of fiche.quiz.slice(0, 10).entries()) {
     const text = `${index + 1}) ${compact(q.q, 190)}\nالجواب: ${compact(q.options[q.answer] ?? "", 145)}${q.why ? ` — ${compact(q.why, 105)}` : ""}`;
@@ -272,8 +273,8 @@ function drawQuiz(doc: any, fiche: JadadaFiche, y: number, maxBottom: number): n
 
 function drawDocs(doc: any, fiche: JadadaFiche, y: number, maxBottom: number): number {
   if (!fiche.docs.length) return y;
-  fillCell(doc, MARGIN, y, CONTENT_W, 18, COLORS.brown);
-  drawText(doc, "الوثائق والدعامات وأسئلة الاشتغال", MARGIN, y, CONTENT_W, 18, { size: 7, bold: true, color: COLORS.white, align: "center" });
+  fillCell(doc, MARGIN, y, CONTENT_W, 18, COLORS.header);
+  drawText(doc, "الوثائق والدعامات وأسئلة الاشتغال", MARGIN, y, CONTENT_W, 18, { size: 7, bold: true, color: COLORS.headerText, align: "center" });
   y += 21;
   const gap = 4;
   const w = (CONTENT_W - gap * 2) / 3;
@@ -326,8 +327,8 @@ async function renderPdf(fiche: JadadaFiche): Promise<Buffer> {
 
     doc.addPage({ size: "A4", margin: 0 });
     y = drawHeader(doc, fiche, "الجذاذة — بناء التعلمات");
-    fillCell(doc, MARGIN, y, CONTENT_W, 18, COLORS.brown);
-    drawText(doc, "المقاطع الأساسية للدرس والأثر الكتابي", MARGIN, y, CONTENT_W, 18, { size: 7, bold: true, color: COLORS.white, align: "center" });
+    fillCell(doc, MARGIN, y, CONTENT_W, 18, COLORS.header);
+    drawText(doc, "المقاطع الأساسية للدرس والأثر الكتابي", MARGIN, y, CONTENT_W, 18, { size: 7, bold: true, color: COLORS.headerText, align: "center" });
     y += 22;
     y = drawPlanTable(doc, pageTwoRows, y, 585);
     y += 7;
