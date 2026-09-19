@@ -39,15 +39,16 @@ const MARGIN = 18;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 
 const COLORS = {
-  brown: "#6a5141",
-  brownLight: "#8a6b56",
-  orange: "#c95f0b",
-  amber: "#d49b00",
-  yellow: "#ffe393",
-  cream: "#fbfaf4",
-  line: "#8c887c",
-  ink: "#211c18",
-  muted: "#65584f",
+  /* ألوان الطباعة هي ألوان هوية الموقع، لا ألوان النموذج الورقي القديم. */
+  brown: "#0c6147",
+  brownLight: "#0f7c5b",
+  orange: "#18906b",
+  amber: "#d99e37",
+  yellow: "#fbf3e2",
+  cream: "#f7f5ef",
+  line: "#d7e5dd",
+  ink: "#0b1d17",
+  muted: "#3d554c",
   white: "#ffffff",
 };
 
