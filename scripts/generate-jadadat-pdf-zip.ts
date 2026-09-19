@@ -108,7 +108,7 @@ function drawTableCell(doc: any, text: string, x: number, y: number, width: numb
   drawText(doc, text, x, y, width, height, {
     size: options.size ?? (options.header ? 6.6 : 6.2),
     bold: options.bold ?? options.header,
-    color: options.header ? COLORS.headerText : options.phase ? COLORS.brown : COLORS.ink,
+    color: options.header ? COLORS.headerText : options.phase ? COLORS.headerText : COLORS.ink,
   });
 }
 
