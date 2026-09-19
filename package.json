@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "export": "bash scripts/export-zip.sh",
-    "pdf:batch": "node scripts/html-to-pdf.mjs"
+    "pdf:batch": "node scripts/html-to-pdf.mjs",
+    "pdf:jadadat": "tsx scripts/generate-jadadat-pdf-zip.ts"
   },
   "dependencies": {
     "clsx": "2.1.1",
@@ -18,12 +19,18 @@
     "tailwind-merge": "3.4.0"
   },
   "devDependencies": {
+    "@fontsource/noto-naskh-arabic": "^5.3.0",
     "@tailwindcss/vite": "4.1.17",
     "@types/node": "22.19.17",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.1.1",
+    "arabic-persian-reshaper": "^1.0.1",
+    "bidi-js": "^1.1.0",
+    "pdfkit": "^0.20.2",
     "tailwindcss": "4.1.17",
+    "tsx": "^4.23.13",
     "typescript": "5.9.3",
     "vite": "7.3.2",
     "vite-plugin-singlefile": "2.3.0"

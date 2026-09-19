@@ -385,7 +385,24 @@ export default function Jadadat({ go, detailId, initialLevel }: JadadatProps) {
           </div>
         </Reveal>
 
-        <Reveal delay={140}>
+        <Reveal delay={125}>
+          <div className="mt-5 flex flex-col items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50/70 px-5 py-4 text-center sm:flex-row sm:text-start">
+            <div>
+              <p className="font-display text-sm font-extrabold text-brand-800">أرشيف الجذاذات بصيغة PDF</p>
+              <p className="mt-1 text-[11px] font-semibold text-brand-700">161 جذاذة حقيقية · ملفات مرتبة حسب المستوى والمسلك والمادة · ثلاث صفحات كحد أقصى لكل جذاذة</p>
+            </div>
+            <a
+              href="/exports/jadadat-pdf.zip"
+              download="الجذاذات_الاجتماعيات_PDF.zip"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-5 py-3 text-xs font-extrabold text-white shadow-lg shadow-brand-700/25 transition-all hover:-translate-y-0.5 hover:shadow-xl"
+            >
+              <Download className="size-4" aria-hidden="true" />
+              تحميل الجذاذات PDF (ZIP)
+            </a>
+          </div>
+        </Reveal>
+
+        <Reveal delay={160}>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             {[
               { value: stats.total, label: "جذاذة مبنية على درس منشور", icon: FileText },
