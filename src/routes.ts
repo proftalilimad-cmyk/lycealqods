@@ -1,6 +1,9 @@
+export type DiagnosticLevel = "jad3-moshtarak" | "1bac" | "2bac";
+
 export type Route =
   | { view: "home" }
   | { view: "about" }
+  | { view: "diagnostic"; level?: DiagnosticLevel }
   | { view: "test"; bank?: string }
   | { view: "battle"; bank?: string }
   | { view: "dashboard"; tab?: string }
@@ -15,7 +18,7 @@ export type Route =
 export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "الرئيسية", route: { view: "home" } },
   { label: "نبذة عن الأستاذ", route: { view: "about" } },
-  { label: "التقويم التشخيصي", route: { view: "test" } },
+  { label: "التقويم التشخيصي", route: { view: "diagnostic" } },
   { label: "المبارزة", route: { view: "battle" } },
   { label: "الدروس", route: { view: "lessons" } },
   { label: "التطبيقات", route: { view: "apps" } },
@@ -65,6 +68,7 @@ export const BASE_TITLE_FULL = "فضاء الاجتماعيات — الأستا
 export const VIEW_LABELS: Record<Route["view"], string> = {
   home: "الرئيسية",
   about: "نبذة عن الأستاذ",
+  diagnostic: "التقويم التشخيصي",
   test: "التقويم التشخيصي",
   battle: "المبارزة",
   dashboard: "لوحة الأستاذ",
@@ -81,6 +85,7 @@ const SEGMENTS: Record<string, Route["view"]> = {
   "": "home",
   home: "home",
   about: "about",
+  diagnostic: "diagnostic",
   test: "test",
   battle: "battle",
   dashboard: "dashboard",
@@ -112,6 +117,8 @@ export function routeToPath(route: Route): string {
       return "/";
     case "about":
       return "/about";
+    case "diagnostic":
+      return route.level ? `/diagnostic/${encodeSegment(route.level)}` : "/diagnostic";
     case "dashboard":
       return route.tab ? `/dashboard/${encodeSegment(route.tab)}` : "/dashboard";
     case "test":
@@ -154,6 +161,12 @@ export function routeFromPath(rawPath: string): Route {
     case "home":
     case "about":
       return { view };
+    case "diagnostic": {
+      const level = parts[1];
+      return level === "jad3-moshtarak" || level === "1bac" || level === "2bac"
+        ? { view: "diagnostic", level }
+        : { view: "diagnostic" };
+    }
     case "dashboard":
       return parts[1] ? { view: "dashboard", tab: parts[1] } : { view: "dashboard" };
     case "test":

@@ -24,6 +24,9 @@ import TestResult from "./TestResult";
 
 interface TestFlowProps {
   initialBank?: string;
+  /** تسمية المستوى في صفحة QR؛ عند تحديدها تُعرض بنوك هذا المستوى فقط. */
+  diagnosticLevel?: string;
+  onBackToLevels?: () => void;
   onHome: () => void;
 }
 
@@ -60,7 +63,9 @@ const DIAGNOSTIC_ROSTER_CLASSES = ROSTER_CLASSES.filter((roster) =>
   (DIAGNOSTIC_CLASS_LABELS as readonly string[]).includes(roster.label),
 );
 
-function BankSelector({ onPick }: { onPick: (bank: TestBankDef) => void }) {
+function BankSelector({ onPick, level }: { onPick: (bank: TestBankDef) => void; level?: string }) {
+  const levels = level ? LEVEL_ORDER.filter((item) => item === level) : LEVEL_ORDER;
+
   return (
     <div className="mx-auto max-w-6xl px-5 sm:px-8">
       <Reveal>
@@ -70,16 +75,17 @@ function BankSelector({ onPick }: { onPick: (bank: TestBankDef) => void }) {
             التقويم التشخيصي في الاجتماعيات
           </span>
           <h1 className="mt-5 font-display text-3xl font-black leading-[1.3] text-ink-900 sm:text-4xl">
-            اختر مستواك ومسلكك أولًا
+            {level ? `اختر المسلك داخل ${level}` : "اختر مستواك ومسلكك أولًا"}
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-ink-500 sm:text-base">
-            ثمانية تقويمات تشخيصية مخصصة: لكل مسلك بنك أسئلة ملائم لمناهجه ومكتسباته الجغرافية والتاريخية,
-            كل واحد: 20 سؤالًا، 10 تاريخ + 10 جغرافيا، 60 دقيقة، النقطة /20.
+            {level
+              ? "اختر بنك الأسئلة المناسب لمسلكك. يتضمن كل تقويم 20 سؤالًا: 10 تاريخ + 10 جغرافيا، خلال 60 دقيقة، والنقطة العامة /20."
+              : "تقويمات تشخيصية مخصصة: لكل مسلك بنك أسئلة ملائم لمناهجه ومكتسباته الجغرافية والتاريخية، وكل واحد يضم 20 سؤالًا: 10 تاريخ + 10 جغرافيا، خلال 60 دقيقة، والنقطة العامة /20."}
           </p>
         </div>
       </Reveal>
 
-      {LEVEL_ORDER.map((level, li) => {
+      {levels.map((level, li) => {
         const banks = TEST_BANKS.filter((b) => b.level === level);
         if (banks.length === 0) return null;
         return (
@@ -158,7 +164,7 @@ function BankSelector({ onPick }: { onPick: (bank: TestBankDef) => void }) {
   );
 }
 
-export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
+export default function TestFlow({ initialBank, diagnosticLevel, onBackToLevels, onHome }: TestFlowProps) {
   const [bank, setBank] = useState<TestBankDef | undefined>(() => getBank(initialBank));
   const [stage, setStage] = useState<"intro" | "run" | "done">("intro");
   const [name, setName] = useState("");
@@ -278,6 +284,11 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
     window.scrollTo({ top: 0 });
   };
 
+  const changeLevel = () => {
+    changeBank();
+    onBackToLevels?.();
+  };
+
   if (stage === "run" && bank) {
     return (
       <TestRunner
@@ -308,7 +319,7 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
       <section className="relative overflow-hidden pt-32 pb-20 md:pt-40">
         <div className="pointer-events-none absolute inset-0 pattern-zellige-dark opacity-50" aria-hidden="true" />
         <div className="relative">
-          <BankSelector onPick={pickBank} />
+          <BankSelector onPick={pickBank} level={diagnosticLevel} />
         </div>
       </section>
     );
@@ -323,7 +334,7 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
           <div className="text-center">
             <button
               type="button"
-              onClick={changeBank}
+              onClick={changeLevel}
               className="mb-4 inline-flex items-center gap-2 text-xs font-bold text-brand-700 transition-colors hover:text-brand-800"
             >
               <RotateCcw className="size-3.5" aria-hidden="true" />
@@ -495,7 +506,7 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
             <BookOpenCheck className="size-4 text-brand-600" aria-hidden="true" />
             <p className="text-xs text-ink-500">
               تتوفر أيضًا تقويمات لسبع مستويات ومسالك أخرى —
-              <button type="button" onClick={changeBank} className="font-extrabold text-brand-700 underline-offset-2 hover:underline">
+              <button type="button" onClick={changeLevel} className="font-extrabold text-brand-700 underline-offset-2 hover:underline">
                 اختر مستوى آخر
               </button>
             </p>

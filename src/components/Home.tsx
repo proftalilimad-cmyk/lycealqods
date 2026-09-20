@@ -48,7 +48,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   { label: "العروض التفاعلية", desc: "دروس 1 باك علوم من الكتاب المدرسي", icon: MonitorPlay, route: { view: "decks" } },
   { label: "المصطلحات", desc: "معجم مفاهيم دروس المادة", icon: Library, search: true },
   { label: "الخرائط والخطاطات", desc: "خرائط تخطيطية وخطاطات تفاعلية", icon: Globe2, route: { view: "resources", type: "map" } },
-  { label: "التقويم الذاتي", desc: "8 تقويمات تفاعلية حسب المستوى", icon: Target, route: { view: "test" } },
+  { label: "التقويم الذاتي", desc: "8 تقويمات تفاعلية حسب المستوى", icon: Target, route: { view: "diagnostic" } },
   { label: "وضع المبارزة", desc: "تحدَّ زميلك أو البطل الآلي", icon: Swords, route: { view: "battle" } },
   { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, search: true },
 ];
@@ -133,7 +133,7 @@ export default function Home({ go, onSearch }: HomeProps) {
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <button
                 type="button"
-                onClick={() => go({ view: "test" })}
+                onClick={() => go({ view: "diagnostic" })}
                 className="btn-shine group inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-l from-gold-400 to-gold-500 px-8 py-4 text-base font-extrabold text-ink-950 shadow-xl shadow-gold-600/25 transition-all duration-300 hover:-translate-y-1 sm:w-auto"
               >
                 <Target className="size-5" aria-hidden="true" />
@@ -297,7 +297,7 @@ export default function Home({ go, onSearch }: HomeProps) {
                 </p>
                 <button
                   type="button"
-                  onClick={() => go({ view: "test" })}
+                  onClick={() => go({ view: "diagnostic" })}
                   className="btn-shine group mt-8 inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-l from-gold-400 to-gold-500 px-9 py-4 text-base font-extrabold text-ink-950 shadow-xl shadow-gold-600/25 transition-all duration-300 hover:-translate-y-1"
                 >
                   <BarChart3 className="size-5" aria-hidden="true" />

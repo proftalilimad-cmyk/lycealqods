@@ -62,7 +62,7 @@ export default function Footer({ go }: FooterProps) {
                   </li>
                 ))}
                 <li>
-                  <button type="button" onClick={() => go({ view: "test" })} className="text-sm text-white/55 transition-colors hover:text-white">
+                  <button type="button" onClick={() => go({ view: "diagnostic" })} className="text-sm text-white/55 transition-colors hover:text-white">
                     التقويم التشخيصي — ج.م
                   </button>
                 </li>
