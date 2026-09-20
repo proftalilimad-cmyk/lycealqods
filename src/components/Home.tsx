@@ -35,9 +35,12 @@ interface QuickAction {
   route?: Route;
   search?: boolean;
   soon?: boolean;
+  featured?: boolean;
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
+  // البحث هو المدخل الأول في بطاقات الوصول السريع.
+  { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, search: true, featured: true },
   { label: "الدروس", desc: "منظمة حسب المستوى والدورتين", icon: BookOpenCheck, route: { view: "lessons" } },
   { label: "الجذاذات", desc: "تخطيط الحصص مبني على الدروس", icon: FileText, route: { view: "jadadat" } },
   { label: "التمارين", desc: "تطبيقات بتصحيح نموذجي", icon: FlaskConical, route: { view: "apps" } },
@@ -48,7 +51,6 @@ const QUICK_ACTIONS: QuickAction[] = [
   { label: "المصطلحات", desc: "معجم مفاهيم دروس المادة", icon: Library, search: true },
   { label: "الخرائط والخطاطات", desc: "خرائط تخطيطية وخطاطات تفاعلية", icon: Globe2, route: { view: "resources", type: "map" } },
   { label: "التقويم الذاتي", desc: "8 تقويمات تفاعلية حسب المستوى", icon: Target, route: { view: "diagnostic" } },
-  { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, search: true },
 ];
 
 const OBJECTIVES = [
@@ -107,9 +109,11 @@ export default function Home({ go, onSearch }: HomeProps) {
                   type="button"
                   onClick={() => (a.search ? onSearch() : a.route && go(a.route))}
                   className={`group relative rounded-2xl border p-4 text-center backdrop-blur transition-all duration-300 ${
-                    a.soon
-                      ? "border-white/8 bg-white/[0.03] hover:border-white/20"
-                      : "border-white/12 bg-white/[0.05] hover:-translate-y-1.5 hover:border-gold-300/40 hover:bg-white/[0.09]"
+                    a.featured
+                      ? "col-span-2 rounded-3xl border-gold-300/60 bg-gradient-to-br from-white/[0.11] to-gold-400/[0.09] p-5 shadow-[0_18px_45px_-24px_rgba(230,180,87,0.9)] hover:-translate-y-1.5 hover:border-gold-200 hover:bg-white/[0.14] sm:col-span-2 sm:p-6"
+                      : a.soon
+                        ? "border-white/8 bg-white/[0.03] hover:border-white/20"
+                        : "border-white/12 bg-white/[0.05] hover:-translate-y-1.5 hover:border-gold-300/40 hover:bg-white/[0.09]"
                   }`}
                 >
                   {a.soon && (
@@ -117,11 +121,27 @@ export default function Home({ go, onSearch }: HomeProps) {
                       قريبًا
                     </span>
                   )}
-                  <span className={`mx-auto grid size-10 place-items-center rounded-xl transition-all duration-300 ${a.soon ? "bg-white/10 text-white/40" : "bg-white/10 text-gold-300 group-hover:scale-110 group-hover:bg-gold-400/20"}`}>
-                    <a.icon className="size-5" strokeWidth={2.2} />
+                  <span
+                    className={`mx-auto grid place-items-center transition-all duration-300 ${
+                      a.featured
+                        ? "size-16 rounded-[1.35rem] bg-gold-400/20 text-gold-300 shadow-inner shadow-gold-200/10 group-hover:scale-105 group-hover:bg-gold-400/30 sm:size-[5.5rem]"
+                        : `size-10 rounded-xl ${a.soon ? "bg-white/10 text-white/40" : "bg-white/10 text-gold-300 group-hover:scale-110 group-hover:bg-gold-400/20"}`
+                    }`}
+                  >
+                    <a.icon className={a.featured ? "size-9" : "size-5"} strokeWidth={2.2} />
                   </span>
-                  <span className={`mt-3 block font-display text-[13px] font-extrabold ${a.soon ? "text-white/55" : "text-white"}`}>{a.label}</span>
-                  <span className="mt-1 hidden text-[10px] leading-snug text-white/45 lg:block">{a.desc}</span>
+                  <span
+                    className={`block font-display font-extrabold ${
+                      a.featured
+                        ? "mt-4 text-lg text-white sm:text-xl"
+                        : `mt-3 text-[13px] ${a.soon ? "text-white/55" : "text-white"}`
+                    }`}
+                  >
+                    {a.label}
+                  </span>
+                  <span className={a.featured ? "mt-2 block text-xs leading-relaxed text-white/60 sm:text-sm" : "mt-1 hidden text-[10px] leading-snug text-white/45 lg:block"}>
+                    {a.desc}
+                  </span>
                 </button>
               ))}
             </div>
