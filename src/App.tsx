@@ -11,6 +11,7 @@ import Jadadat from "./components/Jadadat";
 import Methodologies from "./components/Methodologies";
 import Applications from "./components/Applications";
 import Resources from "./components/Resources";
+import SearchOverlay from "./components/SearchOverlay";
 import LessonView from "./components/LessonView";
 import Decks from "./components/decks/Decks";
 import DeckPlayer from "./components/decks/DeckPlayer";
@@ -26,6 +27,7 @@ import { VIEW_LABELS, locationToRoute, routeToHash, type Route } from "./routes"
 
 export default function App() {
   const [route, setRoute] = useState<Route>(() => locationToRoute(window.location));
+  const [searchOpen, setSearchOpen] = useState(false);
 
   /* مزامنة الشاشة مع العنوان: زر الرجوع/التقدّم والروابط النظيفة أو روابط hash المباشرة.
      الهاش الداخلي #main الخاص برابط تجاوز المحتوى لا يغيّر الشاشة. */
@@ -132,9 +134,9 @@ export default function App() {
       >
         تخطَّ إلى المحتوى الرئيسي
       </a>
-      <Navbar route={route} go={go} />
+      <Navbar route={route} go={go} onSearch={() => setSearchOpen(true)} />
       <main id="main">
-        {route.view === "home" && <Home go={go} />}
+        {route.view === "home" && <Home go={go} onSearch={() => setSearchOpen(true)} />}
         {route.view === "about" && <About />}
         {route.view === "diagnostic" && <Diagnostic level={route.level} go={go} />}
         {route.view === "test" && <TestFlow initialBank={route.bank} onHome={() => go({ view: "home" })} />}
@@ -190,6 +192,7 @@ export default function App() {
         )}
       </main>
       <Footer go={go} />
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} go={go} />
       {/* إعلان الشاشة الحالية لقارئات الشاشة عند كل تنقّل */}
       <span className="sr-only" aria-live="polite">
         {detailLabel}

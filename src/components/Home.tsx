@@ -24,6 +24,7 @@ import { APPLICATIONS } from "../data/applications";
 
 interface HomeProps {
   go: (r: Route) => void;
+  onSearch: () => void;
 }
 
 interface QuickAction {
@@ -31,13 +32,13 @@ interface QuickAction {
   desc: string;
   icon: typeof Target;
   route?: Route;
+  search?: boolean;
   soon?: boolean;
   featured?: boolean;
-  staticCard?: boolean;
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, featured: true, staticCard: true },
+  { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, search: true, featured: true },
   { label: "الدروس", desc: "منظمة حسب المستوى والدورتين", icon: BookOpenCheck, route: { view: "lessons" } },
   { label: "الجذاذات", desc: "تخطيط الحصص مبني على الدروس", icon: FileText, route: { view: "jadadat" } },
   { label: "التمارين", desc: "تطبيقات بتصحيح نموذجي", icon: FlaskConical, route: { view: "apps" } },
@@ -58,7 +59,7 @@ const OBJECTIVES = [
   { icon: Award, text: "الاستعداد الجيد للفروض والامتحانات" },
 ];
 
-export default function Home({ go }: HomeProps) {
+export default function Home({ go, onSearch }: HomeProps) {
   return (
     <>
       {/* ============ Hero ============ */}
@@ -126,16 +127,8 @@ export default function Home({ go }: HomeProps) {
                   </>
                 );
 
-                if (a.staticCard) {
-                  return (
-                    <div key={a.label} className={cardClass} role="group" aria-label={a.label}>
-                      {cardContent}
-                    </div>
-                  );
-                }
-
                 return (
-                  <button key={a.label} type="button" onClick={() => a.route && go(a.route)} className={cardClass}>
+                  <button key={a.label} type="button" onClick={() => (a.search ? onSearch() : a.route && go(a.route))} className={cardClass}>
                     {cardContent}
                   </button>
                 );
@@ -152,6 +145,14 @@ export default function Home({ go }: HomeProps) {
               >
                 <Target className="size-5" aria-hidden="true" />
                 ابدأ التقويم التشخيصي
+              </button>
+              <button
+                type="button"
+                onClick={onSearch}
+                className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-white/5 px-8 py-4 text-base font-semibold text-white/85 transition-all duration-300 hover:border-white/30 hover:bg-white/10 sm:w-auto"
+              >
+                <Search className="size-5 text-gold-300" aria-hidden="true" />
+                ابحث عن درس أو مفهوم
               </button>
             </div>
           </Reveal>
