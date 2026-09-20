@@ -100,7 +100,7 @@ export default function Home({ go, onSearch }: HomeProps) {
           <Reveal delay={340}>
             <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:max-w-5xl lg:grid-cols-5">
               {QUICK_ACTIONS.map((a) => {
-                const cardClass = `group relative flex min-h-[8.5rem] flex-col justify-center rounded-[1.35rem] border p-4 text-center backdrop-blur transition-all duration-300 ${
+                const cardClass = `group relative flex min-h-[7.5rem] flex-col justify-center rounded-[1.35rem] border p-4 text-center backdrop-blur transition-all duration-300 ${
                   a.soon
                     ? "border-white/8 bg-white/[0.03]"
                     : "border-white/12 bg-gradient-to-br from-white/[0.08] to-white/[0.03] shadow-[0_14px_35px_-28px_rgba(230,180,87,0.85)] hover:-translate-y-1.5 hover:border-gold-300/40 hover:bg-white/[0.12] hover:shadow-[0_18px_40px_-26px_rgba(230,180,87,0.8)]"
@@ -117,9 +117,6 @@ export default function Home({ go, onSearch }: HomeProps) {
                     </span>
                     <span className={`mt-3 block font-display text-sm font-extrabold ${a.soon ? "text-white/55" : "text-white"}`}>
                       {a.label}
-                    </span>
-                    <span className="mt-2 block text-[10px] leading-relaxed text-white/50 sm:text-[11px]">
-                      {a.desc}
                     </span>
                   </>
                 );
