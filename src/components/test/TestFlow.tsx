@@ -14,7 +14,7 @@ import {
   UserRoundPen,
 } from "lucide-react";
 import { getBank, TEST_BANKS, type TestBankDef } from "../../data/testBanks";
-import { ROSTER_CLASSES, ROSTER_SOURCE, ROSTER_YEAR, rosterByLabel, type RosterStudent } from "../../data/rosters";
+import { ROSTER_CLASSES, ROSTER_SOURCE, ROSTER_YEAR, type RosterStudent } from "../../data/rosters";
 import { TEST_DURATION_SECONDS } from "../../data/questions";
 import type { Submission } from "../../types";
 import { addSubmission } from "../../lib/storage";
@@ -45,6 +45,20 @@ const QUESTION_TYPES = [
 ];
 
 const LEVEL_ORDER = ["الجذع المشترك", "الأولى باكالوريا", "الثانية باكالوريا"];
+
+/* الأقسام التي تظهر في بطاقة التلميذ(ة) — منتقاة من اللوائح الرسمية 2026-2027 */
+const DIAGNOSTIC_CLASS_LABELS = [
+  "جذع مشترك علوم خ ف 1",
+  "جذع مشترك علوم خ ف 2",
+  "جذع مشترك علوم خ ف 3",
+  "جذع مشترك علوم خ ف 4",
+  "الثانية بكالوريا علوم إنسانية خ ف 1",
+  "الثانية بكالوريا علوم إنسانية خ ف 2",
+] as const;
+
+const DIAGNOSTIC_ROSTER_CLASSES = ROSTER_CLASSES.filter((roster) =>
+  (DIAGNOSTIC_CLASS_LABELS as readonly string[]).includes(roster.label),
+);
 
 function BankSelector({ onPick }: { onPick: (bank: TestBankDef) => void }) {
   return (
@@ -157,7 +171,7 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
   /* النتيجة كما حُفظت — تُستعمل لأزرار تحميل ملف التلميذ(ة) */
   const [savedSub, setSavedSub] = useState<Submission | null>(null);
 
-  const rosterClass = rosterByLabel(className);
+  const rosterClass = DIAGNOSTIC_ROSTER_CLASSES.find((roster) => roster.label === className);
   const pickedStudent: RosterStudent | undefined = rosterClass?.students.find((st) => st.massar === studentPick);
 
   const pickBank = (b: TestBankDef) => {
@@ -376,12 +390,11 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
                   <label htmlFor="s-class" className="field-label">القسم (من اللوائح الرسمية {ROSTER_YEAR}) <span className="text-rose-500">*</span></label>
                   <select id="s-class" value={className} onChange={(e) => pickClass(e.target.value)} className="field">
                     <option value="">— اختر القسم —</option>
-                    {ROSTER_CLASSES.map((c) => (
+                    {DIAGNOSTIC_ROSTER_CLASSES.map((c) => (
                       <option key={c.id} value={c.label}>
                         {c.label}
                       </option>
                     ))}
-                    <option value="قسم آخر">قسم آخر (غير موجود في اللوائح)</option>
                   </select>
                   <p className="mt-1 text-[10px] leading-relaxed text-ink-400">
                     المصدر: {ROSTER_SOURCE} — الثانوية التأهيلية القدس، القنيطرة.
