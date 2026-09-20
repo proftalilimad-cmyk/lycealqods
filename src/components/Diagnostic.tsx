@@ -24,6 +24,7 @@ export const DIAGNOSTIC_LEVELS = [
     id: "jad3-moshtarak",
     label: "الجذع المشترك",
     bankLevel: "الجذع المشترك",
+    defaultBank: "tc-sci",
     description: "تقويم تأسيسي لمكتسبات التلاميذ في التاريخ والجغرافيا قبل متابعة مسار الثانوي التأهيلي.",
     accent: "from-brand-700 to-brand-950",
   },
@@ -31,6 +32,7 @@ export const DIAGNOSTIC_LEVELS = [
     id: "1bac",
     label: "الأولى بكالوريا",
     bankLevel: "الأولى باكالوريا",
+    defaultBank: "bac1-sci",
     description: "تقويم تشخيصي يحدد المكتسبات والمهارات التي يحتاجها المتعلم في بداية الأولى بكالوريا.",
     accent: "from-ink-700 to-ink-950",
   },
@@ -38,6 +40,7 @@ export const DIAGNOSTIC_LEVELS = [
     id: "2bac",
     label: "الثانية بكالوريا",
     bankLevel: "الثانية باكالوريا",
+    defaultBank: "bac2-hum",
     description: "تقويم قبلي يساعد على رصد المكتسبات وتحديد أولويات الدعم في السنة النهائية.",
     accent: "from-brand-600 to-brand-900",
   },
@@ -346,8 +349,9 @@ function LevelPage({ level, go }: { level: DiagnosticLevelInfo; go: (route: Rout
         <div id="diagnostic-test" className="mt-12 scroll-mt-24">
           <TestFlow
             key={level.id}
+            initialBank={level.defaultBank}
             diagnosticLevel={level.bankLevel}
-            onBackToLevels={() => go({ view: "diagnostic" })}
+            diagnosticLevelId={level.id}
             onHome={() => go({ view: "home" })}
           />
         </div>

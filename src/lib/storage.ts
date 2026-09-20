@@ -98,6 +98,7 @@ function demoSubmission(roster: RosterClass, student: RosterStudent, order: numb
     bankId: "tc-sci",
     bankLabel: "الجذع المشترك العلمي",
     bankLevel: "الجذع المشترك",
+    diagnosticLevel: "jad3-moshtarak",
     skills: demoSkills(history, geography, total),
     demo: true,
   };

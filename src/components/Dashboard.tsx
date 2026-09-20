@@ -35,7 +35,8 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 function TestResultsPanel() {
   const [subs, setSubs] = useState<Submission[]>([]);
   const [confirmClear, setConfirmClear] = useState<null | "demo" | "all">(null);
-  /* تصفية حسب القسم + اختيار عدة تلاميذ للتحميل الجماعي */
+  /* تصفية حسب المستوى والقسم + اختيار عدة تلاميذ للتحميل الجماعي */
+  const [levelFilter, setLevelFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -46,14 +47,20 @@ function TestResultsPanel() {
     setSubs(getSubmissions());
   }, []);
 
+  const levels = useMemo(() => Array.from(new Set(subs.map((submission) => submission.bankLevel).filter(Boolean) as string[])).sort(), [subs]);
+  const levelFiltered = useMemo(
+    () => (levelFilter === "all" ? subs : subs.filter((submission) => submission.bankLevel === levelFilter)),
+    [subs, levelFilter],
+  );
+
   const stats = useMemo(() => {
-    const n = subs.length;
+    const n = levelFiltered.length;
     if (n === 0) return null;
-    const avg = (f: (s: Submission) => number) => round1(subs.reduce((s, x) => s + f(x), 0) / n);
-    const totals = subs.map((s) => s.total);
-    const support = subs.filter((s) => s.percent < 50).length;
+    const avg = (f: (s: Submission) => number) => round1(levelFiltered.reduce((s, x) => s + f(x), 0) / n);
+    const totals = levelFiltered.map((s) => s.total);
+    const support = levelFiltered.filter((s) => s.percent < 50).length;
     const skills: Record<string, { got: number; max: number }> = {};
-    subs.forEach((s) => {
+    levelFiltered.forEach((s) => {
       Object.entries(s.skills).forEach(([k, v]) => {
         if (!skills[k]) skills[k] = { got: 0, max: 0 };
         skills[k].got += v.got;
@@ -71,7 +78,7 @@ function TestResultsPanel() {
       support,
       skills,
     };
-  }, [subs]);
+  }, [levelFiltered]);
 
   const histBins = useMemo(() => {
     const bins = [
@@ -80,25 +87,25 @@ function TestResultsPanel() {
       { label: "من 10 إلى 14.99", range: "10 – 14.99", count: 0 },
       { label: "من 15 إلى 20", range: "15 – 20", count: 0 },
     ];
-    subs.forEach((s) => {
+    levelFiltered.forEach((s) => {
       const idx = s.total < 5 ? 0 : s.total < 10 ? 1 : s.total < 15 ? 2 : 3;
       bins[idx].count++;
     });
     return bins;
-  }, [subs]);
+  }, [levelFiltered]);
 
   const maxBin = Math.max(1, ...histBins.map((b) => b.count));
-  const hasDemo = subs.some((s) => s.demo);
+  const hasDemo = levelFiltered.some((s) => s.demo);
 
   /* ---------- التحميل الفردي والجماعي ---------- */
-  const classes = useMemo(() => Array.from(new Set(subs.map((s) => s.className))).sort(), [subs]);
+  const classes = useMemo(() => Array.from(new Set(levelFiltered.map((s) => s.className))).sort(), [levelFiltered]);
   const attendance = useMemo(
-    () => getDiagnosticAttendance(subs, classFilter === "all" ? undefined : classFilter),
-    [subs, classFilter],
+    () => getDiagnosticAttendance(levelFiltered, classFilter === "all" ? undefined : classFilter),
+    [levelFiltered, classFilter],
   );
   const filtered = useMemo(
-    () => (classFilter === "all" ? subs : subs.filter((s) => s.className === classFilter)),
-    [subs, classFilter],
+    () => (classFilter === "all" ? levelFiltered : levelFiltered.filter((s) => s.className === classFilter)),
+    [levelFiltered, classFilter],
   );
   const chosen = useMemo(() => (selected.length > 0 ? filtered.filter((s) => selected.includes(s.id)) : filtered), [filtered, selected]);
   const allChecked = filtered.length > 0 && filtered.every((s) => selected.includes(s.id));
@@ -123,7 +130,7 @@ function TestResultsPanel() {
     }
   };
 
-  const scope = () => scopeOf(subs, classFilter === "all" ? undefined : classFilter);
+  const scope = () => scopeOf(filtered);
   const kb = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} م.ب` : `${Math.max(1, Math.round(n / 1024))} ك.ب`);
 
   const doClear = () => {
@@ -370,24 +377,45 @@ function TestResultsPanel() {
                       أسماء الملفات تُبنى تلقائيًا بالصيغة: <b className="font-extrabold text-brand-700">اسم_التلميذ_رقم_التلميذ_التقويم_التشخيصي.pdf</b>
                     </p>
                   </div>
-                  <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
-                    <span className="whitespace-nowrap">القسم</span>
-                    <select
-                      value={classFilter}
-                      onChange={(e) => {
-                        setClassFilter(e.target.value);
-                        setSelected([]);
-                      }}
-                      className="field min-w-[190px] py-2 text-xs"
-                    >
-                      <option value="all">كل الأقسام ({subs.length})</option>
-                      {classes.map((c) => (
-                        <option key={c} value={c}>
-                          {c} ({subs.filter((s) => s.className === c).length})
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
+                      <span className="whitespace-nowrap">المستوى</span>
+                      <select
+                        value={levelFilter}
+                        onChange={(e) => {
+                          setLevelFilter(e.target.value);
+                          setClassFilter("all");
+                          setSelected([]);
+                        }}
+                        className="field min-w-[170px] py-2 text-xs"
+                      >
+                        <option value="all">كل المستويات ({subs.length})</option>
+                        {levels.map((level) => (
+                          <option key={level} value={level}>
+                            {level} ({subs.filter((s) => s.bankLevel === level).length})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
+                      <span className="whitespace-nowrap">القسم</span>
+                      <select
+                        value={classFilter}
+                        onChange={(e) => {
+                          setClassFilter(e.target.value);
+                          setSelected([]);
+                        }}
+                        className="field min-w-[190px] py-2 text-xs"
+                      >
+                        <option value="all">كل الأقسام ({levelFiltered.length})</option>
+                        {classes.map((c) => (
+                          <option key={c} value={c}>
+                            {c} ({levelFiltered.filter((s) => s.className === c).length})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">

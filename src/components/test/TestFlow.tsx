@@ -26,6 +26,8 @@ interface TestFlowProps {
   initialBank?: string;
   /** تسمية المستوى في صفحة QR؛ عند تحديدها تُعرض بنوك هذا المستوى فقط. */
   diagnosticLevel?: string;
+  /** المعرف الذي جاء به QR Code، ويُحفظ مع النتيجة. */
+  diagnosticLevelId?: string;
   onBackToLevels?: () => void;
   onHome: () => void;
 }
@@ -164,7 +166,7 @@ function BankSelector({ onPick, level }: { onPick: (bank: TestBankDef) => void; 
   );
 }
 
-export default function TestFlow({ initialBank, diagnosticLevel, onBackToLevels, onHome }: TestFlowProps) {
+export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevelId, onBackToLevels, onHome }: TestFlowProps) {
   const [bank, setBank] = useState<TestBankDef | undefined>(() => getBank(initialBank));
   const [stage, setStage] = useState<"intro" | "run" | "done">("intro");
   const [name, setName] = useState("");
@@ -238,6 +240,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, onBackToLevels,
       bankId: bank.id,
       bankLabel: bank.branch,
       bankLevel: bank.level,
+      diagnosticLevel: diagnosticLevelId ?? bank.level,
       massar: pickedStudent?.massar,
       date: new Date().toISOString(),
       history: r.historyScore,
@@ -286,7 +289,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, onBackToLevels,
 
   const changeLevel = () => {
     changeBank();
-    onBackToLevels?.();
+    if (!diagnosticLevel) onBackToLevels?.();
   };
 
   if (stage === "run" && bank) {
@@ -338,7 +341,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, onBackToLevels,
               className="mb-4 inline-flex items-center gap-2 text-xs font-bold text-brand-700 transition-colors hover:text-brand-800"
             >
               <RotateCcw className="size-3.5" aria-hidden="true" />
-              تغيير المستوى / المسلك
+              {diagnosticLevel ? "تغيير المسلك" : "تغيير المستوى / المسلك"}
             </button>
             <h1 className="mt-1 font-display text-2xl font-black leading-[1.35] text-ink-900 sm:text-3xl lg:text-[2.4rem]">
               التقويم التشخيصي في الاجتماعيات
@@ -505,9 +508,9 @@ export default function TestFlow({ initialBank, diagnosticLevel, onBackToLevels,
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-center">
             <BookOpenCheck className="size-4 text-brand-600" aria-hidden="true" />
             <p className="text-xs text-ink-500">
-              تتوفر أيضًا تقويمات لسبع مستويات ومسالك أخرى —
+              {diagnosticLevel ? "تتوفر مسالك أخرى داخل هذا المستوى —" : "تتوفر أيضًا تقويمات لمسالك ومستويات أخرى —"}
               <button type="button" onClick={changeLevel} className="font-extrabold text-brand-700 underline-offset-2 hover:underline">
-                اختر مستوى آخر
+                {diagnosticLevel ? "اختر مسلكًا آخر" : "اختر مستوى آخر"}
               </button>
             </p>
           </div>
