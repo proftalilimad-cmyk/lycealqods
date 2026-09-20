@@ -134,7 +134,7 @@ export default function App() {
       >
         تخطَّ إلى المحتوى الرئيسي
       </a>
-      <Navbar route={route} go={go} onSearch={() => setSearchOpen(true)} />
+      <Navbar route={route} go={go} />
       <main id="main">
         {route.view === "home" && <Home go={go} onSearch={() => setSearchOpen(true)} />}
         {route.view === "about" && <About />}
