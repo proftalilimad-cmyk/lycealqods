@@ -5,7 +5,7 @@
 # ينتج أرشيفين داخل dist/exports/ (مجلد مُتجاهَل في جيت وفي لقطات العمل):
 #   1) lycealqods-site-YYYY-MM-DD.zip    الموقع الجاهز للنشر:
 #      يُفكّ محتواه في جذر أي استضافة statique (index.html + decks/ + files/
-#      + og-cover.png + images/). لا يحتاج خادمًا: كل شيء ملفات ثابتة.
+#      + exports/ + og-cover.png + images/). لا يحتاج خادمًا: كل شيء ملفات ثابتة.
 #   2) lycealqods-source-YYYY-MM-DD.zip  مصدر المشروع كاملًا بدون
 #      node_modules ولا dist، لفتحه ومتابعة التطوير في مكان آخر.
 #      يضمّ أيضًا مجلد وثائق الأستاذ «جذع مسترك شعبة علوم تجريبية» حفظًا
@@ -33,14 +33,25 @@ fi
 
 mkdir -p "$OUT"
 rm -f "$OUT"/*.zip
-# النماذج المعروضة في public/exports تُستعمل للمعاينة الحية فقط، ولا تُنشر
-rm -f "$ROOT"/dist/exports/sample-* 2>/dev/null || true
+# ملفات public/exports المطلوبة في النسخة الجاهزة (خصوصًا أرشيف PDF للجذاذات)
+# تُنسخ إلى مسار مؤقت حتى لا تختلط بأرشيفات المصدر الناتجة داخل dist/exports.
+HOSTINGER_TMP="$(mktemp -d)"
+trap 'rm -rf "$HOSTINGER_TMP"' EXIT
+if [ -d "$ROOT/public/exports" ]; then
+  cp -a "$ROOT/public/exports" "$HOSTINGER_TMP/exports"
+fi
 
 echo "→ أرشفة الموقع المنشور (dist)…"
 (
   cd "$ROOT/dist"
   zip -qrX "$SITE_ZIP" index.html decks files images og-cover.png ads.txt
 )
+if [ -d "$HOSTINGER_TMP/exports" ]; then
+  (
+    cd "$HOSTINGER_TMP"
+    zip -qrX "$SITE_ZIP" exports
+  )
+fi
 
 echo "→ أرشفة مصدر المشروع…"
 # إضافات اختيارية: تُضمَّن فقط إن وُجدت حتى لا يفشل الأمر
