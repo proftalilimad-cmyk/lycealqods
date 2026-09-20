@@ -65,26 +65,47 @@ function escapeHtml(value: string): string {
 }
 
 function printWindow(title: string, html: string): void {
-  const popup = window.open("", "_blank", "width=850,height=900");
-  if (!popup) return;
-  popup.document.open();
-  popup.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>
-    @page { size: A4; margin: 14mm; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: Arial, Tahoma, sans-serif; color: #10241c; background: #fff; }
-    .sheet { min-height: 250mm; display: grid; place-items: center; text-align: center; padding: 12mm; }
-    .card { width: 100%; max-width: 680px; border: 2px solid #0c7c5b; border-radius: 24px; padding: 34px 30px; }
-    h1 { margin: 0 0 8px; color: #064c36; font-size: 28px; }
-    h2 { margin: 8px 0 18px; color: #ba7b18; font-size: 23px; }
-    p { line-height: 1.8; margin: 8px 0; font-size: 16px; }
-    img { display: block; width: 300px; height: 300px; margin: 22px auto; image-rendering: pixelated; }
-    .small { color: #53665e; font-size: 12px; direction: ltr; word-break: break-all; }
-    .teacher { margin-top: 22px; color: #064c36; font-weight: 700; }
-    .instruction { margin-top: 22px; padding: 14px; background: #f7f3e8; border-radius: 14px; }
-    @media print { .no-print { display: none; } }
-  </style></head><body><main class="sheet">${html}</main><script>window.onload=function(){window.focus();setTimeout(function(){window.print()},250)};window.onafterprint=function(){window.close()};</script></body></html>`);
-  popup.document.close();
+  /* نطبع من الصفحة الحالية مباشرة حتى لا تمنع المتصفحات النافذة المنبثقة أو فقدان صلاحية الطباعة. */
+  const root = document.createElement("div");
+  root.id = "qr-print-root";
+  root.innerHTML = `<main class="sheet">${html}</main>`;
+
+  const style = document.createElement("style");
+  style.id = "qr-print-style";
+  style.textContent = `
+    #qr-print-root { display: none; }
+    @media print {
+      @page { size: A4; margin: 14mm; }
+      html, body { background: #fff !important; }
+      body > *:not(#qr-print-root):not(#qr-print-style) { display: none !important; }
+      #qr-print-root { display: grid !important; min-height: 250mm; place-items: center; text-align: center; padding: 12mm; color: #10241c; font-family: Arial, Tahoma, sans-serif; }
+      #qr-print-root .card { width: 100%; max-width: 680px; border: 2px solid #0c7c5b; border-radius: 24px; padding: 34px 30px; }
+      #qr-print-root h1 { margin: 0 0 8px; color: #064c36; font-size: 28px; }
+      #qr-print-root h2 { margin: 8px 0 18px; color: #ba7b18; font-size: 23px; }
+      #qr-print-root p { line-height: 1.8; margin: 8px 0; font-size: 16px; }
+      #qr-print-root img { display: block; width: 300px; height: 300px; margin: 22px auto; image-rendering: pixelated; }
+      #qr-print-root .small { color: #53665e; font-size: 12px; direction: ltr; word-break: break-all; }
+      #qr-print-root .teacher { margin-top: 22px; color: #064c36; font-weight: 700; }
+      #qr-print-root .instruction { margin-top: 22px; padding: 14px; background: #f7f3e8; border-radius: 14px; }
+    }
+  `;
+  document.head.appendChild(style);
+  document.body.appendChild(root);
+
+  const previousTitle = document.title;
+  const cleanup = () => {
+    window.removeEventListener("afterprint", cleanup);
+    window.clearTimeout(fallback);
+    document.title = previousTitle;
+    style.remove();
+    root.remove();
+  };
+  window.addEventListener("afterprint", cleanup, { once: true });
+  const fallback = window.setTimeout(cleanup, 60000);
+  document.title = title;
+  window.print();
 }
+
 
 interface QRPanelProps {
   level: DiagnosticLevelInfo;
