@@ -39,9 +39,9 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  // البحث هو المدخل الأول في بطاقات الوصول السريع.
-  { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, search: true, featured: true },
   { label: "الدروس", desc: "منظمة حسب المستوى والدورتين", icon: BookOpenCheck, route: { view: "lessons" } },
+  // البحث هو المدخل الثاني في بطاقات الوصول السريع.
+  { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, search: true, featured: true },
   { label: "الجذاذات", desc: "تخطيط الحصص مبني على الدروس", icon: FileText, route: { view: "jadadat" } },
   { label: "التمارين", desc: "تطبيقات بتصحيح نموذجي", icon: FlaskConical, route: { view: "apps" } },
   { label: "الفروض", desc: "تقويمات محروسة ونماذج فروض", icon: ClipboardList, route: { view: "resources", type: "exam" } },
