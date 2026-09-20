@@ -22,7 +22,7 @@ export default function About() {
               نبذة عن الأستاذ
             </span>
             <h1 className="mt-5 font-display text-3xl font-black text-ink-900 sm:text-4xl lg:text-5xl">الأستاذ عماد طليل</h1>
-            <p className="mt-3 text-sm font-semibold text-brand-700 sm:text-base">أستاذ مادة الاجتماعيات</p>
+            <p className="mt-3 text-sm font-semibold text-brand-700 sm:text-base">أستاذ مادة الاجتماعيات | التاريخ والجغرافيا</p>
           </div>
         </Reveal>
 
@@ -76,12 +76,28 @@ export default function About() {
           <div>
             <Reveal delay={180}>
               <div className="rounded-3xl border border-ink-900/6 bg-white p-8">
-                <h2 className="font-display text-xl font-extrabold text-ink-900">تعريف مهني</h2>
-                <p className="mt-4 text-[15px] leading-loose text-ink-700">
-                  أستاذ لمادة الاجتماعيات بالتعليم الثانوي التأهيلي، يهتم بتبسيط تعلم التاريخ والجغرافيا،
-                  وتنمية مهارات تحليل الوثائق والخرائط والمعطيات، ومساعدة المتعلمين على بناء منهجية
-                  فعالة في دراسة مادة الاجتماعيات.
-                </p>
+                <h2 className="font-display text-xl font-extrabold text-ink-900">نبذة عن الأستاذ</h2>
+                <div className="mt-4 space-y-3 text-[15px] leading-loose text-ink-700">
+                  <p>مرحبًا بكم في موقعي التعليمي.</p>
+                  <p>
+                    أنا <strong className="font-extrabold text-ink-900">عماد طليل</strong>، أستاذ مادة الاجتماعيات، تخصص <strong className="font-extrabold text-ink-900">التاريخ والجغرافيا</strong>، مهتم بالتربية والتعليم وبمجالات البيئة والتغير المناخي والموارد المائية.
+                  </p>
+                  <p>
+                    حاصل على <strong className="font-extrabold text-ink-900">الإجازة في التاريخ والجغرافيا</strong> و<strong className="font-extrabold text-ink-900">ماستر في البيئة، تخصص المناخ والموارد المائية بالمغرب</strong>، كما أنجزت أبحاثًا أكاديمية حول <strong className="font-extrabold text-ink-900">التغير المناخي وتأثيره على الموارد المائية بمنطقة سهل الغرب</strong>.
+                  </p>
+                  <p>
+                    أؤمن بأن تدريس التاريخ والجغرافيا لا يقتصر على حفظ المعلومات، بل يهدف إلى <strong className="font-extrabold text-ink-900">فهم الأحداث والظواهر، وتنمية مهارات التحليل والتفكير النقدي، وربط التعلمات بالواقع</strong>.
+                  </p>
+                  <p>
+                    ومن خلال هذا الموقع، أسعى إلى توفير فضاء تعليمي يساعد التلاميذ على <strong className="font-extrabold text-ink-900">الفهم والمراجعة والاستعداد الجيد للامتحانات</strong>، من خلال الدروس والموارد والوثائق والأنشطة التعليمية.
+                  </p>
+                  <p>
+                    كما أمتلك خبرة في المجالات الفنية والوسائط المتعددة، وهو ما أحرص على توظيفه في تقديم المحتوى التعليمي بطريقة <strong className="font-extrabold text-ink-900">واضحة، تفاعلية ومبتكرة</strong>.
+                  </p>
+                  <p className="font-bold text-brand-800">
+                    <strong className="font-extrabold">مرحبًا بكم في فضائي التعليمي، ونتمنى لكم مسيرة موفقة في التعلم والنجاح.</strong>
+                  </p>
+                </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {["التاريخ", "الجغرافيا", "منهجيات", "تحليل الوثائق", "الاستعداد للامتحانات"].map((t) => (
                     <span key={t} className="rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1.5 text-xs font-bold text-brand-700">
