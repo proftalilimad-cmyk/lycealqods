@@ -112,11 +112,11 @@ function printWindow(title: string, html: string): void {
 
 interface QRPanelProps {
   level: DiagnosticLevelInfo;
-  url: string;
   onView: () => void;
 }
 
-function QRPanel({ level, url, onView }: QRPanelProps) {
+function QRPanel({ level, onView }: QRPanelProps) {
+  const url = useMemo(() => actualDiagnosticUrl(level.id), [level.id]);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -266,6 +266,11 @@ function QRPanel({ level, url, onView }: QRPanelProps) {
   );
 }
 
+/** بطاقة QR تُستعمل داخل لوحة الأستاذ فقط لتوزيع رابط المستوى على التلاميذ. */
+export function DiagnosticQRPanel({ level, onView }: QRPanelProps) {
+  return <QRPanel level={level} onView={onView} />;
+}
+
 function LevelSelector({ go }: { go: (route: Route) => void }) {
   return (
     <section className="relative overflow-hidden pt-32 pb-20 md:pt-40">
@@ -316,11 +321,6 @@ function LevelSelector({ go }: { go: (route: Route) => void }) {
 }
 
 function LevelPage({ level, go }: { level: DiagnosticLevelInfo; go: (route: Route) => void }) {
-  const url = useMemo(() => actualDiagnosticUrl(level.id), [level.id]);
-
-  const scrollToTest = () => {
-    document.getElementById("diagnostic-test")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   return (
     <section className="relative overflow-hidden pt-28 pb-20 md:pt-36">
@@ -341,10 +341,6 @@ function LevelPage({ level, go }: { level: DiagnosticLevelInfo; go: (route: Rout
             <p className="mt-4 text-sm leading-loose text-ink-500 sm:text-base">{level.description} اختر المسلك المناسب أسفل بطاقة الدخول ثم ابدأ التقويم، وستُحفظ النتيجة مع المستوى والقسم ورقم التلميذ.</p>
           </div>
         </Reveal>
-
-        <div className="mt-10">
-          <QRPanel level={level} url={url} onView={scrollToTest} />
-        </div>
 
         <div id="diagnostic-test" className="mt-12 scroll-mt-24">
           <TestFlow

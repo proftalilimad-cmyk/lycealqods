@@ -21,9 +21,10 @@ import {
 import { clearAllData, clearDemoData, ensureSeeded, exportCsv, getDiagnosticAttendance, getSubmissions } from "../lib/storage";
 import { classReportFile, classReportPdf, resultsXlsx, scopeOf, selectionZip } from "../lib/reportExport";
 import StudentDownloads from "./StudentDownloads";
+import { DIAGNOSTIC_LEVELS, DiagnosticQRPanel } from "./Diagnostic";
 import { activeCreds, isUnlocked, lock } from "../lib/teacherAuth";
 import type { Submission } from "../types";
-import type { Route } from "../routes";
+import type { DiagnosticLevel, Route } from "../routes";
 import Reveal from "./Reveal";
 import TeacherLogin from "./TeacherLogin";
 import TeacherSecurity from "./TeacherSecurity";
@@ -32,8 +33,9 @@ import Jadadat from "./Jadadat";
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /* لوحة نتائج التقويم التشخيصي (المحتوى الأصلي) — تُعرض داخل تبويب اللوحة المحمية */
-function TestResultsPanel() {
+function TestResultsPanel({ go }: { go: (route: Route) => void }) {
   const [subs, setSubs] = useState<Submission[]>([]);
+  const [qrLevel, setQrLevel] = useState<DiagnosticLevel>("jad3-moshtarak");
   const [confirmClear, setConfirmClear] = useState<null | "demo" | "all">(null);
   /* تصفية حسب المستوى والقسم + اختيار عدة تلاميذ للتحميل الجماعي */
   const [levelFilter, setLevelFilter] = useState<string>("all");
@@ -52,6 +54,7 @@ function TestResultsPanel() {
     () => (levelFilter === "all" ? subs : subs.filter((submission) => submission.bankLevel === levelFilter)),
     [subs, levelFilter],
   );
+  const qrLevelInfo = DIAGNOSTIC_LEVELS.find((item) => item.id === qrLevel) ?? DIAGNOSTIC_LEVELS[0];
 
   const stats = useMemo(() => {
     const n = levelFiltered.length;
@@ -194,6 +197,26 @@ function TestResultsPanel() {
             </p>
           </Reveal>
         )}
+
+        <Reveal delay={120}>
+          <div className="mt-7 rounded-3xl border border-brand-200/70 bg-brand-50/50 p-4 sm:p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-display text-base font-extrabold text-ink-900">رمز الدخول المباشر للتقويم</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-ink-500">اختر المستوى ثم اطبع أو شارك الرمز مع التلاميذ. هذه البطاقة خاصة بلوحة الأستاذ.</p>
+              </div>
+              <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
+                <span className="whitespace-nowrap">المستوى</span>
+                <select value={qrLevel} onChange={(event) => setQrLevel(event.target.value as DiagnosticLevel)} className="field min-w-[190px] py-2 text-xs">
+                  {DIAGNOSTIC_LEVELS.map((item) => (
+                    <option key={item.id} value={item.id}>{item.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <DiagnosticQRPanel level={qrLevelInfo} onView={() => go({ view: "diagnostic", level: qrLevelInfo.id })} />
+          </div>
+        </Reveal>
 
         {stats && (
           <>
@@ -752,7 +775,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
 
         {/* محتوى التبويب */}
         <div className="mt-7">
-          {active === "results" && <TestResultsPanel />}
+          {active === "results" && <TestResultsPanel go={go} />}
           {active === "jadadat" && <Jadadat go={go} embedded />}
           {active === "security" && <TeacherSecurity />}
         </div>
