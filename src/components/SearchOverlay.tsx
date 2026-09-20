@@ -231,37 +231,33 @@ export default function SearchOverlay({ open, onClose, go }: SearchOverlayProps)
   };
 
   return (
-    <div className="fixed inset-0 z-[80] bg-white" role="dialog" aria-modal="true" aria-label="البحث في المنصة">
-      <button type="button" aria-label="إغلاق البحث" onClick={onClose} className="absolute inset-0 bg-white" />
-      <div className="relative z-10 flex h-full flex-col bg-white">
-        {/* SearchOverlay الأساسية: حقل أفقي واضح، والأيقونة في اليمين وفق RTL. */}
-        <div className="border-b border-ink-900/8 px-4 py-7 sm:px-8">
-          <div className="mx-auto flex max-w-7xl items-center gap-3">
-            <div className="flex min-h-16 min-w-0 flex-1 items-center gap-4 rounded-[1.35rem] border-[3px] border-gold-500 bg-white px-4 py-3 shadow-[0_8px_24px_-14px_rgba(143,95,28,0.7)] sm:min-h-[4.25rem] sm:px-6">
-              <Search className="size-8 shrink-0 text-brand-700 sm:size-9" aria-hidden="true" />
-              <input
-                ref={inputRef}
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="ابحث عن درس، مفهوم، تطبيق، تمرين أو منهجية..."
-                aria-label="حقل البحث"
-                className="min-w-0 w-full bg-transparent text-end text-base font-bold text-ink-900 placeholder:text-ink-300 focus:outline-none sm:text-2xl sm:font-semibold"
-              />
-            </div>
+    <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="البحث في المنصة">
+      <button type="button" aria-label="إغلاق البحث" onClick={onClose} className="animate-fade-in absolute inset-0 bg-brand-950/55 backdrop-blur-sm" />
+      <div className="animate-modal-in absolute inset-x-0 top-4 sm:top-10 mx-auto w-[calc(100%-2rem)] max-w-2xl">
+        <div className="overflow-hidden rounded-3xl bg-white shadow-2xl shadow-brand-950/40">
+          {/* حقل البحث */}
+          <div className="flex items-center gap-3 border-b border-ink-900/8 px-5 py-4">
+            <Search className="size-5 shrink-0 text-brand-600" aria-hidden="true" />
+            <input
+              ref={inputRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="ابحث عن درس، مفهوم، تطبيق، تمرين أو منهجية..."
+              aria-label="حقل البحث"
+              className="w-full bg-transparent text-sm font-semibold text-ink-900 placeholder:text-ink-300 focus:outline-none sm:text-base"
+            />
             <button
               type="button"
               onClick={onClose}
               aria-label="إغلاق"
-              className="grid size-11 shrink-0 place-items-center rounded-xl bg-paper-warm text-ink-500 transition-colors hover:bg-ink-900/10 hover:text-ink-900"
+              className="grid size-8 shrink-0 place-items-center rounded-lg bg-paper-warm text-ink-500 transition-colors hover:text-ink-900"
             >
-              <X className="size-5" />
+              <X className="size-4" />
             </button>
           </div>
-        </div>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-4xl p-4 sm:p-7">
+          <div className="max-h-[62vh] overflow-y-auto p-3">
             {query.trim().length < 2 && (
               <div className="p-4">
                 <p className="text-xs font-extrabold text-ink-500">اقتراحات سريعة:</p>
