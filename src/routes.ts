@@ -40,7 +40,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/battle                 وضع المبارزة
      #/battle/<bank>          مبارزة ببنك معيّن
      #/dashboard              لوحة الأستاذ (محمية باسم مستعمل وكلمة مرور)
-     #/dashboard/<tab>        تبويب اللوحة (results / security)
+     #/dashboard/<tab>        تبويب اللوحة (results / jadadat / security)
      #/lessons                الدروس
      #/lessons/<level>        دروس مستوى (tc / bac1 / bac2)
      #/jadadat                فهرس الجذاذات

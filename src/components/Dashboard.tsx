@@ -27,6 +27,7 @@ import type { Route } from "../routes";
 import Reveal from "./Reveal";
 import TeacherLogin from "./TeacherLogin";
 import TeacherSecurity from "./TeacherSecurity";
+import Jadadat from "./Jadadat";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -564,6 +565,7 @@ function TestResultsPanel() {
 
 const TABS = [
   { id: "results", label: "نتائج التقويم التشخيصي", icon: ChartColumn },
+  { id: "jadadat", label: "الجذاذات", icon: FileText },
   { id: "security", label: "الدخول والأمان", icon: KeyRound },
 ] as const;
 
@@ -668,6 +670,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
         {/* محتوى التبويب */}
         <div className="mt-7">
           {active === "results" && <TestResultsPanel />}
+          {active === "jadadat" && <Jadadat go={go} embedded />}
           {active === "security" && <TeacherSecurity />}
         </div>
       </div>

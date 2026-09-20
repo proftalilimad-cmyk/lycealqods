@@ -39,6 +39,7 @@ interface JadadatProps {
   go: (route: Route) => void;
   detailId?: string;
   initialLevel?: string;
+  embedded?: boolean;
 }
 
 const SUBJECT_ICONS: Record<string, typeof History> = {
@@ -349,7 +350,7 @@ function JadadaDetail({ fiche, go, onBack }: { fiche: JadadaFiche; go: (route: R
   );
 }
 
-export default function Jadadat({ go, detailId, initialLevel }: JadadatProps) {
+export default function Jadadat({ go, detailId, initialLevel, embedded = false }: JadadatProps) {
   const [localDetailId, setLocalDetailId] = useState<string>();
   const activeDetailId = detailId ?? localDetailId;
   const fiche = activeDetailId ? getJadada(activeDetailId) : null;
@@ -362,14 +363,14 @@ export default function Jadadat({ go, detailId, initialLevel }: JadadatProps) {
         go={go}
         onBack={() => {
           setLocalDetailId(undefined);
-          go({ view: "jadadat", level: fiche.levelId });
+          if (!embedded) go({ view: "jadadat", level: fiche.levelId });
         }}
       />
     );
   }
 
   return (
-    <section className="relative overflow-hidden pt-32 pb-20 md:pt-36">
+    <section className={`relative overflow-hidden ${embedded ? "" : "pt-32 pb-20 md:pt-36"}`}>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-brand-50/70 to-transparent" aria-hidden="true" />
       <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
         <SectionHeader
