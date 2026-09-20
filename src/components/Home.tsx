@@ -11,6 +11,7 @@ import {
   History,
   MonitorPlay,
   PenLine,
+  Search,
   Target,
   Timer,
   User,
@@ -31,9 +32,12 @@ interface QuickAction {
   icon: typeof Target;
   route?: Route;
   soon?: boolean;
+  featured?: boolean;
+  staticCard?: boolean;
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
+  { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, featured: true, staticCard: true },
   { label: "الدروس", desc: "منظمة حسب المستوى والدورتين", icon: BookOpenCheck, route: { view: "lessons" } },
   { label: "الجذاذات", desc: "تخطيط الحصص مبني على الدروس", icon: FileText, route: { view: "jadadat" } },
   { label: "التمارين", desc: "تطبيقات بتصحيح نموذجي", icon: FlaskConical, route: { view: "apps" } },
@@ -95,29 +99,47 @@ export default function Home({ go }: HomeProps) {
 
           <Reveal delay={340}>
             <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-5 lg:max-w-5xl">
-              {QUICK_ACTIONS.map((a) => (
-                <button
-                  key={a.label}
-                  type="button"
-                  onClick={() => a.route && go(a.route)}
-                  className={`group relative rounded-2xl border p-4 text-center backdrop-blur transition-all duration-300 ${
-                    a.soon
-                      ? "border-white/8 bg-white/[0.03] hover:border-white/20"
+              {QUICK_ACTIONS.map((a) => {
+                const cardClass = `group relative rounded-2xl border p-4 text-center backdrop-blur transition-all duration-300 ${
+                  a.featured
+                    ? "col-span-2 rounded-3xl border-gold-300/60 bg-gradient-to-br from-white/[0.11] to-gold-400/[0.09] p-5 shadow-[0_18px_45px_-24px_rgba(230,180,87,0.9)] sm:col-span-2 sm:p-6"
+                    : a.soon
+                      ? "border-white/8 bg-white/[0.03]"
                       : "border-white/12 bg-white/[0.05] hover:-translate-y-1.5 hover:border-gold-300/40 hover:bg-white/[0.09]"
-                  }`}
-                >
-                  {a.soon && (
-                    <span className="absolute end-2 top-2 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-extrabold text-white/50">
-                      قريبًا
+                }`;
+                const cardContent = (
+                  <>
+                    {a.soon && (
+                      <span className="absolute end-2 top-2 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-extrabold text-white/50">
+                        قريبًا
+                      </span>
+                    )}
+                    <span className={`mx-auto grid place-items-center rounded-xl transition-all duration-300 ${a.featured ? "size-16 rounded-[1.35rem] bg-gold-400/20 text-gold-300 sm:size-[5.5rem]" : `size-10 ${a.soon ? "bg-white/10 text-white/40" : "bg-white/10 text-gold-300 group-hover:scale-110 group-hover:bg-gold-400/20"}`}`}>
+                      <a.icon className={a.featured ? "size-9" : "size-5"} strokeWidth={2.2} />
                     </span>
-                  )}
-                  <span className={`mx-auto grid size-10 place-items-center rounded-xl transition-all duration-300 ${a.soon ? "bg-white/10 text-white/40" : "bg-white/10 text-gold-300 group-hover:scale-110 group-hover:bg-gold-400/20"}`}>
-                    <a.icon className="size-5" strokeWidth={2.2} />
-                  </span>
-                  <span className={`mt-3 block font-display text-[13px] font-extrabold ${a.soon ? "text-white/55" : "text-white"}`}>{a.label}</span>
-                  <span className="mt-1 hidden text-[10px] leading-snug text-white/45 lg:block">{a.desc}</span>
-                </button>
-              ))}
+                    <span className={`block font-display font-extrabold ${a.featured ? "mt-4 text-lg text-white sm:text-xl" : `mt-3 text-[13px] ${a.soon ? "text-white/55" : "text-white"}`}`}>
+                      {a.label}
+                    </span>
+                    <span className={a.featured ? "mt-2 block text-xs leading-relaxed text-white/60 sm:text-sm" : "mt-1 hidden text-[10px] leading-snug text-white/45 lg:block"}>
+                      {a.desc}
+                    </span>
+                  </>
+                );
+
+                if (a.staticCard) {
+                  return (
+                    <div key={a.label} className={cardClass} role="group" aria-label={a.label}>
+                      {cardContent}
+                    </div>
+                  );
+                }
+
+                return (
+                  <button key={a.label} type="button" onClick={() => a.route && go(a.route)} className={cardClass}>
+                    {cardContent}
+                  </button>
+                );
+              })}
             </div>
           </Reveal>
 
