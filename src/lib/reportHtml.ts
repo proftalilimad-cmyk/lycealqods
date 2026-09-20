@@ -219,7 +219,7 @@ function identityTable(sub: Submission, rows: QuestionRows): string {
 <tr><th>اسم التلميذ(ة)</th><td>${esc(sub.name)}</td><th>رقم التلميذ(ة)</th><td>${esc(sub.studentNo || "—")}</td></tr>
 <tr><th>رقم مسار</th><td>${esc(sub.massar || "—")}</td><th>تاريخ الإنجاز</th><td>${esc(formatDate(sub.date))}</td></tr>
 <tr><th>المدة المستغرقة</th><td>${esc(formatDuration(sub.timeUsedSeconds))}</td><th>الأسئلة المجاب عنها</th><td>${esc(answered)}</td></tr>
-<tr><th>عدد الأسئلة</th><td>${rows.rows.length} سؤالًا (${rows.maxPoints} نقطة)</td><th>طبيعة السجل</th><td>${sub.demo ? "بيانات توضيحية لمعاينة اللوحة" : "نتيجة حقيقية محفوظة"}</td></tr>
+<tr><th>عدد الأسئلة</th><td colspan="3">${rows.rows.length} سؤالًا (${rows.maxPoints} نقطة)</td></tr>
 </tbody>
 </table>`;
 }
@@ -281,7 +281,7 @@ function answersPart(sub: Submission, rows: QuestionRows): string {
 
   const warn = rows.hasAnswers
     ? ""
-    : `<p class="lead">تنبيه: هذا السجل محفوظ قبل تفعيل حفظ الأجوبة التفصيلية (أو أنه سجل توضيحي)، لذلك تُعرض الأسئلة والنقط الإجمالية والمهارات المحفوظة، دون إجابات كل سؤال.</p>`;
+    : `<p class="lead">تنبيه: هذا السجل محفوظ قبل تفعيل حفظ الأجوبة التفصيلية، لذلك تُعرض الأسئلة والنقط الإجمالية والمهارات المحفوظة، دون إجابات كل سؤال.</p>`;
 
   return `<section class="part">
   <h2>1. أسئلة ${esc(TEST_TITLE)} وإجابات التلميذ(ة) والتصحيح</h2>
@@ -354,7 +354,6 @@ ${masthead()}
 ${identityTable(sub, rows)}
 ${scoreBand(sub)}
 <p class="teacher-line">إنجاز الأستاذ: ${esc(TEACHER_NAME)} — ${esc(SCHOOL_SHORT)}</p>
-${sub.demo ? `<p class="stamp">سجل توضيحي (Demo) — بيانات لمعاينة شكل اللوحة والتقارير، وليست نتيجة تلميذ حقيقي.</p>` : ""}
 ${rows.hasAnswers ? "" : `<p class="stamp">الإجابات التفصيلية لهذا السجل غير محفوظة — التقرير يعتمد النقط والمهارات المسجَّلة.</p>`}
 </section>`;
 }
@@ -369,7 +368,7 @@ export function studentDocBody(sub: Submission, mode: StudentDocMode = "full"): 
     parts.push(answersPart(sub, rows));
     parts.push(reportPart(sub, rows, 2));
   }
-  parts.push(signatureBlock(`${sub.demo ? "وثيقة توضيحية — " : ""}`));
+  parts.push(signatureBlock());
   return parts.join("\n");
 }
 
@@ -466,7 +465,7 @@ ${masthead()}
   <table class="grid">
     <thead><tr><th>المؤشر</th><th>القيمة</th><th>ملاحظة</th></tr></thead>
     <tbody>
-      <tr><td>عدد المشاركين</td><td class="num">${n}</td><td>${list.some((s) => s.demo) ? `منها ${list.filter((s) => s.demo).length} سجلًا توضيحيًا` : "كلها نتائج حقيقية محفوظة"}</td></tr>
+      <tr><td>عدد المشاركين</td><td class="num">${n}</td><td>نتائج محفوظة ضمن النطاق المحدد</td></tr>
       <tr><td>متوسط القسم /20</td><td class="num">${avg((s) => s.total)}</td><td>النسبة المئوية: ${avg((s) => s.percent)}٪</td></tr>
       <tr><td>متوسط التاريخ /10</td><td class="num">${avgHist}</td><td>${avgHist >= avgGeo ? "أعلى نسبيًا من الجغرافيا" : "أدنى نسبيًا من الجغرافيا"}</td></tr>
       <tr><td>متوسط الجغرافيا /10</td><td class="num">${avgGeo}</td><td>${avgGeo > avgHist ? "أعلى نسبيًا من التاريخ" : "أدنى نسبيًا من التاريخ"}</td></tr>
@@ -512,7 +511,7 @@ ${masthead()}
     <tbody>${list
       .map(
         (s, i) =>
-          `<tr><td class="num">${i + 1}</td><td class="num">${esc(s.studentNo || "—")}</td><td>${esc(s.name)}${s.demo ? " <span class='badge'>(توضيحي)</span>" : ""}</td><td>${esc(s.className)}</td><td class="num">${round2(s.history)}</td><td class="num">${round2(s.geography)}</td><td class="num"><b>${round2(s.total)}</b></td><td class="num">${round1(s.percent)}٪</td><td>${esc(s.level)}</td></tr>`,
+          `<tr><td class="num">${i + 1}</td><td class="num">${esc(s.studentNo || "—")}</td><td>${esc(s.name)}</td><td>${esc(s.className)}</td><td class="num">${round2(s.history)}</td><td class="num">${round2(s.geography)}</td><td class="num"><b>${round2(s.total)}</b></td><td class="num">${round1(s.percent)}٪</td><td>${esc(s.level)}</td></tr>`,
       )
       .join("")}</tbody>
   </table>

@@ -283,7 +283,6 @@ function summarySheet(subs: Submission[]): Sheet {
     "تاريخ الإنجاز",
     "المدة",
     "الأسئلة المجاب عنها",
-    "طبيعة السجل",
     "اسم ملف التلميذ",
   ];
   const rows: Cell[][] = list.map((s, i) => {
@@ -304,19 +303,18 @@ function summarySheet(subs: Submission[]): Sheet {
       formatDate(s.date),
       formatDuration(s.timeUsedSeconds),
       r.hasAnswers ? `${r.answeredCount}/${r.rows.length}` : "غير محفوظة",
-      s.demo ? "توضيحي" : "حقيقي",
       studentFileName(s, "pdf"),
     ];
   });
   const n = list.length;
   const avg = (f: (x: Submission) => number) => (n ? round1(list.reduce((a, s) => a + f(s), 0) / n) : 0);
   rows.push([]);
-  rows.push(["", "", "متوسط القسم", "", "", "", "", avg((s) => s.history), avg((s) => s.geography), avg((s) => s.total), avg((s) => s.percent), "", "", "", "", `${n} مشاركًا`, ""]);
+  rows.push(["", "", "متوسط القسم", "", "", "", "", avg((s) => s.history), avg((s) => s.geography), avg((s) => s.total), avg((s) => s.percent), "", "", "", `${n} مشاركًا`, ""]);
   return {
     name: "النتائج",
     title: `${TEST_TITLE} — ${SCHOOL_NAME} — ${TEACHER_NAME}`,
     rows: [header, ...rows],
-    widths: [7, 7, 26, 14, 22, 16, 26, 12, 14, 12, 10, 16, 26, 16, 18, 12, 44],
+    widths: [7, 7, 26, 14, 22, 16, 26, 12, 14, 12, 10, 16, 26, 16, 18, 44],
   };
 }
 

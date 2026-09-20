@@ -18,7 +18,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { clearAllData, clearDemoData, ensureSeeded, exportCsv, getDiagnosticAttendance, getSubmissions, reseedDemoData } from "../lib/storage";
+import { clearAllData, ensureSeeded, exportCsv, getDiagnosticAttendance, getSubmissions, reseedDemoData } from "../lib/storage";
 import { classReportFile, classReportPdf, resultsXlsx, scopeOf, selectionZip } from "../lib/reportExport";
 import StudentDownloads from "./StudentDownloads";
 import { DIAGNOSTIC_LEVELS, DiagnosticQRPanel } from "./Diagnostic";
@@ -36,7 +36,7 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 function TestResultsPanel({ go }: { go: (route: Route) => void }) {
   const [subs, setSubs] = useState<Submission[]>([]);
   const [qrLevel, setQrLevel] = useState<DiagnosticLevel>("jad3-moshtarak");
-  const [confirmClear, setConfirmClear] = useState<null | "demo" | "all">(null);
+  const [confirmClear, setConfirmClear] = useState<null | "all">(null);
   /* تصفية حسب المستوى والقسم + اختيار عدة تلاميذ للتحميل الجماعي */
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
@@ -98,7 +98,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
   }, [levelFiltered]);
 
   const maxBin = Math.max(1, ...histBins.map((b) => b.count));
-  const hasDemo = levelFiltered.some((s) => s.demo);
   const hasAnyDemo = subs.some((s) => s.demo);
 
   /* ---------- التحميل الفردي والجماعي ---------- */
@@ -138,8 +137,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
   const kb = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} م.ب` : `${Math.max(1, Math.round(n / 1024))} ك.ب`);
 
   const doClear = () => {
-    if (confirmClear === "demo") clearDemoData();
-    else if (confirmClear === "all") clearAllData();
+    if (confirmClear === "all") clearAllData();
     setSubs(getSubmissions());
     setConfirmClear(null);
   };
@@ -157,16 +155,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
               <p className="mt-2 text-sm text-ink-500">الجذع المشترك — التاريخ والجغرافيا · النقطة /20</p>
             </div>
             <div className="flex flex-wrap gap-2.5">
-              {hasDemo && (
-                <button
-                  type="button"
-                  onClick={() => setConfirmClear("demo")}
-                  className="inline-flex items-center gap-2 rounded-xl border border-gold-300 bg-gold-50 px-4 py-2.5 text-xs font-extrabold text-gold-700 transition-transform hover:-translate-y-0.5"
-                >
-                  <Trash2 className="size-4" aria-hidden="true" />
-                  حذف البيانات التوضيحية
-                </button>
-              )}
               {!hasAnyDemo && (
                 <button
                   type="button"
@@ -177,7 +165,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                   className="inline-flex items-center gap-2 rounded-xl border border-brand-300 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-transform hover:-translate-y-0.5"
                 >
                   <Users className="size-4" aria-hidden="true" />
-                  إعادة إنشاء البيانات التوضيحية
+                  إعادة إنشاء النتائج
                 </button>
               )}
               <button
@@ -203,14 +191,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
           </div>
         </Reveal>
 
-        {hasDemo && (
-          <Reveal delay={80}>
-            <p className="mt-5 rounded-2xl border border-gold-300/60 bg-gold-50 px-5 py-3 text-xs font-semibold leading-relaxed text-gold-700">
-              هذه الإحصاءات تتضمن <strong>بيانات توضيحية بغرض معاينة شكل اللوحة</strong>؛ بمجرد إجراء نتائج حقيقية من طرف
-              التلاميذ تُضاف إليها، ويمكن حذف التوضيحية في أي وقت بالزر أعلاه.
-            </p>
-          </Reveal>
-        )}
 
         <Reveal delay={120}>
           <div className="mt-7 rounded-3xl border border-brand-200/70 bg-brand-50/50 p-4 sm:p-5">
@@ -271,9 +251,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         مقارنة النتائج المسجلة مع اللوائح الرسمية 2026–2027؛ الغائب لا تُنشأ له نتيجة.
                       </p>
                     </div>
-                    <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-extrabold text-brand-700 ring-1 ring-brand-200">
-                      بيانات توضيحية عشوائية
-                    </span>
                   </div>
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
                     {attendance.map((summary) => (
@@ -552,7 +529,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                   ZIP فيضمّ لكل تلميذ(ة) ملف HTML جاهزًا للطباعة بنقرة واحدة ونسخة Word، إضافة إلى جدول Excel والتقرير الشامل.
                   ولتحويل الأرشيف كله إلى PDF دفعة واحدة على حاسوبك:{" "}
                   <code dir="ltr" className="rounded bg-white px-1.5 py-0.5 font-mono text-[10px] text-brand-800">npm run pdf:batch -- &lt;الأرشيف.zip&gt; --zip</code>{" "}
-                  (التفاصيل في docs/export-pdf.md). السجلات المحفوظة قبل هذا التحديث (أو التوضيحية) لا تحتوي أجوبة كل
+                  (التفاصيل في docs/export-pdf.md). السجلات المحفوظة قبل هذا التحديث لا تحتوي أجوبة كل
                   سؤال، وتُعلن وثيقتها ذلك صراحة.
                 </p>
               </div>
@@ -607,7 +584,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                             <td className="px-6 py-3.5">
                               <span className="font-bold text-ink-900">{s.name}</span>
                               {s.studentNo && <span className="ms-1.5 text-[11px] text-ink-500">(رقم {s.studentNo})</span>}
-                              {s.demo && <span className="ms-2 rounded-full bg-gold-100 px-2 py-0.5 text-[9px] font-extrabold text-gold-700">توضيحي</span>}
                             </td>
                             <td className="px-4 py-3.5 text-xs text-ink-500">{s.className}</td>
                             <td className="px-4 py-3.5">
@@ -651,12 +627,10 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
           <div className="animate-modal-in relative w-full max-w-sm rounded-3xl bg-white p-7 text-center shadow-2xl">
             <Trash2 className="mx-auto size-8 text-rose-500" aria-hidden="true" />
             <p className="mt-3 font-display text-lg font-black text-ink-900">
-              {confirmClear === "demo" ? "حذف البيانات التوضيحية؟" : "مسح جميع النتائج؟"}
+              مسح جميع النتائج؟
             </p>
             <p className="mt-2 text-xs leading-relaxed text-ink-500">
-              {confirmClear === "demo"
-                ? "ستُحذف النماذج التوضيحية فقط وتبقى نتائج التلاميذ الحقيقية."
-                : "ستُحذف جميع النتائج المحفوظة نهائيًا، ولا يمكن التراجع."}
+              ستُحذف جميع النتائج المحفوظة نهائيًا، ولا يمكن التراجع.
             </p>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button type="button" onClick={() => setConfirmClear(null)} className="rounded-xl border border-ink-900/10 px-4 py-2.5 text-sm font-bold text-ink-700 hover:bg-paper-warm">
