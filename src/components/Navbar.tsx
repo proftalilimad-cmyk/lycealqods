@@ -25,25 +25,40 @@ export default function Navbar({ route, go, onSearch }: NavbarProps) {
     <header className="fixed inset-x-0 top-0 z-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div
-          className={`relative mt-3 flex items-center justify-between gap-3 rounded-2xl px-4 py-3 transition-all duration-500 sm:px-5 ${
+          className={`relative mt-3 flex flex-col gap-3 rounded-2xl px-3 py-3 transition-all duration-500 sm:px-4 sm:py-4 ${
             scrolled ? "glass shadow-[0_16px_50px_-18px_rgba(4,36,26,0.35)]" : "bg-white/55 backdrop-blur-xl border border-white/50"
           }`}
         >
-          {/* Brand */}
+          {/* البحث هو العنصر الأول والأبرز في الرأس؛ النقر يفتح SearchOverlay الحالية. */}
           <button
             type="button"
-            onClick={() => { setOpen(false); go({ view: "home" }); }}
-            className="group flex items-center gap-3 text-start"
-            aria-label="فضاء الاجتماعيات — الرئيسية"
+            onClick={onSearch}
+            aria-label="البحث في المنصة"
+            aria-haspopup="dialog"
+            className="group flex min-h-16 w-full items-center gap-4 rounded-[1.35rem] border-[3px] border-gold-500 bg-white px-4 py-3 text-start shadow-[0_8px_24px_-14px_rgba(143,95,28,0.7)] transition-all hover:border-gold-600 hover:shadow-[0_12px_28px_-14px_rgba(143,95,28,0.8)] focus-visible:border-gold-600 sm:min-h-[4.25rem] sm:px-6"
           >
-            <span className="relative grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 shadow-lg shadow-brand-700/30 transition-transform duration-500 group-hover:-rotate-6">
-              <GraduationCap className="size-5 text-gold-300" strokeWidth={2.2} />
-            </span>
-            <span className="leading-tight">
-              <span className="block font-display text-base font-extrabold text-ink-900 sm:text-lg">فضاء الاجتماعيات</span>
-              <span className="block text-[10px] font-medium text-ink-500 sm:text-[11px]">الأستاذ عماد طليل · ثانوية القدس — القنيطرة</span>
+            <Search className="size-8 shrink-0 text-brand-700 transition-transform duration-300 group-hover:scale-105 sm:size-9" aria-hidden="true" />
+            <span className="min-w-0 flex-1 truncate text-end text-base font-bold text-ink-300 sm:text-2xl sm:font-semibold">
+              ابحث عن درس، مفهوم، تطبيق، تمرين أو منهجية...
             </span>
           </button>
+
+          <div className="flex w-full items-center justify-between gap-3">
+            {/* Brand */}
+            <button
+              type="button"
+              onClick={() => { setOpen(false); go({ view: "home" }); }}
+              className="group flex items-center gap-3 text-start"
+              aria-label="فضاء الاجتماعيات — الرئيسية"
+            >
+              <span className="relative grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 shadow-lg shadow-brand-700/30 transition-transform duration-500 group-hover:-rotate-6">
+                <GraduationCap className="size-5 text-gold-300" strokeWidth={2.2} />
+              </span>
+              <span className="leading-tight">
+                <span className="block font-display text-base font-extrabold text-ink-900 sm:text-lg">فضاء الاجتماعيات</span>
+                <span className="block text-[10px] font-medium text-ink-500 sm:text-[11px]">الأستاذ عماد طليل · ثانوية القدس — القنيطرة</span>
+              </span>
+            </button>
 
           {/* Desktop nav */}
           <nav aria-label="التنقل الرئيسي" className="hidden items-center gap-5 lg:flex xl:gap-6">
@@ -62,14 +77,6 @@ export default function Navbar({ route, go, onSearch }: NavbarProps) {
           </nav>
 
           <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={onSearch}
-              aria-label="البحث في المنصة"
-              className="grid size-10 place-items-center rounded-xl border border-ink-900/10 bg-white/70 text-ink-700 transition-all hover:border-brand-300 hover:text-brand-700"
-            >
-              <Search className="size-4.5" />
-            </button>
             <button
               type="button"
               onClick={() => go({ view: "dashboard" })}
@@ -93,6 +100,7 @@ export default function Navbar({ route, go, onSearch }: NavbarProps) {
             >
               {open ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
+          </div>
           </div>
 
           {/* Mobile menu */}
