@@ -4,7 +4,7 @@ import { levelOf } from "./grading";
 
 const KEY = "talil_platform_submissions_v1";
 /* إصدار جديد حتى تُستبدل النماذج القديمة بالأقسام الرسمية المطلوبة عند فتح اللوحة. */
-const SEED_FLAG = "talil_platform_seeded_v2";
+const SEED_FLAG = "talil_platform_seeded_v3";
 
 /** الأقسام المستعملة في بيانات المعاينة الخاصة بالتقويم التشخيصي. */
 export const DIAGNOSTIC_DEMO_CLASS_LABELS = [
@@ -67,9 +67,10 @@ function demoSkills(history: number, geography: number, total: number) {
   };
 }
 
-function demoSubmission(roster: RosterClass, student: RosterStudent, order: number): Submission {
+function demoSubmission(roster: RosterClass, student: RosterStudent, order: number, needsSupport: boolean): Submission {
   const random = seededRandom(hashSeed(`${roster.label}:${student.massar}`));
-  const total = halfPoint(8 + random() * 11.5);
+  /* نصف الحاضرين دون 10/20 (يحتاجون إلى الدعم)، والنصف الآخر فوق عتبة النجاح. */
+  const total = needsSupport ? halfPoint(5 + random() * 4.5) : halfPoint(10.5 + random() * 9);
   let history = halfPoint(total * (0.38 + random() * 0.3));
   let geography = halfPoint(total - history);
   if (geography > 10) {
@@ -107,7 +108,9 @@ function seeded(): Submission[] {
   return targetClasses.flatMap((roster) => {
     /* نصف القسم بالتقريب عند العدد الفردي: 16 من 31 في «علوم خ ف 3». */
     const presentCount = Math.round(roster.students.length / 2);
-    return shuffled(roster.students, hashSeed(roster.label)).slice(0, presentCount).map((student, index) => demoSubmission(roster, student, index));
+    return shuffled(roster.students, hashSeed(roster.label))
+      .slice(0, presentCount)
+      .map((student, index) => demoSubmission(roster, student, index, index < Math.floor(presentCount / 2)));
   });
 }
 
