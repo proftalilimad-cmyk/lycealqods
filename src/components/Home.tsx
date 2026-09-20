@@ -98,14 +98,14 @@ export default function Home({ go }: HomeProps) {
           </Reveal>
 
           <Reveal delay={340}>
-            <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-5 lg:max-w-5xl">
+            <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:max-w-5xl lg:grid-cols-5">
               {QUICK_ACTIONS.map((a) => {
-                const cardClass = `group relative rounded-2xl border p-4 text-center backdrop-blur transition-all duration-300 ${
+                const cardClass = `group relative flex min-h-[8.5rem] flex-col justify-center rounded-[1.35rem] border p-4 text-center backdrop-blur transition-all duration-300 ${
                   a.featured
-                    ? "col-span-2 rounded-3xl border-gold-300/60 bg-gradient-to-br from-white/[0.11] to-gold-400/[0.09] p-5 shadow-[0_18px_45px_-24px_rgba(230,180,87,0.9)] sm:col-span-2 sm:p-6"
+                    ? "col-span-2 min-h-[10.5rem] rounded-[1.75rem] border-gold-300/60 bg-gradient-to-br from-white/[0.13] via-white/[0.08] to-gold-400/[0.11] p-5 shadow-[0_18px_45px_-24px_rgba(230,180,87,0.9)] hover:-translate-y-1 hover:border-gold-200 hover:bg-white/[0.16] sm:p-6"
                     : a.soon
                       ? "border-white/8 bg-white/[0.03]"
-                      : "border-white/12 bg-white/[0.05] hover:-translate-y-1.5 hover:border-gold-300/40 hover:bg-white/[0.09]"
+                      : "border-white/12 bg-gradient-to-br from-white/[0.08] to-white/[0.03] shadow-[0_14px_35px_-28px_rgba(230,180,87,0.85)] hover:-translate-y-1.5 hover:border-gold-300/40 hover:bg-white/[0.12] hover:shadow-[0_18px_40px_-26px_rgba(230,180,87,0.8)]"
                 }`;
                 const cardContent = (
                   <>
@@ -114,13 +114,13 @@ export default function Home({ go }: HomeProps) {
                         قريبًا
                       </span>
                     )}
-                    <span className={`mx-auto grid place-items-center rounded-xl transition-all duration-300 ${a.featured ? "size-16 rounded-[1.35rem] bg-gold-400/20 text-gold-300 sm:size-[5.5rem]" : `size-10 ${a.soon ? "bg-white/10 text-white/40" : "bg-white/10 text-gold-300 group-hover:scale-110 group-hover:bg-gold-400/20"}`}`}>
-                      <a.icon className={a.featured ? "size-9" : "size-5"} strokeWidth={2.2} />
+                    <span className={`mx-auto grid place-items-center transition-all duration-300 ${a.featured ? "size-16 rounded-[1.35rem] bg-gold-400/20 text-gold-300 ring-1 ring-gold-200/20 group-hover:scale-105 group-hover:bg-gold-400/30 sm:size-[5.5rem]" : `size-12 rounded-2xl ${a.soon ? "bg-white/10 text-white/40" : "bg-gradient-to-br from-white/10 to-brand-900/25 text-gold-300 ring-1 ring-white/10 group-hover:scale-110 group-hover:bg-gold-400/20"}`}`}>
+                      <a.icon className={a.featured ? "size-9" : "size-5.5"} strokeWidth={2.2} />
                     </span>
-                    <span className={`block font-display font-extrabold ${a.featured ? "mt-4 text-lg text-white sm:text-xl" : `mt-3 text-[13px] ${a.soon ? "text-white/55" : "text-white"}`}`}>
+                    <span className={`block font-display font-extrabold ${a.featured ? "mt-4 text-lg text-white sm:text-xl" : `mt-3 text-sm ${a.soon ? "text-white/55" : "text-white"}`}`}>
                       {a.label}
                     </span>
-                    <span className={a.featured ? "mt-2 block text-xs leading-relaxed text-white/60 sm:text-sm" : "mt-1 hidden text-[10px] leading-snug text-white/45 lg:block"}>
+                    <span className={a.featured ? "mt-2 block text-xs leading-relaxed text-white/65 sm:text-sm" : "mt-2 block text-[10px] leading-relaxed text-white/50 sm:text-[11px]"}>
                       {a.desc}
                     </span>
                   </>
