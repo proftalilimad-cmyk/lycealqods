@@ -38,13 +38,9 @@ add({ view: "apps" }, "0.8", "monthly");
 add({ view: "resources" }, "0.8", "weekly");
 add({ view: "decks" }, "0.8", "monthly");
 add({ view: "test" }, "0.7", "monthly");
-add({ view: "battle" }, "0.5", "monthly");
 
 for (const type of RESOURCE_TYPES) add({ view: "resources", type: type.id }, "0.6", "monthly");
-for (const bank of TEST_BANKS) {
-  add({ view: "test", bank: bank.id }, "0.6", "monthly");
-  add({ view: "battle", bank: bank.id }, "0.4", "monthly");
-}
+for (const bank of TEST_BANKS) add({ view: "test", bank: bank.id }, "0.6", "monthly");
 for (const method of METHODOLOGIES) add({ view: "methods", id: method.id }, "0.6", "yearly");
 for (const application of APPLICATIONS) add({ view: "apps", id: application.id }, "0.6", "monthly");
 for (const deck of DECKS) add({ view: "decks", id: deck.id }, "0.6", "monthly");

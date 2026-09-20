@@ -5,7 +5,6 @@ export type Route =
   | { view: "about" }
   | { view: "diagnostic"; level?: DiagnosticLevel }
   | { view: "test"; bank?: string }
-  | { view: "battle"; bank?: string }
   | { view: "dashboard"; tab?: string }
   | { view: "lessons"; level?: string }
   | { view: "jadadat"; id?: string; level?: string }
@@ -19,7 +18,6 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "الرئيسية", route: { view: "home" } },
   { label: "نبذة عن الأستاذ", route: { view: "about" } },
   { label: "التقويم التشخيصي", route: { view: "diagnostic" } },
-  { label: "المبارزة", route: { view: "battle" } },
   { label: "الدروس", route: { view: "lessons" } },
   { label: "التطبيقات", route: { view: "apps" } },
   { label: "العروض", route: { view: "decks" } },
@@ -39,8 +37,6 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/about                  نبذة عن الأستاذ
      #/test                   التقويم التشخيصي
      #/test/<bank>            تقويم بنك معيّن (tc / bac1 / bac2)
-     #/battle                 وضع المبارزة
-     #/battle/<bank>          مبارزة ببنك معيّن
      #/dashboard              لوحة الأستاذ (محمية باسم مستعمل وكلمة مرور)
      #/dashboard/<tab>        تبويب اللوحة (results / jadadat / security)
      #/lessons                الدروس
@@ -70,7 +66,6 @@ export const VIEW_LABELS: Record<Route["view"], string> = {
   about: "نبذة عن الأستاذ",
   diagnostic: "التقويم التشخيصي",
   test: "التقويم التشخيصي",
-  battle: "المبارزة",
   dashboard: "لوحة الأستاذ",
   lessons: "الدروس",
   jadadat: "الجذاذات",
@@ -87,7 +82,6 @@ const SEGMENTS: Record<string, Route["view"]> = {
   about: "about",
   diagnostic: "diagnostic",
   test: "test",
-  battle: "battle",
   dashboard: "dashboard",
   lessons: "lessons",
   jadadat: "jadadat",
@@ -123,8 +117,6 @@ export function routeToPath(route: Route): string {
       return route.tab ? `/dashboard/${encodeSegment(route.tab)}` : "/dashboard";
     case "test":
       return route.bank ? `/test/${encodeSegment(route.bank)}` : "/test";
-    case "battle":
-      return route.bank ? `/battle/${encodeSegment(route.bank)}` : "/battle";
     case "lessons":
       return route.level ? `/lessons/${encodeSegment(route.level)}` : "/lessons";
     case "jadadat":
@@ -171,8 +163,6 @@ export function routeFromPath(rawPath: string): Route {
       return parts[1] ? { view: "dashboard", tab: parts[1] } : { view: "dashboard" };
     case "test":
       return parts[1] ? { view: "test", bank: parts[1] } : { view: "test" };
-    case "battle":
-      return parts[1] ? { view: "battle", bank: parts[1] } : { view: "battle" };
     case "lessons":
       return parts[1] ? { view: "lessons", level: parts[1] } : { view: "lessons" };
     case "jadadat": {

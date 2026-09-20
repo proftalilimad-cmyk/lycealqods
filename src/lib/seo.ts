@@ -155,8 +155,6 @@ function breadcrumbsFor(route: Route, context: SeoContext): SeoBreadcrumb[] {
       return [home, { name: "العروض التفاعلية", url: urlFor({ view: "decks" }) }, ...(context.deck ? [{ name: context.deck.title, url: urlFor(route) }] : [])];
     case "test":
       return [home, { name: "التقويمات التفاعلية", url: urlFor({ view: "test" }) }, ...(route.bank ? [{ name: "تقويم المستوى", url: urlFor(route) }] : [])];
-    case "battle":
-      return [home, { name: "وضع المبارزة", url: urlFor({ view: "battle" }) }];
     case "dashboard":
       return [home, { name: "لوحة الأستاذ", url: urlFor({ view: "dashboard" }) }];
     default:
@@ -360,11 +358,6 @@ export function getSeoMetadata(route: Route, context: SeoContext = {}): SeoMetad
         ? "تقويم تفاعلي في مادة الاجتماعيات لقياس مكتسبات التاريخ والجغرافيا حسب المستوى الدراسي."
         : "تقويمات وفروض تفاعلية في الاجتماعيات مع تصحيح آلي لمستويات الثانوي التأهيلي بالمغرب.";
       keywords = commonKeywords(["فروض الاجتماعيات", "تصحيح فروض الاجتماعيات", "تقويم تفاعلي"]);
-      break;
-    case "battle":
-      title = "المبارزة في الاجتماعيات | تحديات التاريخ والجغرافيا";
-      description = "وضع المبارزة التفاعلي للتدرب على أسئلة التاريخ والجغرافيا في مادة الاجتماعيات بطريقة تنافسية.";
-      keywords = commonKeywords(["تمارين التاريخ والجغرافيا", "التقويم الذاتي"]);
       break;
     case "dashboard":
       title = "لوحة الأستاذ | فضاء الاجتماعيات — عماد طليل";

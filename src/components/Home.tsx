@@ -13,7 +13,6 @@ import {
   MonitorPlay,
   PenLine,
   Search,
-  Swords,
   Target,
   Timer,
   User,
@@ -49,7 +48,6 @@ const QUICK_ACTIONS: QuickAction[] = [
   { label: "المصطلحات", desc: "معجم مفاهيم دروس المادة", icon: Library, search: true },
   { label: "الخرائط والخطاطات", desc: "خرائط تخطيطية وخطاطات تفاعلية", icon: Globe2, route: { view: "resources", type: "map" } },
   { label: "التقويم الذاتي", desc: "8 تقويمات تفاعلية حسب المستوى", icon: Target, route: { view: "diagnostic" } },
-  { label: "وضع المبارزة", desc: "تحدَّ زميلك أو البطل الآلي", icon: Swords, route: { view: "battle" } },
   { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, search: true },
 ];
 
@@ -138,14 +136,6 @@ export default function Home({ go, onSearch }: HomeProps) {
               >
                 <Target className="size-5" aria-hidden="true" />
                 ابدأ التقويم التشخيصي
-              </button>
-              <button
-                type="button"
-                onClick={() => go({ view: "battle" })}
-                className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-gold-400/40 bg-gold-400/10 px-8 py-4 text-base font-semibold text-gold-200 transition-all duration-300 hover:border-gold-300/60 hover:bg-gold-400/20 sm:w-auto"
-              >
-                <Swords className="size-5" aria-hidden="true" />
-                وضع المبارزة
               </button>
               <button
                 type="button"
