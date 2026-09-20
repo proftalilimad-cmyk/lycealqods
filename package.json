@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "tsx scripts/generate-sitemap.ts",
     "build": "vite build",
     "preview": "vite preview",
     "export": "bash scripts/export-zip.sh",

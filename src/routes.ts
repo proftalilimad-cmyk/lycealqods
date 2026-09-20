@@ -211,6 +211,11 @@ export function hashToRoute(hash: string): Route {
   return routeFromPath(path || "/");
 }
 
+/** قراءة رابط hash الحالي أو مسار نظيف أعادته الاستضافة إلى index.html. */
+export function locationToRoute(location: { hash: string; pathname: string; search: string }): Route {
+  return location.hash.startsWith("#/") ? hashToRoute(location.hash) : routeFromPath(`${location.pathname}${location.search}`);
+}
+
 /** هل المساران يمثلان الشاشة نفسها؟ (لتفادي تكرار الإدخال في التاريخ) */
 export function sameRoute(a: Route, b: Route): boolean {
   return routeToPath(a) === routeToPath(b);

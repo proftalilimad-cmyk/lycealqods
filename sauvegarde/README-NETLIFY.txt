@@ -4,7 +4,9 @@ Fichier prêt à publier :
   site-talil-imad-hostinger.zip
 
 Ce fichier est la version statique complète du site. Il contient index.html à
-la racine ainsi que les dossiers decks/, files/, exports/ et images/.
+la racine ainsi que les dossiers decks/, files/, exports/ et images/. Il contient
+également robots.txt, sitemap.xml, _redirects et _headers pour le SEO et les
+routes propres de l’application.
 
 Pour publier sur Netlify :
 1. Télécharger puis décompresser site-talil-imad-hostinger.zip.

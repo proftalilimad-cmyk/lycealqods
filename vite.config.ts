@@ -5,12 +5,12 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 
 /**
- * نطاق النشر الدائم (اختياري).
+ * نطاق النشر الدائم (يمكن تغييره عند النشر على نطاق مخصص).
  * مثال: SITE_URL=https://lycealqods.example.org npm run build
- * يحوّل og:image إلى رابط مطلق ويضيف og:url، وهما مطلوبان لمنصات
+ * يحوّل og:image إلى رابط مطلق ويثبت og:url، وهما مطلوبان لمنصات
  * المشاركة (واتساب، فيسبوك، تويتر) التي لا تقبل روابط نسبية.
  */
-const SITE_URL = (process.env.SITE_URL ?? "").replace(/\/+$/, "");
+const SITE_URL = (process.env.SITE_URL ?? "https://courstalil.netlify.app").replace(/\/+$/, "");
 
 function ogAbsoluteUrls(): Plugin {
   return {
@@ -21,10 +21,13 @@ function ogAbsoluteUrls(): Plugin {
       order: "post",
       handler(html) {
         if (!SITE_URL) return html;
-        return html
+        const withAbsoluteImage = html
           .replace('content="./og-cover.png"', `content="${SITE_URL}/og-cover.png"`)
-          .replace('content="/og-cover.png"', `content="${SITE_URL}/og-cover.png"`)
-          .replace("</head>", `    <meta property="og:url" content="${SITE_URL}/" />\n  </head>`);
+          .replace('content="/og-cover.png"', `content="${SITE_URL}/og-cover.png"`);
+        const ogUrl = `<meta property="og:url" content="${SITE_URL}/" />`;
+        return withAbsoluteImage.includes('property="og:url"')
+          ? withAbsoluteImage.replace(/<meta property="og:url"[^>]*\/>/, ogUrl)
+          : withAbsoluteImage.replace("</head>", `    ${ogUrl}\n  </head>`);
       },
     },
   };

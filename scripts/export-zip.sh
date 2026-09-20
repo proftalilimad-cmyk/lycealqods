@@ -44,7 +44,7 @@ fi
 echo "→ أرشفة الموقع المنشور (dist)…"
 (
   cd "$ROOT/dist"
-  zip -qrX "$SITE_ZIP" index.html decks files images og-cover.png ads.txt
+  zip -qrX "$SITE_ZIP" index.html decks files images og-cover.png ads.txt robots.txt sitemap.xml _redirects _headers
 )
 if [ -d "$HOSTINGER_TMP/exports" ]; then
   (

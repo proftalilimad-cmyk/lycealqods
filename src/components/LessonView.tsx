@@ -326,6 +326,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
                       src={lesson.bookPage.src}
                       alt={`${lesson.bookPage.book} — الصفحة ${lesson.bookPage.page}`}
                       loading="lazy"
+                      decoding="async"
                       className="mx-auto w-full max-w-3xl rounded-xl border border-ink-900/10 bg-white shadow-md"
                     />
                   </a>

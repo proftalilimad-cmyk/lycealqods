@@ -208,7 +208,14 @@ function QRPanel({ level, onView }: QRPanelProps) {
         <div className="grid gap-8 p-6 md:grid-cols-[minmax(230px,320px)_1fr] md:p-8">
           <div className="flex min-h-[300px] items-center justify-center rounded-3xl border border-ink-900/8 bg-paper-warm/50 p-5">
             {qrDataUrl ? (
-              <img src={qrDataUrl} alt={`رمز QR للدخول إلى تقويم ${level.label}`} className="h-auto w-full max-w-[290px] rounded-xl bg-white p-3 shadow-sm" />
+              <img
+                src={qrDataUrl}
+                alt={`رمز QR للدخول إلى تقويم ${level.label}`}
+                width={290}
+                height={290}
+                decoding="async"
+                className="h-auto w-full max-w-[290px] rounded-xl bg-white p-3 shadow-sm"
+              />
             ) : (
               <div className="grid size-[250px] place-items-center rounded-xl bg-white text-center text-xs font-bold text-ink-400">جارٍ إنشاء رمز QR…</div>
             )}

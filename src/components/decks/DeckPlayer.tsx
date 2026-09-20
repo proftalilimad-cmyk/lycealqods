@@ -149,6 +149,7 @@ function PageViewer({ page, pages, onOpenPage }: { page: number; pages: number[]
           <img
             src={pageUrl(page)}
             alt={`صفحة ${page} من الكتاب المدرسي`}
+            decoding="async"
             draggable={false}
             onLoad={() => setLoaded(true)}
             className={cn("w-full select-none rounded-xl bg-white shadow-[0_18px_45px_-20px_rgba(4,36,26,0.35)] ring-1 ring-ink-900/8 transition-opacity", loaded ? "opacity-100" : "opacity-0")}
