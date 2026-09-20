@@ -18,7 +18,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { clearAllData, clearDemoData, ensureSeeded, exportCsv, getSubmissions } from "../lib/storage";
+import { clearAllData, clearDemoData, ensureSeeded, exportCsv, getDiagnosticAttendance, getSubmissions } from "../lib/storage";
 import { classReportFile, classReportPdf, resultsXlsx, scopeOf, selectionZip } from "../lib/reportExport";
 import StudentDownloads from "./StudentDownloads";
 import { activeCreds, isUnlocked, lock } from "../lib/teacherAuth";
@@ -92,6 +92,10 @@ function TestResultsPanel() {
 
   /* ---------- التحميل الفردي والجماعي ---------- */
   const classes = useMemo(() => Array.from(new Set(subs.map((s) => s.className))).sort(), [subs]);
+  const attendance = useMemo(
+    () => getDiagnosticAttendance(subs, classFilter === "all" ? undefined : classFilter),
+    [subs, classFilter],
+  );
   const filtered = useMemo(
     () => (classFilter === "all" ? subs : subs.filter((s) => s.className === classFilter)),
     [subs, classFilter],
@@ -208,6 +212,57 @@ function TestResultsPanel() {
                 </Reveal>
               ))}
             </div>
+
+            {/* الحضور والغياب حسب اللوائح الرسمية */}
+            {attendance.length > 0 && (
+              <Reveal delay={90}>
+                <div className="mt-8 rounded-3xl border border-brand-200/70 bg-brand-50/60 p-5 sm:p-6">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="flex items-center gap-2 font-display text-base font-extrabold text-ink-900">
+                        <Users className="size-5 text-brand-700" aria-hidden="true" />
+                        حضور التقويم التشخيصي
+                      </p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-ink-500">
+                        مقارنة النتائج المسجلة مع اللوائح الرسمية 2026–2027؛ الغائب لا تُنشأ له نتيجة.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-extrabold text-brand-700 ring-1 ring-brand-200">
+                      بيانات توضيحية عشوائية
+                    </span>
+                  </div>
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    {attendance.map((summary) => (
+                      <div key={summary.className} className="rounded-2xl border border-white bg-white p-4">
+                        <p className="font-display text-sm font-extrabold text-ink-900">{summary.className}</p>
+                        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                          <div className="rounded-xl bg-brand-50 p-2.5">
+                            <p className="font-display text-xl font-black text-brand-700">{summary.present}</p>
+                            <p className="text-[10px] font-bold text-ink-500">حاضرون</p>
+                          </div>
+                          <div className="rounded-xl bg-rose-50 p-2.5">
+                            <p className="font-display text-xl font-black text-rose-600">{summary.absent}</p>
+                            <p className="text-[10px] font-bold text-ink-500">غائبون</p>
+                          </div>
+                          <div className="rounded-xl bg-paper-warm p-2.5">
+                            <p className="font-display text-xl font-black text-ink-900">{summary.total}</p>
+                            <p className="text-[10px] font-bold text-ink-500">مجموع القسم</p>
+                          </div>
+                        </div>
+                        {summary.absentStudents.length > 0 && (
+                          <details className="mt-3 rounded-xl bg-rose-50/70 px-3 py-2 text-[11px] text-rose-700">
+                            <summary className="cursor-pointer font-extrabold">عرض لائحة الغائبين ({summary.absent})</summary>
+                            <p className="mt-2 leading-loose">
+                              {summary.absentStudents.map((student) => `${student.n}. ${student.name}`).join(" · ")}
+                            </p>
+                          </details>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Reveal>
+            )}
 
             {/* الرسوم */}
             <div className="mt-8 grid gap-5 lg:grid-cols-3">

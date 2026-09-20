@@ -1,57 +1,133 @@
 import type { Submission } from "../types";
+import { ROSTER_CLASSES, type RosterClass, type RosterStudent } from "../data/rosters";
 import { levelOf } from "./grading";
 
 const KEY = "talil_platform_submissions_v1";
-const SEED_FLAG = "talil_platform_seeded_v1";
+/* إصدار جديد حتى تُستبدل النماذج القديمة بالأقسام الرسمية المطلوبة عند فتح اللوحة. */
+const SEED_FLAG = "talil_platform_seeded_v2";
 
-const DEMO_NAMES: { name: string; className: string; no: string }[] = [
-  { name: "سلمى العلوي", className: "الجذع المشترك العلمي", no: "12" },
-  { name: "يوسف أيت الحاج", className: "الجذع المشترك العلمي", no: "7" },
-  { name: "خديجة بوقنتار", className: "الجذع المشترك آداب وعلوم إنسانية", no: "3" },
-  { name: "مهدي الرامي", className: "الجذع المشترك التكنولوجي", no: "18" },
-  { name: "سارة الإدريسي", className: "الجذع المشترك العلمي", no: "21" },
-  { name: "عمر بناني", className: "الجذع المشترك آداب وعلوم إنسانية", no: "9" },
-  { name: "إيمان الشرقاوي", className: "الجذع المشترك العلمي", no: "25" },
-  { name: "أيوب التازي", className: "الجذع المشترك التكنولوجي", no: "5" },
-  { name: "مريم الفاسي", className: "الجذع المشترك آداب وعلوم إنسانية", no: "14" },
-  { name: "حمزة الكتاني", className: "الجذع المشترك العلمي", no: "30" },
-  { name: "نور الدين بوزيد", className: "الجذع المشترك التكنولوجي", no: "11" },
-  { name: "زينب المرابط", className: "الجذع المشترك العلمي", no: "16" },
-  { name: "ياسين حجاجي", className: "الجذع المشترك آداب وعلوم إنسانية", no: "2" },
-  { name: "أسماء بلقاضي", className: "الجذع المشترك العلمي", no: "27" },
-];
+/** الأقسام المستعملة في بيانات المعاينة الخاصة بالتقويم التشخيصي. */
+export const DIAGNOSTIC_DEMO_CLASS_LABELS = [
+  "جذع مشترك علوم خ ف 1",
+  "جذع مشترك علوم خ ف 3",
+] as const;
 
-const DEMO_TOTALS = [17.5, 14, 11.5, 9, 16, 12.5, 18, 8.5, 13, 15.5, 10, 7.5, 12, 16.5];
+const DIAGNOSTIC_DEMO_CLASS_SET = new Set<string>(DIAGNOSTIC_DEMO_CLASS_LABELS);
+
+export interface DiagnosticAttendanceSummary {
+  className: string;
+  total: number;
+  present: number;
+  absent: number;
+  absentStudents: RosterStudent[];
+}
+
+/* مولّد شبه عشوائي ثابت: يعطي نتائج مختلفة بين التلاميذ، ويحافظ عليها بعد إعادة تحميل الصفحة. */
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state += 0x6d2b79f5;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function hashSeed(value: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function shuffled<T>(items: T[], seed: number): T[] {
+  const result = [...items];
+  const random = seededRandom(seed);
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+const halfPoint = (n: number) => Math.round(n * 2) / 2;
+
+function demoSkills(history: number, geography: number, total: number) {
+  return {
+    "مفاهيم تاريخية": { got: Math.min(3, halfPoint(history * 0.3)), max: 3 },
+    "التسلسل الزمني للأحداث": { got: Math.min(2, halfPoint(history * 0.24)), max: 2 },
+    "تحليل الوثائق التاريخية": { got: Math.min(2, halfPoint(history * 0.2)), max: 2 },
+    "قراءة الجداول الإحصائية": { got: Math.min(1, halfPoint(geography * 0.12)), max: 1 },
+    "قراءة المبيانات": { got: Math.min(1, halfPoint(geography * 0.1 + 0.1)), max: 1 },
+    "قراءة الخرائط": { got: Math.min(1, halfPoint(geography * 0.11)), max: 1 },
+    "التعبير والكتابة": { got: Math.min(1, halfPoint((total / 20) * 0.9 + 0.05)), max: 1 },
+  };
+}
+
+function demoSubmission(roster: RosterClass, student: RosterStudent, order: number): Submission {
+  const random = seededRandom(hashSeed(`${roster.label}:${student.massar}`));
+  const total = halfPoint(8 + random() * 11.5);
+  let history = halfPoint(total * (0.38 + random() * 0.3));
+  let geography = halfPoint(total - history);
+  if (geography > 10) {
+    geography = 10;
+    history = halfPoint(total - geography);
+  }
+  if (history > 10) {
+    history = 10;
+    geography = halfPoint(total - history);
+  }
+  const percent = Math.round((total / 20) * 1000) / 10;
+
+  return {
+    id: `demo-diagnostic-${roster.id}-${student.massar}`,
+    name: student.name,
+    className: roster.label,
+    studentNo: String(student.n),
+    massar: student.massar,
+    date: new Date(Date.now() - (order + 1) * 86400000).toISOString(),
+    history,
+    geography,
+    total,
+    percent,
+    level: levelOf(percent).label,
+    bankId: "tc-sci",
+    bankLabel: "الجذع المشترك العلمي",
+    bankLevel: "الجذع المشترك",
+    skills: demoSkills(history, geography, total),
+    demo: true,
+  };
+}
 
 function seeded(): Submission[] {
-  return DEMO_NAMES.map((d, i) => {
-    const total = DEMO_TOTALS[i % DEMO_TOTALS.length];
-    const history = Math.min(10, Math.round((total / 2 + (i % 3) * 0.5) * 2) / 2);
-    const geography = Math.round((total - history) * 2) / 2;
-    const percent = Math.round((total / 20) * 1000) / 10;
+  const targetClasses = ROSTER_CLASSES.filter((roster) => DIAGNOSTIC_DEMO_CLASS_SET.has(roster.label));
+  return targetClasses.flatMap((roster) => {
+    /* نصف القسم بالتقريب عند العدد الفردي: 16 من 31 في «علوم خ ف 3». */
+    const presentCount = Math.round(roster.students.length / 2);
+    return shuffled(roster.students, hashSeed(roster.label)).slice(0, presentCount).map((student, index) => demoSubmission(roster, student, index));
+  });
+}
+
+/** مقارنة النتائج باللوائح الرسمية لإظهار الحاضرين والغائبين دون إنشاء نتيجة للغائب. */
+export function getDiagnosticAttendance(submissions: Submission[], className?: string): DiagnosticAttendanceSummary[] {
+  return ROSTER_CLASSES.filter(
+    (roster) => DIAGNOSTIC_DEMO_CLASS_SET.has(roster.label) && (!className || roster.label === className),
+  ).map((roster) => {
+    const presentKeys = new Set(
+      submissions
+        .filter((submission) => submission.className === roster.label)
+        .flatMap((submission) => [submission.massar, submission.name].filter(Boolean) as string[]),
+    );
+    const absentStudents = roster.students.filter((student) => !presentKeys.has(student.massar) && !presentKeys.has(student.name));
     return {
-      id: `demo-${i}`,
-      name: d.name,
-      className: d.className,
-      studentNo: d.no,
-      date: new Date(Date.now() - (i + 2) * 86400000).toISOString(),
-      history,
-      geography,
-      total,
-      percent,
-      level: levelOf(percent).label,
-      bankId: i % 2 === 0 ? "tc-sci" : "tc-arts",
-      bankLabel: i % 2 === 0 ? "الجذع المشترك العلمي والتكنولوجي" : "الجذع المشترك آداب وعلوم إنسانية",
-      skills: {
-        "مفاهيم تاريخية": { got: Math.min(3, history * 0.3), max: 3 },
-        "التسلسل الزمني للأحداث": { got: Math.min(2, history * 0.24), max: 2 },
-        "تحليل الوثائق التاريخية": { got: Math.min(2, history * 0.2), max: 2 },
-        "قراءة الجداول الإحصائية": { got: Math.min(1, geography * 0.12), max: 1 },
-        "قراءة المبيانات": { got: Math.min(1, geography * 0.1 + 0.1), max: 1 },
-        "قراءة الخرائط": { got: Math.min(1, geography * 0.11), max: 1 },
-        "التعبير والكتابة": { got: Math.min(1, (total / 20) * 0.9 + 0.05), max: 1 },
-      },
-      demo: true,
+      className: roster.label,
+      total: roster.students.length,
+      present: roster.students.length - absentStudents.length,
+      absent: absentStudents.length,
+      absentStudents,
     };
   });
 }
@@ -73,9 +149,9 @@ export function addSubmission(sub: Submission): void {
 
 export function ensureSeeded(): void {
   if (localStorage.getItem(SEED_FLAG)) return;
-  if (getSubmissions().length === 0) {
-    localStorage.setItem(KEY, JSON.stringify(seeded()));
-  }
+  /* نحافظ على أي نتائج حقيقية ونستبدل فقط النماذج التوضيحية القديمة. */
+  const realSubmissions = getSubmissions().filter((submission) => !submission.demo);
+  localStorage.setItem(KEY, JSON.stringify([...realSubmissions, ...seeded()]));
   localStorage.setItem(SEED_FLAG, "1");
 }
 
@@ -97,7 +173,7 @@ export function exportCsv(list: Submission[]): void {
       (s) =>
         `"${s.name}","${s.className}","${s.bankLabel ?? "الجذع المشترك"}",${s.history},${s.geography},${s.total},${s.percent}%,${s.level},"${new Date(
           s.date
-        ).toLocaleDateString("fr-MA")}"`
+        ).toLocaleDateString("fr-MA")}"`,
     )
     .join("\n");
   const csv = "﻿" + header + rows;
