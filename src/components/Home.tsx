@@ -100,7 +100,7 @@ export default function Home({ go, onSearch }: HomeProps) {
           <Reveal delay={340}>
             <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:max-w-5xl lg:grid-cols-5">
               {QUICK_ACTIONS.map((a) => {
-                const cardClass = `group relative flex min-h-[7.5rem] flex-col justify-center rounded-[1.35rem] border p-4 text-center backdrop-blur transition-all duration-300 ${
+                const cardClass = `quick-card-3d group relative flex min-h-[7.5rem] flex-col justify-center overflow-hidden rounded-[1.35rem] border p-4 text-center backdrop-blur transition-all duration-300 ${
                   a.soon
                     ? "border-white/8 bg-white/[0.03]"
                     : "border-white/12 bg-gradient-to-br from-white/[0.08] to-white/[0.03] shadow-[0_14px_35px_-28px_rgba(230,180,87,0.85)] hover:-translate-y-1.5 hover:border-gold-300/40 hover:bg-white/[0.12] hover:shadow-[0_18px_40px_-26px_rgba(230,180,87,0.8)]"
@@ -112,10 +112,10 @@ export default function Home({ go, onSearch }: HomeProps) {
                         قريبًا
                       </span>
                     )}
-                    <span className={`mx-auto grid size-12 place-items-center rounded-2xl transition-all duration-300 ${a.soon ? "bg-white/10 text-white/40" : "bg-gradient-to-br from-white/10 to-brand-900/25 text-gold-300 ring-1 ring-white/10 group-hover:scale-110 group-hover:bg-gold-400/20"}`}>
+                    <span className={`quick-card-icon-3d mx-auto grid size-12 place-items-center rounded-2xl transition-all duration-300 ${a.soon ? "bg-white/10 text-white/40" : "bg-gradient-to-br from-white/10 to-brand-900/25 text-gold-300 ring-1 ring-white/10 group-hover:scale-110 group-hover:bg-gold-400/20"}`}>
                       <a.icon className="size-5.5" strokeWidth={2.2} />
                     </span>
-                    <span className={`mt-3 block font-display text-sm font-extrabold ${a.soon ? "text-white/55" : "text-white"}`}>
+                    <span className={`quick-card-title-3d mt-3 block font-display text-sm font-extrabold ${a.soon ? "text-white/55" : "text-white"}`}>
                       {a.label}
                     </span>
                   </>
