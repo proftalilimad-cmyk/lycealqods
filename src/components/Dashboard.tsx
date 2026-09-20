@@ -18,7 +18,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { clearAllData, clearDemoData, ensureSeeded, exportCsv, getDiagnosticAttendance, getSubmissions } from "../lib/storage";
+import { clearAllData, clearDemoData, ensureSeeded, exportCsv, getDiagnosticAttendance, getSubmissions, reseedDemoData } from "../lib/storage";
 import { classReportFile, classReportPdf, resultsXlsx, scopeOf, selectionZip } from "../lib/reportExport";
 import StudentDownloads from "./StudentDownloads";
 import { DIAGNOSTIC_LEVELS, DiagnosticQRPanel } from "./Diagnostic";
@@ -99,6 +99,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
 
   const maxBin = Math.max(1, ...histBins.map((b) => b.count));
   const hasDemo = levelFiltered.some((s) => s.demo);
+  const hasAnyDemo = subs.some((s) => s.demo);
 
   /* ---------- التحميل الفردي والجماعي ---------- */
   const classes = useMemo(() => Array.from(new Set(levelFiltered.map((s) => s.className))).sort(), [levelFiltered]);
@@ -164,6 +165,19 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
                   حذف البيانات التوضيحية
+                </button>
+              )}
+              {!hasAnyDemo && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    reseedDemoData();
+                    setSubs(getSubmissions());
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-brand-300 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-transform hover:-translate-y-0.5"
+                >
+                  <Users className="size-4" aria-hidden="true" />
+                  إعادة إنشاء البيانات التوضيحية
                 </button>
               )}
               <button

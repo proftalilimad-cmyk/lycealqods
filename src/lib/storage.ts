@@ -4,7 +4,7 @@ import { levelOf } from "./grading";
 
 const KEY = "talil_platform_submissions_v1";
 /* إصدار جديد حتى تُستبدل النماذج القديمة بالأقسام الرسمية المطلوبة عند فتح اللوحة. */
-const SEED_FLAG = "talil_platform_seeded_v3";
+const SEED_FLAG = "talil_platform_seeded_v4";
 
 /** الأقسام المستعملة في بيانات المعاينة الخاصة بالتقويم التشخيصي. */
 export const DIAGNOSTIC_DEMO_CLASS_LABELS = [
@@ -154,6 +154,13 @@ export function addSubmission(sub: Submission): void {
 export function ensureSeeded(): void {
   if (localStorage.getItem(SEED_FLAG)) return;
   /* نحافظ على أي نتائج حقيقية ونستبدل فقط النماذج التوضيحية القديمة. */
+  const realSubmissions = getSubmissions().filter((submission) => !submission.demo);
+  localStorage.setItem(KEY, JSON.stringify([...realSubmissions, ...seeded()]));
+  localStorage.setItem(SEED_FLAG, "1");
+}
+
+/** إعادة إنشاء النماذج التوضيحية عند الحاجة مع الحفاظ على النتائج الحقيقية. */
+export function reseedDemoData(): void {
   const realSubmissions = getSubmissions().filter((submission) => !submission.demo);
   localStorage.setItem(KEY, JSON.stringify([...realSubmissions, ...seeded()]));
   localStorage.setItem(SEED_FLAG, "1");
