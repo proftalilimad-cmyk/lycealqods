@@ -9,10 +9,8 @@ import {
   Globe2,
   GraduationCap,
   History,
-  Library,
   MonitorPlay,
   PenLine,
-  Search,
   Target,
   Timer,
   User,
@@ -25,7 +23,6 @@ import { APPLICATIONS } from "../data/applications";
 
 interface HomeProps {
   go: (r: Route) => void;
-  onSearch: () => void;
 }
 
 interface QuickAction {
@@ -33,7 +30,6 @@ interface QuickAction {
   desc: string;
   icon: typeof Target;
   route?: Route;
-  search?: boolean;
   soon?: boolean;
 }
 
@@ -45,7 +41,6 @@ const QUICK_ACTIONS: QuickAction[] = [
   { label: "الامتحانات الجهوية", desc: "مواضيع رسمية مع عناصر الإجابة", icon: FileText, route: { view: "resources", type: "regional" } },
   { label: "المنهجيات", desc: "تحليل الوثائق والكتابة", icon: PenLine, route: { view: "methods" } },
   { label: "العروض التفاعلية", desc: "دروس 1 باك علوم من الكتاب المدرسي", icon: MonitorPlay, route: { view: "decks" } },
-  { label: "المصطلحات", desc: "معجم مفاهيم دروس المادة", icon: Library, search: true },
   { label: "الخرائط والخطاطات", desc: "خرائط تخطيطية وخطاطات تفاعلية", icon: Globe2, route: { view: "resources", type: "map" } },
   { label: "التقويم الذاتي", desc: "8 تقويمات تفاعلية حسب المستوى", icon: Target, route: { view: "diagnostic" } },
 ];
@@ -59,7 +54,7 @@ const OBJECTIVES = [
   { icon: Award, text: "الاستعداد الجيد للفروض والامتحانات" },
 ];
 
-export default function Home({ go, onSearch }: HomeProps) {
+export default function Home({ go }: HomeProps) {
   return (
     <>
       {/* ============ Hero ============ */}
@@ -104,7 +99,7 @@ export default function Home({ go, onSearch }: HomeProps) {
                 <button
                   key={a.label}
                   type="button"
-                  onClick={() => (a.search ? onSearch() : a.route && go(a.route))}
+                  onClick={() => a.route && go(a.route)}
                   className={`group relative rounded-2xl border p-4 text-center backdrop-blur transition-all duration-300 ${
                     a.soon
                       ? "border-white/8 bg-white/[0.03] hover:border-white/20"
@@ -135,14 +130,6 @@ export default function Home({ go, onSearch }: HomeProps) {
               >
                 <Target className="size-5" aria-hidden="true" />
                 ابدأ التقويم التشخيصي
-              </button>
-              <button
-                type="button"
-                onClick={onSearch}
-                className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-white/5 px-8 py-4 text-base font-semibold text-white/85 transition-all duration-300 hover:border-white/30 hover:bg-white/10 sm:w-auto"
-              >
-                <Search className="size-5 text-gold-300" aria-hidden="true" />
-                ابحث عن درس أو مفهوم
               </button>
             </div>
           </Reveal>
