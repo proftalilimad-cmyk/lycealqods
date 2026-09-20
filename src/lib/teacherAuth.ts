@@ -29,8 +29,10 @@
 export type HashAlgo = "sha256" | "fnv";
 
 const AUTH_KEY = "talil_teacher_auth_v1";
-const SESSION_KEY = "talil_teacher_session_v1";
-const REMEMBER_KEY = "talil_teacher_remember_v1";
+/* إصدار الجلسة v2 يبطل أي جلسة قديمة كانت تسمح بالولوج التلقائي. */
+const SESSION_KEY = "talil_teacher_session_v2";
+const LEGACY_SESSION_KEY = "talil_teacher_session_v1";
+const LEGACY_REMEMBER_KEY = "talil_teacher_remember_v1";
 const FAIL_KEY = "talil_teacher_fails_v1";
 
 export const MAX_FAILS = 5;
@@ -193,24 +195,24 @@ export async function verifyLogin(user: string, password: string): Promise<boole
 
 /* --------------------------------- الجلسة --------------------------------- */
 
-/** هل اللوحة مفتوحة الآن؟ */
+/** هل اللوحة مفتوحة في جلسة التبويب الحالية؟ */
 export function isUnlocked(): boolean {
-  return ssGet(SESSION_KEY) === "1" || lsGet(REMEMBER_KEY) === "1";
+  /* لا نعتمد localStorage حتى لا يفتح رابط اللوحة مباشرة دون كلمة المرور. */
+  return ssGet(SESSION_KEY) === "1";
 }
 
-export function unlock(remember: boolean): void {
+/** فتح اللوحة في هذا التبويب فقط؛ لا توجد جلسة دخول دائمة على الجهاز. */
+export function unlock(): void {
   ssSet(SESSION_KEY, "1");
-  if (remember) lsSet(REMEMBER_KEY, "1");
-  else lsDel(REMEMBER_KEY);
+  /* تنظيف مفاتيح الإصدارات القديمة التي كانت تحفظ الدخول تلقائيًا. */
+  ssDel(LEGACY_SESSION_KEY);
+  lsDel(LEGACY_REMEMBER_KEY);
 }
 
 export function lock(): void {
   ssDel(SESSION_KEY);
-  lsDel(REMEMBER_KEY);
-}
-
-export function isRemembered(): boolean {
-  return lsGet(REMEMBER_KEY) === "1";
+  ssDel(LEGACY_SESSION_KEY);
+  lsDel(LEGACY_REMEMBER_KEY);
 }
 
 /* --------------------------- محاولات الدخول الفاشلة --------------------------- */

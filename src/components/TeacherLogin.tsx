@@ -23,14 +23,13 @@ interface TeacherLoginProps {
    بوابة ولوج لوحة الأستاذ
    اسم مستعمل + كلمة مرور، مع:
      • إخفاء/إظهار الكلمة
-     • «تذكّرني» (وإلا تبقى الجلسة مفتوحة في هذا التبويب فقط)
+     • فتح الجلسة في التبويب الحالي فقط؛ يُطلب الرمز من جديد في تبويب/جلسة جديدة
      • قفل 30 ثانية بعد 5 محاولات خاطئة
    ============================================================ */
 export default function TeacherLogin({ onUnlock, go }: TeacherLoginProps) {
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [show, setShow] = useState(false);
-  const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [tries, setTries] = useState(() => failCount());
@@ -63,7 +62,7 @@ export default function TeacherLogin({ onUnlock, go }: TeacherLoginProps) {
     setBusy(false);
     if (ok) {
       resetFails();
-      unlock(remember);
+      unlock();
       setPass("");
       onUnlock();
       return;
@@ -155,17 +154,6 @@ export default function TeacherLogin({ onUnlock, go }: TeacherLoginProps) {
               </div>
             </div>
 
-            <label className="flex cursor-pointer items-center gap-2.5 text-xs font-bold text-ink-700">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="size-4 accent-brand-600"
-              />
-              تذكّرني على هذا الحاسوب
-              <span className="text-[10px] font-semibold text-ink-500">(وإلا تُطلب الكلمة عند كل تبويب جديد)</span>
-            </label>
-
             {error && (
               <p
                 role="alert"
@@ -209,7 +197,7 @@ export default function TeacherLogin({ onUnlock, go }: TeacherLoginProps) {
         </div>
 
         <p className="mt-4 text-center text-[11px] font-semibold text-ink-500">
-          {isUnlocked() ? "الجلسة مفتوحة — أعد تحميل الصفحة إن لم تظهر اللوحة." : "اللوحة مقفلة: لا تُعرض أي نتيجة قبل الدخول."}
+          {isUnlocked() ? "الجلسة مفتوحة في هذا التبويب." : "اللوحة مقفلة: لا تُعرض أي نتيجة قبل الدخول."}
           {tries > 0 && !locked ? ` · محاولات خاطئة: ${tries}/${MAX_FAILS}` : ""}
         </p>
       </div>
