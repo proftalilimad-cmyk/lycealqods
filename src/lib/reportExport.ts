@@ -14,6 +14,7 @@
    • ZIP: أرشيف بأسماء عربية (UTF-8) مرتّب حسب المستوى ثم القسم.
    ============================================================ */
 import type { Submission } from "../types";
+import { displayClassName, scheduleForClass, scheduleForSubmission, sessionTimeLabel } from "../data/diagnosticSchedule";
 import {
   SCHOOL_NAME,
   SCHOOL_SHORT,
@@ -128,23 +129,28 @@ export function printDocument(html: string, fileTitle: string): Promise<void> {
 /* ===================== نطاق المجموعة ===================== */
 /** تحديد نطاق التصدير (قسم واحد أم عدة أقسام) لتسمية الملفات والمجلدات */
 export function scopeOf(subs: Submission[], className?: string): ClassScope {
-  const list = className ? subs.filter((s) => s.className === className) : subs;
+  const list = className && className !== "all" ? subs.filter((s) => s.className === className) : subs;
   const classes = Array.from(new Set(list.map((s) => s.className)));
+  const explicitClass = className && className !== "all" ? className : undefined;
+  const oneClass = classes.length === 1 ? classes[0] : explicitClass;
+  const session = oneClass ? scheduleForClass(oneClass, list[0]?.bankId) : list.length === 1 ? scheduleForSubmission(list[0]) : undefined;
   const branches = Array.from(new Set(list.map((s) => branchOf(s))));
   const levels = Array.from(new Set(list.map((s) => bankLevelOf(s))));
-  const oneClass = classes.length === 1 ? classes[0] : undefined;
-  const fileLabel = oneClass ?? (branches.length === 1 ? branches[0] : `${classes.length}_أقسام`);
+  const resolvedBranch = branches.length === 1 ? branches[0] : session?.branch;
+  const resolvedLevel = levels.length === 1 ? levels[0] : session?.bankLevel;
+  const fileLabel = oneClass ?? (resolvedBranch ?? (classes.length ? `${classes.length}_أقسام` : "النتائج"));
   return {
     label: oneClass
-      ? `${TEST_TITLE} — ${oneClass}`
+      ? `${TEST_TITLE} — ${displayClassName(oneClass)}`
       : classes.length > 1
         ? `${TEST_TITLE} — ${classes.length} أقسام (${branches.join("، ")})`
-        : `${TEST_TITLE} — ${branches[0] ?? SCHOOL_SHORT}`,
-    level: levels.length === 1 ? levels[0] : levels.join("، "),
-    branch: branches.length === 1 ? branches[0] : branches.join("، "),
+        : `${TEST_TITLE} — ${resolvedBranch ?? SCHOOL_SHORT}`,
+    level: resolvedLevel,
+    branch: resolvedBranch,
     className: oneClass ?? (classes.length > 1 ? classes.join("، ") : undefined),
     fileLabel,
-    classCount: classes.length,
+    classCount: classes.length || (oneClass ? 1 : 0),
+    schedule: session,
   };
 }
 
@@ -172,7 +178,7 @@ export function studentHtmlFile(sub: Submission): void {
 /** 5) الملف الفردي بصيغة Word (.doc) */
 export function studentWordFile(sub: Submission): void {
   const title = studentBaseName(sub);
-  const body = studentDocHtml(sub, "full").replace(/^[\s\S]*?<body>/, "").replace(/<\/body>[\s\S]*$/, "");
+  const body = studentDocHtml(sub, "full").replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, "");
   downloadText(wordDocument(title, body), studentFileName(sub, "doc"), "application/msword;charset=utf-8");
 }
 
@@ -215,7 +221,7 @@ export async function selectionZip(subs: Submission[], scope: ClassScope): Promi
   for (const sub of subs) {
     const full = studentDocHtml(sub, "full");
     entries.push({ path: zipEntryPath(sub, "html"), data: zipText(full) });
-    const body = full.replace(/^[\s\S]*?<body>/, "").replace(/<\/body>[\s\S]*$/, "");
+    const body = full.replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, "");
     entries.push({ path: zipEntryPath(sub, "doc"), data: zipText(wordDocument(studentBaseName(sub), body)) });
   }
 
@@ -275,26 +281,29 @@ function summarySheet(subs: Submission[]): Sheet {
     "القسم",
     "المستوى",
     "الشعبة / المسلك",
+    "موعد التقويم",
     "التاريخ /10",
     "الجغرافيا /10",
     "المجموع /20",
     "النسبة ٪",
     "مستوى التحكّم",
-    "تاريخ الإنجاز",
+    "تاريخ الإرسال",
     "المدة",
     "الأسئلة المجاب عنها",
     "اسم ملف التلميذ",
   ];
   const rows: Cell[][] = list.map((s, i) => {
     const r = questionRows(s);
+    const session = scheduleForSubmission(s);
     return [
       i + 1,
       s.studentNo ?? "—",
       s.name,
       s.massar ?? "—",
-      s.className,
+      displayClassName(s.className),
       bankLevelOf(s),
       branchOf(s),
+      sessionTimeLabel(session),
       round2(s.history),
       round2(s.geography),
       round2(s.total),
@@ -309,12 +318,12 @@ function summarySheet(subs: Submission[]): Sheet {
   const n = list.length;
   const avg = (f: (x: Submission) => number) => (n ? round1(list.reduce((a, s) => a + f(s), 0) / n) : 0);
   rows.push([]);
-  rows.push(["", "", "متوسط القسم", "", "", "", "", avg((s) => s.history), avg((s) => s.geography), avg((s) => s.total), avg((s) => s.percent), "", "", "", `${n} مشاركًا`, ""]);
+  rows.push(["", "", "متوسط القسم", "", "", "", "", "", avg((s) => s.history), avg((s) => s.geography), avg((s) => s.total), avg((s) => s.percent), "", "", "", `${n} مشاركًا`, ""]);
   return {
     name: "النتائج",
     title: `${TEST_TITLE} — ${SCHOOL_NAME} — ${TEACHER_NAME}`,
     rows: [header, ...rows],
-    widths: [7, 7, 26, 14, 22, 16, 26, 12, 14, 12, 10, 16, 26, 16, 18, 44],
+    widths: [7, 7, 26, 14, 24, 16, 26, 32, 12, 14, 12, 10, 16, 26, 16, 18, 44],
   };
 }
 
@@ -325,7 +334,7 @@ function skillsSheet(subs: Submission[]): Sheet {
     const a = analyse(s);
     const recos = recommendationsFor(s, a);
     a.skills.forEach((sk, i) => {
-      rows.push([s.name, s.studentNo ?? "—", s.className, sk.skill, round2(sk.got), round2(sk.max), sk.pct, sk.state, i === 0 ? (recos[0] ?? "") : ""]);
+      rows.push([s.name, s.studentNo ?? "—", displayClassName(s.className), sk.skill, round2(sk.got), round2(sk.max), sk.pct, sk.state, i === 0 ? (recos[0] ?? "") : ""]);
     });
   }
   return { name: "تحليل المهارات", title: "تحليل المهارات وتوصيات الدعم", rows: [header, ...rows], widths: [26, 7, 22, 30, 10, 10, 10, 16, 70] };
@@ -336,6 +345,7 @@ function answersSheet(subs: Submission[]): Sheet {
     "التلميذ(ة)",
     "ر.ت",
     "القسم",
+    "موعد التقويم",
     "رقم السؤال",
     "المادة",
     "نوع السؤال",
@@ -350,11 +360,13 @@ function answersSheet(subs: Submission[]): Sheet {
   const rows: Cell[][] = [];
   for (const s of subs) {
     const r = questionRows(s);
+    const session = scheduleForSubmission(s);
     for (const q of r.rows) {
       rows.push([
         s.name,
         s.studentNo ?? "—",
-        s.className,
+        displayClassName(s.className),
+        sessionTimeLabel(session),
         q.index,
         subjectLabel(q.question.subject),
         kindLabel(q.question),
@@ -368,5 +380,5 @@ function answersSheet(subs: Submission[]): Sheet {
       ]);
     }
   }
-  return { name: "الأجوبة سؤال بسؤال", title: "إجابات التلاميذ والجواب الصحيح ونقطة كل سؤال", rows: [header, ...rows], widths: [24, 7, 20, 10, 12, 16, 24, 60, 55, 55, 12, 12, 14] };
+  return { name: "الأجوبة سؤال بسؤال", title: "إجابات التلاميذ والجواب الصحيح ونقطة كل سؤال", rows: [header, ...rows], widths: [24, 7, 24, 32, 10, 12, 16, 24, 60, 55, 55, 12, 12, 14] };
 }

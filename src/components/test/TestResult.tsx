@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { Answer, Question, Submission } from "../../types";
 import { gradeAutoQuestion, RECOMMENDATIONS } from "../../lib/grading";
+import { displayClassName, scheduleForSubmission, sessionTimeLabel } from "../../data/diagnosticSchedule";
 import Ring from "../Ring";
 import Reveal from "../Reveal";
 import StudentDownloads from "../StudentDownloads";
@@ -102,6 +103,7 @@ export default function TestResult({ questions: QUESTIONS, report, name, classNa
 
   const minutesUsed = Math.floor(report.timeUsedSeconds / 60);
   const secondsUsed = report.timeUsedSeconds % 60;
+  const diagnosticSession = submission ? scheduleForSubmission(submission) : undefined;
 
   return (
     <section className="relative overflow-hidden pt-32 pb-20 md:pt-36">
@@ -127,7 +129,8 @@ export default function TestResult({ questions: QUESTIONS, report, name, classNa
                   {name}
                   {studentNo ? <span className="text-white/60"> (رقم {studentNo})</span> : null}
                 </h1>
-                <p className="mt-1.5 text-sm text-white/55">{className}</p>
+                <p className="mt-1.5 text-sm text-white/55">{displayClassName(className)}</p>
+                {diagnosticSession && <p className="mt-1 text-[11px] font-semibold text-gold-200/80">موعد التقويم: {sessionTimeLabel(diagnosticSession)}</p>}
 
                 <div className="mt-5 flex flex-wrap items-center justify-center gap-3 md:justify-start">
                   <span className="rounded-2xl bg-white/10 px-5 py-3 backdrop-blur">

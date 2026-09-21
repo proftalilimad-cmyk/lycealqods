@@ -54,10 +54,10 @@ export default function StudentDownloads({ sub, variant = "card", onNotice }: St
     {
       id: "answers-pdf",
       icon: FileDown,
-      label: "أجوبة PDF",
-      hint: `تحميل أجوبة التلميذ(ة) بصيغة PDF — الاسم المقترح: ${pdfName}`,
+      label: "أجوبة PDF (صفحتان)",
+      hint: `تحميل أجوبة التلميذ(ة) في PDF مختصر من صفحتين — الاسم المقترح: ${pdfName}`,
       run: () => studentAnswersPdf(sub),
-      done: `فتحت نافذة الطباعة — اختر «حفظ بصيغة PDF» وسيُقترح الاسم: ${pdfName}`,
+      done: `فتحت نافذة طباعة أجوبة مختصرة من صفحتين — اختر «حفظ بصيغة PDF» وسيُقترح الاسم: ${pdfName}`,
     },
     {
       id: "report-pdf",

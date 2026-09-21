@@ -12,6 +12,7 @@
    ============================================================ */
 import type { Submission } from "../types";
 import { RECOMMENDATIONS } from "./grading";
+import { displayClassName, scheduleForSubmission, sessionClockLabel, sessionDateLabel, sessionTimeLabel, type DiagnosticSession } from "../data/diagnosticSchedule";
 import {
   MINISTRY_LINE,
   SCHOOL_NAME,
@@ -56,6 +57,33 @@ body { direction:rtl; font-family:"Readex Pro","Cairo","Segoe UI",Tahoma,Arial,s
   a { color:inherit; text-decoration:none; }
 }
 .no-print { background:#fff8e6; border:1px solid #e6d3a3; color:#7a5c14; border-radius:10px; padding:8px 12px; margin-bottom:10px; font-size:11.5px; font-weight:600; }
+/* ---------- نسخة أجوبة مختصرة: الغلاف + صفحة واحدة للأسئلة ---------- */
+.answers-compact { margin-top:0; }
+.answers-compact .compact-lead { margin:0 0 5px; font-size:9px; color:var(--muted); font-weight:600; }
+.answers-compact-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px 7px; align-items:start; }
+.compact-q { border:1px solid var(--line); border-radius:6px; padding:3px 5px; background:#fff; min-height:22mm; break-inside:avoid; page-break-inside:avoid; }
+.compact-q header { display:flex; align-items:center; gap:3px; margin-bottom:2px; font-size:8px; }
+.compact-q .compact-number { color:#fff; background:var(--brand); border-radius:999px; padding:0 5px; font-weight:900; }
+.compact-q .compact-kind { color:var(--muted); font-weight:700; }
+.compact-q .compact-points { margin-inline-start:auto; border-radius:999px; padding:0 4px; font-weight:900; }
+.compact-q .compact-points.ok { color:#0f7b52; background:#e3f6ec; }
+.compact-q .compact-points.bad { color:#b4232a; background:#fdeceb; }
+.compact-q .compact-points.na { color:#5d6b64; background:#f1f1ef; }
+.compact-q .compact-title { margin:0 0 2px; font-size:8.5px; line-height:1.35; font-weight:800; }
+.compact-q dl { display:grid; grid-template-columns:43px 1fr; gap:0 4px; margin:0; font-size:8px; line-height:1.35; }
+.compact-q dt { color:var(--muted); font-weight:800; }
+.compact-q dd { margin:0; font-weight:600; overflow-wrap:anywhere; }
+.compact-q dd.ok { color:#0f7b52; } .compact-q dd.bad { color:#b4232a; }
+.answers-document .answers-compact-grid { gap:4px 6px; }
+  .answers-document .compact-q { min-height:18mm; padding:2px 3px; }
+  .answers-document .compact-q header { font-size:7px; margin-bottom:1px; }
+  .answers-document .compact-q .compact-title { font-size:7.5px; line-height:1.2; margin-bottom:1px; }
+  .answers-document .compact-q dl { font-size:7px; line-height:1.2; }
+.answers-document .sign { margin-top:5px; padding-top:4px; font-size:8.5px; }
+@media print {
+  .answers-document .page { padding:0; }
+  .answers-document .cover { break-after:page; page-break-after:always; }
+}
 /* ---------- الغلاف ---------- */
 .masthead { display:flex; align-items:center; gap:14px; border-bottom:3px double var(--brand); padding-bottom:10px; }
 .emblem { flex:0 0 auto; width:64px; height:64px; border-radius:50%; background:linear-gradient(145deg,var(--brand),var(--brand-dark)); color:#f6e7c3; display:grid; place-items:center; font-weight:800; font-size:13px; text-align:center; line-height:1.25; border:2px solid var(--gold); }
@@ -128,7 +156,7 @@ const FONT_LINK =
   '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Cairo:wght@600;700;800;900&display=swap" rel="stylesheet">';
 
 /** وثيقة HTML مستقلة (تُطبع أو تُحمَّل) */
-export function htmlDocument(title: string, bodyHtml: string, css: string = REPORT_CSS): string {
+export function htmlDocument(title: string, bodyHtml: string, css: string = REPORT_CSS, bodyClass = ""): string {
   return `<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -140,7 +168,7 @@ export function htmlDocument(title: string, bodyHtml: string, css: string = REPO
 ${FONT_LINK}
 <style>${css}</style>
 </head>
-<body>
+<body class="${esc(bodyClass)}">
 <div class="page">
 ${bodyHtml}
 </div>
@@ -212,12 +240,14 @@ function signatureBlock(extra?: string): string {
 
 function identityTable(sub: Submission, rows: QuestionRows): string {
   const answered = rows.hasAnswers ? `${rows.answeredCount} / ${rows.rows.length}` : "—";
+  const session = scheduleForSubmission(sub);
   return `<table class="grid id-table">
 <tbody>
 <tr><th>المستوى</th><td>${esc(bankLevelOf(sub))}</td><th>الشعبة / المسلك</th><td>${esc(branchOf(sub))}</td></tr>
-<tr><th>القسم</th><td>${esc(sub.className || "—")}</td><th>المادة</th><td>${esc(SUBJECT_NAME)} (التاريخ والجغرافيا)</td></tr>
+<tr><th>القسم</th><td>${esc(displayClassName(sub.className))}</td><th>المادة</th><td>${esc(SUBJECT_NAME)} (التاريخ والجغرافيا)</td></tr>
+<tr><th>تاريخ التقويم</th><td>${esc(sessionDateLabel(session))}</td><th>التوقيت</th><td>${esc(sessionClockLabel(session))}</td></tr>
 <tr><th>اسم التلميذ(ة)</th><td>${esc(sub.name)}</td><th>رقم التلميذ(ة)</th><td>${esc(sub.studentNo || "—")}</td></tr>
-<tr><th>رقم مسار</th><td>${esc(sub.massar || "—")}</td><th>تاريخ الإنجاز</th><td>${esc(formatDate(sub.date))}</td></tr>
+<tr><th>رقم مسار</th><td>${esc(sub.massar || "—")}</td><th>تاريخ الإرسال</th><td>${esc(formatDate(sub.date))}</td></tr>
 <tr><th>المدة المستغرقة</th><td>${esc(formatDuration(sub.timeUsedSeconds))}</td><th>الأسئلة المجاب عنها</th><td>${esc(answered)}</td></tr>
 <tr><th>عدد الأسئلة</th><td colspan="3">${rows.rows.length} سؤالًا (${rows.maxPoints} نقطة)</td></tr>
 </tbody>
@@ -233,7 +263,34 @@ const MODE_LABEL: Record<StudentDocMode, string> = {
   full: "الملف الفردي الكامل — الأجوبة + تقرير النتائج",
 };
 
-function answersPart(sub: Submission, rows: QuestionRows): string {
+function compactAnswersPart(sub: Submission, rows: QuestionRows): string {
+  const items = rows.rows
+    .map((r) => {
+      const state = !rows.hasAnswers ? "غير محفوظة" : r.isCorrect ? "صحيحة" : r.answered ? "تحتاج مراجعة" : "بدون إجابة";
+      const stateClass = !rows.hasAnswers ? "na" : r.isCorrect ? "ok" : "bad";
+      return `<article class="compact-q">
+  <header><span class="compact-number">${r.index}</span><span class="compact-kind">${esc(kindLabel(r.question))}</span><span class="compact-points ${stateClass}">${esc(rows.hasAnswers ? `${round2(r.got)} / ${r.points}` : `— / ${r.points}`)}</span></header>
+  <p class="compact-title">${nl2br(r.question.title)}</p>
+  <dl>
+    <dt>إجابة التلميذ</dt><dd class="${rows.hasAnswers ? (r.isCorrect ? "ok" : "bad") : ""}">${nl2br(r.studentAnswer)}</dd>
+    <dt>الجواب الصحيح</dt><dd>${nl2br(r.correct)}</dd>
+    <dt>الحالة</dt><dd>${esc(state)}</dd>
+  </dl>
+</article>`;
+    })
+    .join("");
+  const warn = rows.hasAnswers
+    ? ""
+    : `<p class="compact-lead">لا يحتوي هذا السجل على إجابات تفصيلية محفوظة؛ تُعرض الأسئلة والنقط والحالة المحفوظة كما هي.</p>`;
+  return `<section class="answers-compact">
+  <h2>الأجوبة والتصحيح — صفحة مختصرة</h2>
+  ${warn}
+  <div class="answers-compact-grid">${items}</div>
+</section>`;
+}
+
+function answersPart(sub: Submission, rows: QuestionRows, compact = false): string {
+  if (compact) return compactAnswersPart(sub, rows);
   const items = rows.rows
     .map((r) => {
       const q = r.question;
@@ -362,7 +419,7 @@ ${rows.hasAnswers ? "" : `<p class="stamp">الإجابات التفصيلية �
 export function studentDocBody(sub: Submission, mode: StudentDocMode = "full"): string {
   const rows = questionRows(sub);
   const parts: string[] = [cover(sub, mode, rows)];
-  if (mode === "answers") parts.push(answersPart(sub, rows));
+  if (mode === "answers") parts.push(answersPart(sub, rows, true));
   else if (mode === "report") parts.push(reportPart(sub, rows, 1));
   else {
     parts.push(answersPart(sub, rows));
@@ -375,7 +432,7 @@ export function studentDocBody(sub: Submission, mode: StudentDocMode = "full"): 
 /** ملف HTML كامل لوثيقة تلميذ */
 export function studentDocHtml(sub: Submission, mode: StudentDocMode = "full"): string {
   const kind = mode === "answers" ? "أجوبة" : mode === "report" ? "تقرير النتائج" : "الملف الفردي";
-  return htmlDocument(`${kind} — ${studentBaseName(sub)}`, studentDocBody(sub, mode));
+  return htmlDocument(`${kind} — ${studentBaseName(sub)}`, studentDocBody(sub, mode), REPORT_CSS, `${mode}-document`);
 }
 
 /* ===================== التقرير الشامل للقسم ===================== */
@@ -389,6 +446,8 @@ export interface ClassScope {
   fileLabel: string;
   /** عدد الأقسام المشمولة */
   classCount: number;
+  /** الموعد التنظيمي للقسم، إن كان محددًا */
+  schedule?: DiagnosticSession;
 }
 
 function bins(subs: Submission[]): { label: string; count: number; pct: number }[] {
@@ -400,7 +459,7 @@ function bins(subs: Submission[]): { label: string; count: number; pct: number }
   ];
   return defs.map((d) => {
     const count = subs.filter((s) => d.test(s.total)).length;
-    return { label: d.label, count, pct: subs.length ? Math.round((count / subs.length) * 100) : 0 };
+    return { label: d.label, count, pct: subs.length ? Math.round((count / subs.length) * 100) : -1 };
   });
 }
 
@@ -438,6 +497,13 @@ export function classReportBody(subs: Submission[], scope: ClassScope): string {
   const avgHist = avg((s) => s.history);
   const avgGeo = avg((s) => s.geography);
 
+  const session = scope.schedule ?? (n ? scheduleForSubmission(list[0]) : undefined);
+  const reportClass = scope.className
+    ? scope.className.split("،").map((name) => displayClassName(name.trim())).join("، ")
+    : n
+      ? displayClassName(list[0].className)
+      : "—";
+
   return `<section class="cover">
 ${masthead()}
 <h1>التقرير الشامل لنتائج ${esc(TEST_TITLE)}</h1>
@@ -445,18 +511,20 @@ ${masthead()}
 <p class="doc-kind">${esc(scope.label)}</p>
 <table class="grid id-table">
 <tbody>
-<tr><th>المستوى</th><td>${esc(scope.level ?? (n ? bankLevelOf(list[0]) : "—"))}</td><th>الشعبة / المسلك</th><td>${esc(scope.branch ?? (n ? branchOf(list[0]) : "—"))}</td></tr>
-<tr><th>القسم</th><td>${esc(scope.className ?? (n ? list.map((s) => s.className).filter((v, i, arr) => arr.indexOf(v) === i).join(" ، ") : "—"))}</td><th>عدد المشاركين</th><td>${n} تلميذ(ة)</td></tr>
-<tr><th>التقويم</th><td>${esc(TEST_TITLE)} — 20 سؤالًا / 20 نقطة / 60 دقيقة</td><th>تاريخ التحرير</th><td>${esc(formatDate(new Date().toISOString()))}</td></tr>
+<tr><th>المستوى</th><td>${esc(scope.level ?? (n ? bankLevelOf(list[0]) : session?.bankLevel ?? "—"))}</td><th>الشعبة / المسلك</th><td>${esc(scope.branch ?? (n ? branchOf(list[0]) : session?.branch ?? "—"))}</td></tr>
+<tr><th>القسم</th><td>${esc(reportClass)}</td><th>النتائج المحفوظة</th><td>${n} تلميذ(ة)</td></tr>
+<tr><th>الحاضرون/المشاركون حسب الموعد</th><td>${session?.reportedParticipants !== undefined ? `${session.reportedParticipants} تلميذ(ة)` : "غير محدد"}</td><th>تاريخ التقويم</th><td>${esc(sessionDateLabel(session))}</td></tr>
+<tr><th>التوقيت</th><td>${esc(sessionTimeLabel(session))}</td><th>تاريخ التحرير</th><td>${esc(formatDate(new Date().toISOString()))}</td></tr>
+<tr><th>التقويم</th><td colspan="3">${esc(TEST_TITLE)} — 20 سؤالًا / 20 نقطة / 60 دقيقة</td></tr>
 <tr><th>الأستاذ</th><td>${esc(TEACHER_NAME)}</td><th>المؤسسة</th><td>${esc(SCHOOL_NAME)}</td></tr>
 </tbody>
 </table>
 <div class="score-band">
-  <div class="cell hero"><b>${avg((s) => s.total)}</b><span>متوسط القسم /20</span></div>
-  <div class="cell"><b>${best}</b><span>أعلى نقطة</span></div>
-  <div class="cell"><b>${worst}</b><span>أدنى نقطة</span></div>
-  <div class="cell"><b>${avg((s) => s.percent)}٪</b><span>متوسط النسبة</span></div>
-  <div class="cell"><b>${support.length}</b><span>يحتاجون الدعم</span></div>
+  <div class="cell hero"><b>${n ? avg((s) => s.total) : "—"}</b><span>متوسط القسم /20</span></div>
+  <div class="cell"><b>${n ? best : "—"}</b><span>أعلى نقطة</span></div>
+  <div class="cell"><b>${n ? worst : "—"}</b><span>أدنى نقطة</span></div>
+  <div class="cell"><b>${n ? `${avg((s) => s.percent)}٪` : "—"}</b><span>متوسط النسبة</span></div>
+  <div class="cell"><b>${n ? support.length : "—"}</b><span>يحتاجون الدعم</span></div>
 </div>
 </section>
 
@@ -466,13 +534,13 @@ ${masthead()}
     <thead><tr><th>المؤشر</th><th>القيمة</th><th>ملاحظة</th></tr></thead>
     <tbody>
       <tr><td>عدد المشاركين</td><td class="num">${n}</td><td>نتائج محفوظة ضمن النطاق المحدد</td></tr>
-      <tr><td>متوسط القسم /20</td><td class="num">${avg((s) => s.total)}</td><td>النسبة المئوية: ${avg((s) => s.percent)}٪</td></tr>
-      <tr><td>متوسط التاريخ /10</td><td class="num">${avgHist}</td><td>${avgHist >= avgGeo ? "أعلى نسبيًا من الجغرافيا" : "أدنى نسبيًا من الجغرافيا"}</td></tr>
-      <tr><td>متوسط الجغرافيا /10</td><td class="num">${avgGeo}</td><td>${avgGeo > avgHist ? "أعلى نسبيًا من التاريخ" : "أدنى نسبيًا من التاريخ"}</td></tr>
-      <tr><td>أعلى / أدنى نقطة</td><td class="num">${best} / ${worst}</td><td>المدى: ${round1(best - worst)} نقطة</td></tr>
-      <tr><td>نسبة التحكّم (≥ 50٪)</td><td class="num">${n ? Math.round(((n - support.length) / n) * 100) : 0}٪</td><td>${n - support.length} من ${n} تلميذ(ة)</td></tr>
+      <tr><td>متوسط القسم /20</td><td class="num">${n ? avg((s) => s.total) : "—"}</td><td>${n ? `النسبة المئوية: ${avg((s) => s.percent)}٪` : "لا توجد نتائج فعلية محفوظة"}</td></tr>
+      <tr><td>متوسط التاريخ /10</td><td class="num">${n ? avgHist : "—"}</td><td>${n ? (avgHist >= avgGeo ? "أعلى نسبيًا من الجغرافيا" : "أدنى نسبيًا من الجغرافيا") : "لا توجد نتائج فعلية محفوظة"}</td></tr>
+      <tr><td>متوسط الجغرافيا /10</td><td class="num">${n ? avgGeo : "—"}</td><td>${n ? (avgGeo > avgHist ? "أعلى نسبيًا من التاريخ" : "أدنى نسبيًا من التاريخ") : "لا توجد نتائج فعلية محفوظة"}</td></tr>
+      <tr><td>أعلى / أدنى نقطة</td><td class="num">${n ? `${best} / ${worst}` : "—"}</td><td>${n ? `المدى: ${round1(best - worst)} نقطة` : "لا توجد نتائج فعلية محفوظة"}</td></tr>
+      <tr><td>نسبة التحكّم (≥ 50٪)</td><td class="num">${n ? `${Math.round(((n - support.length) / n) * 100)}٪` : "—"}</td><td>${n ? `${n - support.length} من ${n} تلميذ(ة)` : "لا توجد نتائج فعلية محفوظة"}</td></tr>
       <tr><td>تحكّم جيد (≥ 70٪)</td><td class="num">${good.length}</td><td>${good.map((s) => s.name).slice(0, 6).join("، ")}${good.length > 6 ? " …" : ""}</td></tr>
-      <tr><td>سجلات بأجوبة تفصيلية</td><td class="num">${withAnswers}</td><td>${withAnswers === n ? "كل السجلات تتضمن أجوبة كل سؤال" : "بقية السجلات محفوظة قبل تفعيل حفظ الأجوبة"}</td></tr>
+      <tr><td>سجلات بأجوبة تفصيلية</td><td class="num">${withAnswers}</td><td>${n === 0 ? "لا توجد نتائج فعلية محفوظة" : withAnswers === n ? "كل السجلات تتضمن أجوبة كل سؤال" : "بقية السجلات محفوظة قبل تفعيل حفظ الأجوبة"}</td></tr>
     </tbody>
   </table>
 </section>
@@ -484,7 +552,7 @@ ${masthead()}
     <tbody>${dist
       .map(
         (d) =>
-          `<tr><td>${esc(d.label)}</td><td class="num">${d.count}</td><td class="num">${d.pct}٪</td><td><span class="bar"><i style="width:${d.pct}%"></i></span></td></tr>`,
+          `<tr><td>${esc(d.label)}</td><td class="num">${d.count}</td><td class="num">${d.pct < 0 ? "—" : `${d.pct}٪`}</td><td><span class="bar"><i style="width:${Math.max(0, d.pct)}%"></i></span></td></tr>`,
       )
       .join("")}</tbody>
   </table>
@@ -494,12 +562,12 @@ ${masthead()}
   <h2>3. مستوى تحكّم القسم في المهارات</h2>
   <table class="grid">
     <thead><tr><th>المهارة</th><th>مجموع النقط</th><th>الأقصى</th><th>نسبة التحكّم</th><th>المؤشر</th></tr></thead>
-    <tbody>${skills
+    <tbody>${skills.length > 0 ? skills
       .map(
         (s) =>
           `<tr><td>${esc(s.skill)}</td><td class="num">${s.got}</td><td class="num">${s.max}</td><td class="num">${s.pct}٪</td><td>${esc(s.state)}</td></tr>`,
       )
-      .join("")}</tbody>
+      .join("") : `<tr><td colspan="5">لا توجد نتائج فعلية محفوظة لهذا القسم.</td></tr>`}</tbody>
   </table>
   <p class="lead">أقوى مهارة على مستوى القسم: ${esc(strongest ? `${strongest.skill} (${strongest.pct}٪)` : "—")} · أضعف مهارة: ${esc(weakest ? `${weakest.skill} (${weakest.pct}٪)` : "—")}</p>
 </section>
@@ -508,12 +576,12 @@ ${masthead()}
   <h2>4. جدول نتائج التلاميذ</h2>
   <table class="grid">
     <thead><tr><th>الرتبة</th><th>ر.ت</th><th>التلميذ(ة)</th><th>القسم</th><th>التاريخ /10</th><th>الجغرافيا /10</th><th>المجموع /20</th><th>النسبة</th><th>المستوى</th></tr></thead>
-    <tbody>${list
+    <tbody>${list.length > 0 ? list
       .map(
         (s, i) =>
-          `<tr><td class="num">${i + 1}</td><td class="num">${esc(s.studentNo || "—")}</td><td>${esc(s.name)}</td><td>${esc(s.className)}</td><td class="num">${round2(s.history)}</td><td class="num">${round2(s.geography)}</td><td class="num"><b>${round2(s.total)}</b></td><td class="num">${round1(s.percent)}٪</td><td>${esc(s.level)}</td></tr>`,
+          `<tr><td class="num">${i + 1}</td><td class="num">${esc(s.studentNo || "—")}</td><td>${esc(s.name)}</td><td>${esc(displayClassName(s.className))}</td><td class="num">${round2(s.history)}</td><td class="num">${round2(s.geography)}</td><td class="num"><b>${round2(s.total)}</b></td><td class="num">${round1(s.percent)}٪</td><td>${esc(s.level)}</td></tr>`,
       )
-      .join("")}</tbody>
+      .join("") : `<tr><td colspan="9">لا توجد نتائج فعلية محفوظة لهذا القسم، لذلك لا توجد أسماء أو نقاط أو إجابات لعرضها.</td></tr>`}</tbody>
   </table>
 </section>
 
@@ -521,7 +589,7 @@ ${masthead()}
   <h2>5. التلاميذ المحتاجون إلى الدعم وخطة المعالجة</h2>
   ${
     support.length === 0
-      ? `<p class="lead">لا يوجد تلميذ(ة) تحت عتبة 50٪ في هذه المجموعة.</p>`
+      ? `<p class="lead">${n === 0 ? "لا توجد نتائج فعلية محفوظة لهذا القسم." : "لا يوجد تلميذ(ة) تحت عتبة 50٪ في هذه المجموعة."}</p>`
       : `<table class="grid">
     <thead><tr><th>ر.ت</th><th>التلميذ(ة)</th><th>المجموع /20</th><th>أضعف مهارة</th><th>إجراء الدعم المقترح</th></tr></thead>
     <tbody>${support
@@ -539,10 +607,10 @@ ${masthead()}
 <section class="part">
   <h2>6. الخلاصة التربوية والتوصيات العامة</h2>
   <ol class="reco">
-    <li>متوسط القسم ${avg((s) => s.total)} /20 (${avg((s) => s.percent)}٪) — مستوى التحكّم العام: ${esc(skillWord(n ? Math.round(avg((s) => s.percent)) : 0))}.</li>
-    <li>${avgHist >= avgGeo ? `التاريخ (${avgHist}/10) أقوى من الجغرافيا (${avgGeo}/10): يُقترح تكثيف الاشتغال على أدوات التعبير الجغرافي (خرائط، مبيانات، جداول).` : `الجغرافيا (${avgGeo}/10) أقوى من التاريخ (${avgHist}/10): يُقترح تدعيم المرجعيات الزمنية والمفاهيم التاريخية.`}</li>
+    <li>${n ? `متوسط القسم ${avg((s) => s.total)} /20 (${avg((s) => s.percent)}٪) — مستوى التحكّم العام: ${esc(skillWord(Math.round(avg((s) => s.percent))))}.` : "لا توجد نتائج فعلية محفوظة؛ لا يمكن احتساب متوسط أو نسبة دعم."}</li>
+    <li>${n ? (avgHist >= avgGeo ? `التاريخ (${avgHist}/10) أقوى من الجغرافيا (${avgGeo}/10): يُقترح تكثيف الاشتغال على أدوات التعبير الجغرافي (خرائط، مبيانات، جداول).` : `الجغرافيا (${avgGeo}/10) أقوى من التاريخ (${avgHist}/10): يُقترح تدعيم المرجعيات الزمنية والمفاهيم التاريخية.`) : "لا توجد نتائج فعلية للمقارنة بين المادتين."}</li>
     <li>${weakest ? `المهارة الأكثر تعثّرًا «${esc(weakest.skill)}» (${weakest.pct}٪): ${esc(RECOMMENDATIONS[weakest.skill] ?? "إعادة بناء هذا المكتسب عبر تمارين موجّهة وتصحيح جماعي في القسم.")}` : "لا توجد معطيات كافية عن المهارات."}</li>
-    <li>${support.length > 0 ? `برمجة حصص دعم لفائدة ${support.length} تلميذ(ة) تحت عتبة 50٪، مع تقويم قصير أسبوعيًا لقياس الأثر.` : "لا حاجة إلى دعم مكثّف؛ يُستثمر الوقت في أنشطة التوسّع والتعميق."}</li>
+    <li>${n === 0 ? "لا توجد نتائج فعلية محفوظة؛ لا تُنشأ لائحة دعم لهذا القسم." : support.length > 0 ? `برمجة حصص دعم لفائدة ${support.length} تلميذ(ة) تحت عتبة 50٪، مع تقويم قصير أسبوعيًا لقياس الأثر.` : "لا حاجة إلى دعم مكثّف؛ يُستثمر الوقت في أنشطة التوسّع والتعميق."}</li>
     <li>توظيف موارد المنصة في المعالجة: قسم الدروس للمفاهيم، قسم التطبيقات للتمارين المصححة، قسم المنهجيات لتحليل الوثائق والكتابة.</li>
   </ol>
 </section>

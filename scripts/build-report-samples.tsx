@@ -170,7 +170,7 @@ ${TEST_TITLE} في مادة ${SUBJECT_NAME} — ${scope.label}
     entries.push({ path: zipEntryPath(s, "html"), data: zipText(full) });
     entries.push({
       path: zipEntryPath(s, "doc"),
-      data: zipText(wordDocument(studentBaseName(s), full.replace(/^[\s\S]*?<body>/, "").replace(/<\/body>[\s\S]*$/, ""))),
+      data: zipText(wordDocument(studentBaseName(s), full.replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, ""))),
     });
   }
   entries.push({ path: `جدول_النتائج_${fileNamePart(scope.fileLabel)}.xlsx`, data: xlsx });

@@ -27,6 +27,7 @@ import { QUESTIONS } from "../data/questions";
 import { getBank } from "../data/testBanks";
 import { gradeAutoQuestion, levelOf, RECOMMENDATIONS } from "./grading";
 import { ROSTER_SCHOOL, ROSTER_YEAR } from "../data/rosters";
+import { displayClassName, scheduleForSubmission, sessionClockLabel, sessionDateLabel } from "../data/diagnosticSchedule";
 
 /* ===================== معطيات ثابتة ===================== */
 export const MINISTRY_LINE = "المملكة المغربية — وزارة التربية الوطنية والتعليم الأولي والرياضية";
@@ -83,7 +84,7 @@ export function zipEntryBase(sub: Submission): string {
 /** ترتيب الأرشيف: مجلد المستوى ثم مجلد القسم */
 export function zipFolders(sub: Submission): string {
   const level = fileNamePart(bankLevelOf(sub) || "المستوى_غير_محدد");
-  const cls = fileNamePart(sub.className || "قسم_غير_محدد");
+  const cls = fileNamePart(displayClassName(sub.className));
   return `${level}/${cls}`;
 }
 

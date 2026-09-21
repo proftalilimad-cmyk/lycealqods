@@ -18,10 +18,11 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { clearAllData, ensureSeeded, exportCsv, getDiagnosticAttendance, getSubmissions, reseedDemoData } from "../lib/storage";
+import { clearAllData, ensureSeeded, exportCsv, getDiagnosticAttendance, getSubmissions } from "../lib/storage";
 import { classReportFile, classReportPdf, resultsXlsx, scopeOf, selectionZip } from "../lib/reportExport";
 import StudentDownloads from "./StudentDownloads";
 import { DIAGNOSTIC_LEVELS, DiagnosticQRPanel } from "./Diagnostic";
+import { DIAGNOSTIC_SESSIONS, displayClassName, scheduledClassesForLevel, scheduleForSubmission, sessionTimeLabel } from "../data/diagnosticSchedule";
 import { activeCreds, isUnlocked, lock } from "../lib/teacherAuth";
 import type { Submission } from "../types";
 import type { DiagnosticLevel, Route } from "../routes";
@@ -39,6 +40,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
   const [confirmClear, setConfirmClear] = useState<null | "all">(null);
   /* تصفية حسب المستوى والقسم + اختيار عدة تلاميذ للتحميل الجماعي */
   const [levelFilter, setLevelFilter] = useState<string>("all");
+  const [bankFilter, setBankFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -46,24 +48,49 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
 
   useEffect(() => {
     ensureSeeded();
-    setSubs(getSubmissions());
+    // سجلات المعاينة تُحفظ داخليًا لاختبار المنصة، لكنها لا تُعرض كنتائج فعلية للأستاذ.
+    setSubs(getSubmissions().filter((submission) => !submission.demo));
   }, []);
 
-  const levels = useMemo(() => Array.from(new Set(subs.map((submission) => submission.bankLevel).filter(Boolean) as string[])).sort(), [subs]);
+  const levels = useMemo(
+    () => Array.from(new Set([
+      ...DIAGNOSTIC_SESSIONS.map((session) => session.bankLevel),
+      ...subs.map((submission) => submission.bankLevel).filter(Boolean) as string[],
+    ])).sort(),
+    [subs],
+  );
   const levelFiltered = useMemo(
     () => (levelFilter === "all" ? subs : subs.filter((submission) => submission.bankLevel === levelFilter)),
     [subs, levelFilter],
   );
+  const bankOptions = useMemo(() => {
+    const options = new Map<string, string>();
+    DIAGNOSTIC_SESSIONS.forEach((session) => options.set(session.bankId, session.branch));
+    subs.forEach((submission) => options.set(submission.bankId, submission.bankLabel ?? submission.bankId));
+    return Array.from(options.entries()).sort((a, b) => a[1].localeCompare(b[1], "ar"));
+  }, [subs]);
+  const visibleBankOptions = useMemo(
+    () => bankOptions.filter(([id]) => levelFilter === "all" || levelFiltered.some((submission) => submission.bankId === id) || DIAGNOSTIC_SESSIONS.some((session) => session.bankId === id && session.bankLevel === levelFilter)),
+    [bankOptions, levelFilter, levelFiltered],
+  );
+  const bankFiltered = useMemo(
+    () => (bankFilter === "all" ? levelFiltered : levelFiltered.filter((submission) => submission.bankId === bankFilter)),
+    [levelFiltered, bankFilter],
+  );
+  const scopedResults = useMemo(
+    () => (classFilter === "all" ? bankFiltered : bankFiltered.filter((submission) => submission.className === classFilter)),
+    [bankFiltered, classFilter],
+  );
   const qrLevelInfo = DIAGNOSTIC_LEVELS.find((item) => item.id === qrLevel) ?? DIAGNOSTIC_LEVELS[0];
 
   const stats = useMemo(() => {
-    const n = levelFiltered.length;
+    const n = scopedResults.length;
     if (n === 0) return null;
-    const avg = (f: (s: Submission) => number) => round1(levelFiltered.reduce((s, x) => s + f(x), 0) / n);
-    const totals = levelFiltered.map((s) => s.total);
-    const support = levelFiltered.filter((s) => s.percent < 50).length;
+    const avg = (f: (s: Submission) => number) => round1(scopedResults.reduce((s, x) => s + f(x), 0) / n);
+    const totals = scopedResults.map((s) => s.total);
+    const support = scopedResults.filter((s) => s.percent < 50).length;
     const skills: Record<string, { got: number; max: number }> = {};
-    levelFiltered.forEach((s) => {
+    scopedResults.forEach((s) => {
       Object.entries(s.skills).forEach(([k, v]) => {
         if (!skills[k]) skills[k] = { got: 0, max: 0 };
         skills[k].got += v.got;
@@ -81,7 +108,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
       support,
       skills,
     };
-  }, [levelFiltered]);
+  }, [scopedResults]);
 
   const histBins = useMemo(() => {
     const bins = [
@@ -90,26 +117,28 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
       { label: "من 10 إلى 14.99", range: "10 – 14.99", count: 0 },
       { label: "من 15 إلى 20", range: "15 – 20", count: 0 },
     ];
-    levelFiltered.forEach((s) => {
+    scopedResults.forEach((s) => {
       const idx = s.total < 5 ? 0 : s.total < 10 ? 1 : s.total < 15 ? 2 : 3;
       bins[idx].count++;
     });
     return bins;
-  }, [levelFiltered]);
+  }, [scopedResults]);
 
   const maxBin = Math.max(1, ...histBins.map((b) => b.count));
-  const hasAnyDemo = subs.some((s) => s.demo);
-
   /* ---------- التحميل الفردي والجماعي ---------- */
-  const classes = useMemo(() => Array.from(new Set(levelFiltered.map((s) => s.className))).sort(), [levelFiltered]);
+  const classes = useMemo(() => {
+    const scheduled = scheduledClassesForLevel(levelFilter === "all" ? undefined : levelFilter, bankFilter === "all" ? undefined : bankFilter).map((session) => session.className);
+    return Array.from(new Set([...scheduled, ...bankFiltered.map((s) => s.className)])).sort();
+  }, [bankFiltered, bankFilter, levelFilter]);
+  const visibleSessions = useMemo(
+    () => scheduledClassesForLevel(levelFilter === "all" ? undefined : levelFilter, bankFilter === "all" ? undefined : bankFilter),
+    [levelFilter, bankFilter],
+  );
   const attendance = useMemo(
-    () => getDiagnosticAttendance(levelFiltered, classFilter === "all" ? undefined : classFilter),
-    [levelFiltered, classFilter],
+    () => getDiagnosticAttendance(bankFiltered, classFilter === "all" ? undefined : classFilter),
+    [bankFiltered, classFilter],
   );
-  const filtered = useMemo(
-    () => (classFilter === "all" ? levelFiltered : levelFiltered.filter((s) => s.className === classFilter)),
-    [levelFiltered, classFilter],
-  );
+  const filtered = scopedResults;
   const chosen = useMemo(() => (selected.length > 0 ? filtered.filter((s) => selected.includes(s.id)) : filtered), [filtered, selected]);
   const allChecked = filtered.length > 0 && filtered.every((s) => selected.includes(s.id));
 
@@ -133,12 +162,12 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
     }
   };
 
-  const scope = () => scopeOf(filtered);
+  const scope = () => scopeOf(filtered, classFilter === "all" ? undefined : classFilter);
   const kb = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} م.ب` : `${Math.max(1, Math.round(n / 1024))} ك.ب`);
 
   const doClear = () => {
     if (confirmClear === "all") clearAllData();
-    setSubs(getSubmissions());
+    setSubs(getSubmissions().filter((submission) => !submission.demo));
     setConfirmClear(null);
   };
 
@@ -155,19 +184,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
               <p className="mt-2 text-sm text-ink-500">الجذع المشترك — التاريخ والجغرافيا · النقطة /20</p>
             </div>
             <div className="flex flex-wrap gap-2.5">
-              {!hasAnyDemo && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    reseedDemoData();
-                    setSubs(getSubmissions());
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-brand-300 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-transform hover:-translate-y-0.5"
-                >
-                  <Users className="size-4" aria-hidden="true" />
-                  إعادة إنشاء النتائج
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => exportCsv(filtered)}
@@ -212,6 +228,73 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
           </div>
         </Reveal>
 
+        <Reveal delay={150}>
+          <div className="mt-7 rounded-3xl border border-gold-200/80 bg-gold-50/45 p-5 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="font-display text-base font-extrabold text-ink-900">مواعيد وأقسام التقويم</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-ink-500">
+                  الموعد ثابت حسب القسم. تُعرض النتائج المحفوظة فقط؛ القسم الذي لا يملك سجلات يبقى دون أسماء أو إجابات مُنشأة.
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1.5 text-[10px] font-extrabold text-gold-700">{visibleSessions.length} أقسام مهيأة</span>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {visibleSessions.map((session) => {
+                const sessionResults = subs.filter((submission) => submission.className === session.className && (!submission.bankId || submission.bankId === session.bankId));
+                const support = sessionResults.length > 0 ? sessionResults.filter((submission) => submission.percent < 50).length : null;
+                return (
+                  <div key={session.id} className="rounded-2xl border border-white bg-white p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-display text-sm font-extrabold text-ink-900">{session.displayClass}</p>
+                      <span className="rounded-full bg-brand-50 px-2 py-1 text-[10px] font-bold text-brand-700">{sessionResults.length} نتائج محفوظة</span>
+                    </div>
+                    <p className="mt-2 text-[11px] font-bold text-brand-700">{sessionTimeLabel(session)}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10.5px] font-semibold text-ink-500">
+                      {session.reportedParticipants !== undefined && <span>المشاركون حسب المعطى: {session.reportedParticipants}</span>}
+                      <span>{support === null ? "نسبة الدعم: لا توجد نتائج فعلية" : `نسبة الدعم: ${Math.round((support / sessionResults.length) * 100)}٪ (${support}/${sessionResults.length})`}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 border-t border-ink-900/6 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLevelFilter(session.bankLevel);
+                          setBankFilter(session.bankId);
+                          setClassFilter(session.className);
+                          setSelected([]);
+                        }}
+                        className="rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-extrabold text-brand-700"
+                      >
+                        عرض القسم
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          classReportFile(sessionResults, scopeOf(sessionResults, session.className));
+                          setNotice(`نزّل تقرير ${session.displayClass} — يتضمن النتائج المحفوظة فقط.`);
+                        }}
+                        className="rounded-lg border border-ink-900/10 bg-white px-2.5 py-1.5 text-[10px] font-extrabold text-ink-700"
+                      >
+                        تقرير القسم HTML
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void classReportPdf(sessionResults, scopeOf(sessionResults, session.className));
+                          setNotice(`فتحت نافذة طباعة تقرير ${session.displayClass} — لا تُعرض أسماء أو نقاط غير محفوظة.`);
+                        }}
+                        className="rounded-lg border border-ink-900/10 bg-white px-2.5 py-1.5 text-[10px] font-extrabold text-ink-700"
+                      >
+                        تقرير القسم PDF
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Reveal>
+
         {stats && (
           <>
             {/* بطاقات الإحصاء */}
@@ -223,7 +306,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                 { icon: ArrowDownUp, v: `${stats.worst}`, l: "أدنى نقطة", c: "text-ink-500 bg-paper-warm" },
                 { icon: BarChart3, v: `${stats.avgHist}`, l: "متوسط التاريخ /10", c: "text-gold-600 bg-gold-50" },
                 { icon: PieChart, v: `${stats.avgGeo}`, l: "متوسط الجغرافيا /10", c: "text-brand-600 bg-brand-50" },
-                { icon: ShieldAlert, v: String(stats.support), l: "يحتاجون الدعم", c: "text-rose-500 bg-rose-50" },
+                { icon: ShieldAlert, v: `${stats.support}/${stats.n}`, l: `يحتاجون الدعم (${Math.round((stats.support / stats.n) * 100)}٪)`, c: "text-rose-500 bg-rose-50" },
               ].map((s, i) => (
                 <Reveal key={s.l} delay={i * 60}>
                   <div className="h-full rounded-2xl border border-ink-900/6 bg-white p-4 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_-18px_rgba(12,124,91,0.3)]">
@@ -255,7 +338,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
                     {attendance.map((summary) => (
                       <div key={summary.className} className="rounded-2xl border border-white bg-white p-4">
-                        <p className="font-display text-sm font-extrabold text-ink-900">{summary.className}</p>
+                        <p className="font-display text-sm font-extrabold text-ink-900">{displayClassName(summary.className)}</p>
                         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                           <div className="rounded-xl bg-brand-50 p-2.5">
                             <p className="font-display text-xl font-black text-brand-700">{summary.present}</p>
@@ -386,7 +469,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                   <div>
                     <p className="font-display text-base font-extrabold text-ink-900">تحميل ملفات التلاميذ</p>
                     <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-ink-500">
-                      لكل تلميذ(ة) في الجدول أسفله خمسة أزرار: أجوبة PDF · تقرير النتائج PDF · طباعة الملف الفردي · Word · Excel.
+                      لكل تلميذ(ة) في الجدول أسفله خمسة أزرار: أجوبة PDF مختصرة في صفحتين · تقرير النتائج PDF · طباعة الملف الفردي · Word · Excel.
                       ولمجموعة من التلاميذ: أرشيف ZIP مرتّب حسب المستوى والقسم، جدول نتائج Excel، وتقرير شامل PDF.
                       أسماء الملفات تُبنى تلقائيًا بالصيغة: <b className="font-extrabold text-brand-700">اسم_التلميذ_رقم_التلميذ_التقويم_التشخيصي.pdf</b>
                     </p>
@@ -398,6 +481,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         value={levelFilter}
                         onChange={(e) => {
                           setLevelFilter(e.target.value);
+                          setBankFilter("all");
                           setClassFilter("all");
                           setSelected([]);
                         }}
@@ -412,6 +496,25 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                       </select>
                     </label>
                     <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
+                      <span className="whitespace-nowrap">البنك</span>
+                      <select
+                        value={bankFilter}
+                        onChange={(e) => {
+                          setBankFilter(e.target.value);
+                          setClassFilter("all");
+                          setSelected([]);
+                        }}
+                        className="field min-w-[210px] py-2 text-xs"
+                      >
+                        <option value="all">كل البنوك ({levelFiltered.length})</option>
+                        {visibleBankOptions.map(([id, label]) => (
+                          <option key={id} value={id}>
+                            {label} ({levelFiltered.filter((s) => s.bankId === id).length})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
                       <span className="whitespace-nowrap">القسم</span>
                       <select
                         value={classFilter}
@@ -421,10 +524,10 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         }}
                         className="field min-w-[190px] py-2 text-xs"
                       >
-                        <option value="all">كل الأقسام ({levelFiltered.length})</option>
+                        <option value="all">كل الأقسام ({bankFiltered.length})</option>
                         {classes.map((c) => (
                           <option key={c} value={c}>
-                            {c} ({levelFiltered.filter((s) => s.className === c).length})
+                            {displayClassName(c)} ({bankFiltered.filter((s) => s.className === c).length})
                           </option>
                         ))}
                       </select>
@@ -560,6 +663,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         <th className="px-6 py-3.5 text-start font-display text-xs font-extrabold">التلميذ(ة)</th>
                         <th className="px-4 py-3.5 text-start font-display text-xs font-extrabold">القسم</th>
                         <th className="px-4 py-3.5 text-start font-display text-xs font-extrabold">المستوى / المسلك</th>
+                        <th className="px-4 py-3.5 text-start font-display text-xs font-extrabold">موعد التقويم</th>
                         <th className="px-4 py-3.5 text-center font-display text-xs font-extrabold">التاريخ /10</th>
                         <th className="px-4 py-3.5 text-center font-display text-xs font-extrabold">الجغرافيا /10</th>
                         <th className="px-4 py-3.5 text-center font-display text-xs font-extrabold">المجموع /20</th>
@@ -585,10 +689,11 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                               <span className="font-bold text-ink-900">{s.name}</span>
                               {s.studentNo && <span className="ms-1.5 text-[11px] text-ink-500">(رقم {s.studentNo})</span>}
                             </td>
-                            <td className="px-4 py-3.5 text-xs text-ink-500">{s.className}</td>
+                            <td className="px-4 py-3.5 text-xs text-ink-500">{displayClassName(s.className)}</td>
                             <td className="px-4 py-3.5">
                               <span className="rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-extrabold text-brand-700">{s.bankLabel ?? "الجذع المشترك"}</span>
                             </td>
+                            <td className="px-4 py-3.5 text-xs font-semibold leading-relaxed text-brand-700">{sessionTimeLabel(scheduleForSubmission(s))}</td>
                             <td className="px-4 py-3.5 text-center font-semibold text-ink-700">{s.history}</td>
                             <td className="px-4 py-3.5 text-center font-semibold text-ink-700">{s.geography}</td>
                             <td className="px-4 py-3.5 text-center font-display text-base font-black text-ink-900">{s.total}</td>

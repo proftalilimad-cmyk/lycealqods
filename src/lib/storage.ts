@@ -1,5 +1,6 @@
 import type { Submission } from "../types";
 import { ROSTER_CLASSES, type RosterClass, type RosterStudent } from "../data/rosters";
+import { displayClassName, scheduleForSubmission, sessionTimeLabel } from "../data/diagnosticSchedule";
 import { levelOf } from "./grading";
 
 const KEY = "talil_platform_submissions_v1";
@@ -178,11 +179,11 @@ export function clearAllData(): void {
 }
 
 export function exportCsv(list: Submission[]): void {
-  const header = "التلميذ,القسم,المستوى - المسلك,التاريخ /10,الجغرافيا /10,المجموع /20,النسبة,المستوى,التاريخ\n";
+  const header = "التلميذ,القسم,المستوى - المسلك,موعد التقويم,التاريخ /10,الجغرافيا /10,المجموع /20,النسبة,المستوى,تاريخ الإرسال\n";
   const rows = list
     .map(
       (s) =>
-        `"${s.name}","${s.className}","${s.bankLabel ?? "الجذع المشترك"}",${s.history},${s.geography},${s.total},${s.percent}%,${s.level},"${new Date(
+        `"${s.name}","${displayClassName(s.className)}","${s.bankLabel ?? "الجذع المشترك"}","${sessionTimeLabel(scheduleForSubmission(s))}",${s.history},${s.geography},${s.total},${s.percent}%,${s.level},"${new Date(
           s.date
         ).toLocaleDateString("fr-MA")}"`,
     )

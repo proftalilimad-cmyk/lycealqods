@@ -16,6 +16,7 @@ import {
 import { getBank, TEST_BANKS, type TestBankDef } from "../../data/testBanks";
 import { ROSTER_CLASSES, ROSTER_SOURCE, ROSTER_YEAR, type RosterStudent } from "../../data/rosters";
 import { TEST_DURATION_SECONDS } from "../../data/questions";
+import { scheduleForClass } from "../../data/diagnosticSchedule";
 import type { Submission } from "../../types";
 import { addSubmission } from "../../lib/storage";
 import Reveal from "../Reveal";
@@ -241,6 +242,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
       bankLabel: bank.branch,
       bankLevel: bank.level,
       diagnosticLevel: diagnosticLevelId ?? bank.level,
+      sessionId: scheduleForClass(className, bank.id)?.id,
       massar: pickedStudent?.massar,
       date: new Date().toISOString(),
       history: r.historyScore,

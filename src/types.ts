@@ -98,6 +98,8 @@ export interface Submission {
   bankLevel?: string;
   /** معرف المستوى الذي حمله QR Code (jad3-moshtarak / 1bac / 2bac) */
   diagnosticLevel?: string;
+  /** معرف الموعد/الحصة التنظيمي، إن كان القسم مرتبطًا بموعد محفوظ */
+  sessionId?: string;
   /** رقم مسار التلميذ(ة) من اللائحة الرسمية للقسم */
   massar?: string;
   date: string;
