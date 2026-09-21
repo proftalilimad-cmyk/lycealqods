@@ -65,7 +65,8 @@ export default function InspectorReports() {
   const [busy, setBusy] = useState<"data" | "reports" | "generate" | "save" | "delete" | null>(null);
   const [historySearch, setHistorySearch] = useState("");
   const [historyStatus, setHistoryStatus] = useState<"all" | InspectorReport["status"]>("all");
-  const [dataMode, setDataMode] = useState<ReportDataMode>(() => (isCloudConfigured() ? "central" : "demo"));
+  // طلب المعاينة الحالي يعتمد Demo افتراضيًا؛ يختار الأستاذ النتائج المركزية صراحةً عند الحاجة.
+  const [dataMode, setDataMode] = useState<ReportDataMode>("demo");
 
   const central = isCloudConfigured();
   const demoSubmissions = useMemo(() => submissions.filter(isDemoSubmission), [submissions]);
