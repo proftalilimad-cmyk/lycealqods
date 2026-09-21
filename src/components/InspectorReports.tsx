@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart3,
   ClipboardCheck,
@@ -65,6 +65,7 @@ export default function InspectorReports() {
   const [busy, setBusy] = useState<"data" | "reports" | "generate" | "save" | "delete" | null>(null);
   const [historySearch, setHistorySearch] = useState("");
   const [historyStatus, setHistoryStatus] = useState<"all" | InspectorReport["status"]>("all");
+  const demoAutoPreviewShown = useRef(false);
   // طلب المعاينة الحالي يعتمد Demo افتراضيًا؛ يختار الأستاذ النتائج المركزية صراحةً عند الحاجة.
   const [dataMode, setDataMode] = useState<ReportDataMode>("demo");
 
@@ -141,9 +142,20 @@ export default function InspectorReports() {
     }));
   }, [dataMode, demoDateRange.from, demoDateRange.to, demoSubmissions, draft.className]);
 
+  useEffect(() => {
+    if (dataMode !== "demo" || demoAutoPreviewShown.current || !draft.className || demoSubmissions.length === 0 || !analysis.hasRealResults) return;
+    const updated = updateReportFromAnalysis(draft, analysis);
+    const html = inspectorReportHtml(updated, analyseInspectorReport(updated, demoSubmissions, true));
+    demoAutoPreviewShown.current = true;
+    setDraft({ ...updated, htmlSnapshot: html });
+    setPreview({ report: updated, html });
+    setNotice({ kind: "warn", text: `تم إنشاء وعرض تقرير التقويم الشخصي للمفتش من ${analysis.participants} نتيجة Demo؛ هذه نسخة تطويرية لا تُحفظ مركزيًا.` });
+  }, [analysis, dataMode, demoSubmissions, draft.className]);
+
   const chooseDataMode = (mode: ReportDataMode) => {
     setDataMode(mode);
     setPreview(null);
+    demoAutoPreviewShown.current = false;
     if (mode === "demo" && demoSubmissions.length > 0) {
       const firstClass = demoSubmissions[0].className;
       setDraft((previous) => ({
