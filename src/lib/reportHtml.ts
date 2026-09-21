@@ -503,6 +503,7 @@ export function classReportBody(subs: Submission[], scope: ClassScope): string {
     : n
       ? displayClassName(list[0].className)
       : "—";
+  const reportedCount = session?.reportedParticipants ?? (n > 0 ? n : undefined);
 
   return `<section class="cover">
 ${masthead()}
@@ -513,7 +514,7 @@ ${masthead()}
 <tbody>
 <tr><th>المستوى</th><td>${esc(scope.level ?? (n ? bankLevelOf(list[0]) : session?.bankLevel ?? "—"))}</td><th>الشعبة / المسلك</th><td>${esc(scope.branch ?? (n ? branchOf(list[0]) : session?.branch ?? "—"))}</td></tr>
 <tr><th>القسم</th><td>${esc(reportClass)}</td><th>النتائج المحفوظة</th><td>${n} تلميذ(ة)</td></tr>
-<tr><th>الحاضرون/المشاركون حسب الموعد</th><td>${session?.reportedParticipants !== undefined ? `${session.reportedParticipants} تلميذ(ة)` : "غير محدد"}</td><th>تاريخ التقويم</th><td>${esc(sessionDateLabel(session))}</td></tr>
+<tr><th>الحاضرون/المشاركون حسب الموعد</th><td>${reportedCount !== undefined ? `${reportedCount} تلميذ(ة)` : "غير محدد"}</td><th>تاريخ التقويم</th><td>${esc(sessionDateLabel(session))}</td></tr>
 <tr><th>التوقيت</th><td>${esc(sessionTimeLabel(session))}</td><th>تاريخ التحرير</th><td>${esc(formatDate(new Date().toISOString()))}</td></tr>
 <tr><th>التقويم</th><td colspan="3">${esc(TEST_TITLE)} — 20 سؤالًا / 20 نقطة / 60 دقيقة</td></tr>
 <tr><th>الأستاذ</th><td>${esc(TEACHER_NAME)}</td><th>المؤسسة</th><td>${esc(SCHOOL_NAME)}</td></tr>
