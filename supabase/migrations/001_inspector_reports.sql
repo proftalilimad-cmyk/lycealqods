@@ -63,9 +63,10 @@ alter table public.teacher_public_keys enable row level security;
 alter table public.student_submissions enable row level security;
 alter table public.inspector_reports enable row level security;
 
--- لا تمنح anon أي صلاحية مباشرة على جدول النتائج.
-revoke all on table public.teacher_public_keys from anon, authenticated;
-revoke insert, update on table public.student_submissions from anon, authenticated;
+-- لا تمنح anon أو PUBLIC أي صلاحية مباشرة على جداول النتائج أو المفاتيح.
+revoke all on table public.teacher_public_keys from public, anon, authenticated;
+revoke all on table public.student_submissions from public, anon;
+revoke insert, update on table public.student_submissions from authenticated;
 grant select, delete on public.student_submissions to authenticated;
 
 -- لا توجد سياسة SELECT للدور anon؛ الأستاذ يرى صفوفه فقط.
@@ -149,9 +150,11 @@ begin
 end;
 $$;
 
+revoke all on function public.submit_assessment_result(text, jsonb) from public;
 grant execute on function public.submit_assessment_result(text, jsonb) to anon, authenticated;
 
 -- التقارير ملك للحساب الذي أنشأها. لا تسمح RLS بحذف أو تعديل تقرير أستاذ آخر.
+revoke all on table public.inspector_reports from public, anon;
 grant select, insert, update, delete on public.inspector_reports to authenticated;
 
 drop policy if exists "teacher reads own inspector reports" on public.inspector_reports;
