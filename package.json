@@ -13,6 +13,7 @@
     "pdf:jadadat": "tsx scripts/generate-jadadat-pdf-zip.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
     "clsx": "2.1.1",
     "lucide-react": "^1.43.0",
     "qrcode": "^1.5.4",

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { CheckCircle2, KeyRound, Lock, RotateCcw, Save, ShieldAlert, UserRound } from "lucide-react";
 import { activeCreds, changeCreds, DEFAULT_USER, restoreDefaults, supportedAlgo } from "../lib/teacherAuth";
+import { isCloudConfigured } from "../lib/supabase";
 import Reveal from "./Reveal";
 
 /* ============================================================
@@ -47,6 +48,10 @@ export default function TeacherSecurity() {
   };
 
   const defaults = () => {
+    if (isCloudConfigured()) {
+      setMsg({ kind: "err", text: "الحساب المركزي لا يملك بيانات افتراضية محلية. استعمل تغيير كلمة المرور أو Supabase Auth." });
+      return;
+    }
     restoreDefaults();
     setWho(DEFAULT_USER);
     setUser(DEFAULT_USER);
@@ -66,9 +71,10 @@ export default function TeacherSecurity() {
             تغيير بيانات الدخول
           </p>
           <p className="mt-1 text-[11px] font-semibold text-ink-500">
-            المستعمل الحالي: <strong dir="ltr" className="text-brand-700">{who ?? DEFAULT_USER}</strong> · بصمة الكلمة
-            محفوظة بخوارزمية <span dir="ltr">{supportedAlgo() === "sha256" ? "SHA-256" : "بديلة (سياق غير آمن)"}</span> — لا
-            تُخزَّن الكلمة نفسها أبدًا.
+            المستعمل الحالي: <strong dir="ltr" className="text-brand-700">{who ?? DEFAULT_USER}</strong>{" "}
+            {isCloudConfigured()
+              ? "· تتم إدارة كلمة المرور بواسطة Supabase Auth ولا تُخزّن داخل الموقع."
+              : <>· بصمة الكلمة محفوظة بخوارزمية <span dir="ltr">{supportedAlgo() === "sha256" ? "SHA-256" : "بديلة (سياق غير آمن)"}</span> — لا تُخزَّن الكلمة نفسها.</>}
           </p>
 
           <div className="mt-5 space-y-4">
@@ -148,21 +154,18 @@ export default function TeacherSecurity() {
             حدود هذه الحماية (بأمانة)
           </p>
           <ul className="mt-4 space-y-2.5 text-[11px] font-semibold leading-relaxed text-gold-800/90">
-            <li>• الموقع ثابت (HTML/CSS/JS فقط) بلا خادم ولا قاعدة بيانات: التحقّق يجري داخل متصفّح الزائر.</li>
-            <li>• القفل يكفي لحجب اللوحة عن التلاميذ والزوّار العاديين، وإخفاء النتائج وأدوات المسح والتصدير.</li>
-            <li>• لا تُخزَّن كلمة المرور، بل بصمتها؛ وتُحفظ النتائج والتتبّع في متصفّح الأستاذ وحده.</li>
-            <li>• من يتقن قراءة كود JavaScript يستطيع نظريًا تجاوز قفل كهذا — فلا تضع هنا معطيات حسّاسة جدًا.</li>
+            {isCloudConfigured() ? <>
+              <li>• الحساب يتحقق عبر Supabase Auth، ولا تُحفظ كلمة المرور في JavaScript.</li>
+              <li>• التقارير مرتبطة بمالكها عبر RLS؛ لا يقرأها الزائر أو حساب آخر.</li>
+              <li>• نتائج التلاميذ لا تملك الواجهة العامة سياسة قراءة لها، وتُجلب بعد مصادقة الأستاذ.</li>
+            </> : <>
+              <li>• لم تُضبط قاعدة مركزية بعد؛ التحقّق الحالي محلي داخل المتصفح.</li>
+              <li>• القفل المحلي يحجب اللوحة عن التلاميذ والزوّار العاديين، لكنه ليس حماية خادمية كاملة.</li>
+              <li>• لا تُخزَّن كلمة المرور، بل بصمتها؛ والنتائج المحلية ليست بديلًا عن قاعدة بيانات.</li>
+            </>}
           </ul>
           <p className="mt-4 rounded-xl bg-white/70 px-4 py-3 text-[11px] font-bold leading-relaxed text-ink-700">
-            لحماية حقيقية اختر واحدًا:
-            <br />
-            1) كلمة مرور على مستوى الاستضافة (cPanel «Directory Privacy» أو HTTP auth).
-            <br />
-            2) ملف ‎.htaccess + ‎.htpasswd في مجلد اللوحة (استضافة Apache).
-            <br />
-            3) حماية صفحة بكلمة مرور في Netlify / Vercel.
-            <br />
-            4) خادم صغير (Node/PHP) يتحقّق من الجلسة قبل إرسال الصفحة.
+            {isCloudConfigured() ? "تم تفعيل الحماية المركزية. حافظ على RLS ولا تضع service_role key في الواجهة." : <>لتفعيل الحماية والحفظ الدائم: نفّذ <span dir="ltr">supabase/migrations/001_inspector_reports.sql</span> ثم أضف متغيرات Supabase في Netlify كما في <span dir="ltr">docs/inspector-reports.md</span>.</>}
           </p>
         </div>
       </Reveal>

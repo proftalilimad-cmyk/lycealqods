@@ -7,6 +7,7 @@ import {
   ChartColumn,
   ClipboardList,
   Download,
+  FileBarChart,
   FileSpreadsheet,
   FileText,
   KeyRound,
@@ -22,12 +23,11 @@ import {
   Users,
 } from "lucide-react";
 import {
-  clearAllData,
+  clearAllStoredData,
   clearDemoData,
-  ensureSeeded,
   exportCsv,
   getDiagnosticAttendance,
-  getSubmissions,
+  loadSubmissions,
   isDemoSubmission,
   reseedDemoData,
 } from "../lib/storage";
@@ -42,6 +42,7 @@ import Reveal from "./Reveal";
 import TeacherLogin from "./TeacherLogin";
 import TeacherSecurity from "./TeacherSecurity";
 import Jadadat from "./Jadadat";
+import InspectorReports from "./InspectorReports";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -59,11 +60,30 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [centralStatus, setCentralStatus] = useState<"local" | "loading" | "connected" | "error">("local");
 
   useEffect(() => {
-    ensureSeeded();
-    setSubs(getSubmissions());
+    let alive = true;
+    setCentralStatus("loading");
+    void loadSubmissions().then((result) => {
+      if (!alive) return;
+      setSubs(result.submissions);
+      setCentralStatus(result.error ? "error" : result.remote ? "connected" : "local");
+      if (result.error) setNotice(`قاعدة البيانات المركزية: ${result.error}`);
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
+
+  const refreshSubmissions = () => {
+    setCentralStatus("loading");
+    void loadSubmissions().then((result) => {
+      setSubs(result.submissions);
+      setCentralStatus(result.error ? "error" : result.remote ? "connected" : "local");
+      if (result.error) setNotice(`قاعدة البيانات المركزية: ${result.error}`);
+    });
+  };
 
   const visibleSubs = useMemo(
     () => (showDemo ? subs : subs.filter((submission) => !isDemoSubmission(submission))),
@@ -199,9 +219,17 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
   const kb = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} م.ب` : `${Math.max(1, Math.round(n / 1024))} ك.ب`);
 
   const doClear = () => {
-    if (confirmClear === "all") clearAllData();
-    setSubs(getSubmissions());
-    setConfirmClear(null);
+    if (confirmClear !== "all") return;
+    void clearAllStoredData()
+      .then(() => {
+        refreshSubmissions();
+        setNotice("تم مسح النتائج المحلية والمركزية بعد تأكيد الأستاذ.");
+      })
+      .catch((error) => {
+        refreshSubmissions();
+        setNotice(`تعذّر مسح قاعدة البيانات المركزية: ${error instanceof Error ? error.message : "خطأ غير معروف"}`);
+      })
+      .finally(() => setConfirmClear(null));
   };
 
   const lvlColor = (percent: number) =>
@@ -215,6 +243,10 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
             <div>
               <h2 className="font-display text-2xl font-black text-ink-900">نتائج التقويم التشخيصي</h2>
               <p className="mt-2 text-sm text-ink-500">الأقسام والنتائج — التاريخ والجغرافيا · النقطة /20</p>
+              <p className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-extrabold ${centralStatus === "connected" ? "bg-emerald-50 text-emerald-700" : centralStatus === "error" ? "bg-rose-50 text-rose-700" : centralStatus === "loading" ? "bg-gold-50 text-gold-800" : "bg-paper-warm text-ink-500"}`}>
+                <span className={`size-1.5 rounded-full ${centralStatus === "connected" ? "bg-emerald-500" : centralStatus === "error" ? "bg-rose-500" : "bg-gold-500"}`} aria-hidden="true" />
+                {centralStatus === "connected" ? "المصدر المركزي متصل" : centralStatus === "loading" ? "جارٍ جلب النتائج من الخادم…" : centralStatus === "error" ? "تعذّر جلب النتائج المركزية" : "وضع محلي — لا توجد قاعدة بيانات مفعّلة"}
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2.5">
               <label className="inline-flex items-center gap-2 rounded-xl border border-gold-200 bg-gold-50 px-3.5 py-2.5 text-xs font-extrabold text-gold-800">
@@ -237,7 +269,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                 onClick={() => {
                   if (!window.confirm("ستُعاد إنشاء العينة التجريبية مع الحفاظ على اللائحة الكاملة ونتائج التلاميذ الحقيقية. هل تريد المتابعة؟")) return;
                   reseedDemoData();
-                  setSubs(getSubmissions());
+                  refreshSubmissions();
                   setShowDemo(true);
                   setNotice("تمت إعادة إنشاء العينة التجريبية فقط؛ اللائحة الكاملة والنتائج الحقيقية لم تُمس.");
                 }}
@@ -252,7 +284,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                 onClick={() => {
                   if (!window.confirm("سيُحذف النموذج التجريبي فقط، ولن تُحذف أي نتيجة حقيقية. هل تريد المتابعة؟")) return;
                   clearDemoData();
-                  setSubs(getSubmissions());
+                  refreshSubmissions();
                   setShowDemo(false);
                   setNotice("تم حذف البيانات التجريبية فقط. النتائج الحقيقية محفوظة.");
                 }}
@@ -883,9 +915,11 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
 /* ============================================================
    لوحة الأستاذ — فضاء خاص محمي باسم مستعمل وكلمة مرور
    ============================================================
-   تبويبان:
-     results  → نتائج التقويم التشخيصي (اللوحة الأصلية كما هي)
-     security → تغيير بيانات الدخول + حدود الحماية على موقع ثابت
+   تبويبات:
+     results  → نتائج التقويم التشخيصي
+     reports  → تقرير التقويم الشخصي للمفتش وحفظه المركزي
+     jadadat  → الجذاذات
+     security → تغيير بيانات الدخول + حدود الحماية
 
    لا يُعرض أي محتوى (نتائج، تصدير، مسح) قبل التحقّق من الدخول؛
    وعند تسجيل الخروج تُقفل الجلسة وتُحجب اللوحة من جديد.
@@ -893,6 +927,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
 
 const TABS = [
   { id: "results", label: "نتائج التقويم التشخيصي", hint: "الحضور، النتائج، التقارير والتصدير", icon: ChartColumn },
+  { id: "reports", label: "تقارير المفتش", hint: "تحليل رسمي، معاينة، PDF وحفظ مركزي", icon: FileBarChart },
   { id: "jadadat", label: "الجذاذات", hint: "إعداد الدروس والأنشطة والتقويم", icon: FileText },
   { id: "security", label: "الدخول والأمان", hint: "حماية الفضاء وإدارة الجلسة", icon: KeyRound },
 ] as const;
@@ -977,7 +1012,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
 
         {/* التبويبات */}
         <nav className="mt-5 rounded-3xl border border-ink-900/8 bg-white/80 p-2 shadow-[0_18px_45px_-32px_rgba(4,36,26,0.3)]" role="tablist" aria-label="أقسام لوحة الأستاذ">
-          <div className="grid gap-2 md:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {TABS.map((t) => {
             const on = active === t.id;
             return (
@@ -1009,6 +1044,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
         {/* محتوى التبويب */}
         <div className="mt-7">
           {active === "results" && <TestResultsPanel go={go} />}
+          {active === "reports" && <InspectorReports />}
           {active === "jadadat" && <Jadadat go={go} embedded />}
           {active === "security" && <TeacherSecurity />}
         </div>

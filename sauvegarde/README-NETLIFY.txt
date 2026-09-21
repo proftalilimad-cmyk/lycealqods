@@ -16,7 +16,17 @@
   Build command: npm run build
   Publish directory: dist
 
-مهم بخصوص نتائج التلاميذ:
-النسخة الحالية تحفظ النتائج في localStorage داخل المتصفح. هذا مناسب للمعاينة
-والاستعمال على نفس الجهاز، لكنه لا يوفر قاعدة نتائج مركزية مشتركة بين أجهزة
-التلاميذ والأستاذ. التخزين المركزي يتطلب Backend/قاعدة بيانات منفصلة.
+مهم بخصوص نتائج التلاميذ وتقارير المفتش:
+النسخة تدعم التخزين المركزي عبر Supabase. بعد إنشاء المشروع وتنفيذ:
+  supabase/migrations/001_inspector_reports.sql
+أضف في Netlify → Site configuration → Environment variables:
+  VITE_SUPABASE_URL
+  VITE_SUPABASE_ANON_KEY
+  VITE_SUPABASE_TEACHER_EMAIL
+ثم أعد Deploy للموقع. عندها تُرسل نتائج التقويم إلى قاعدة البيانات وتظهر
+في لوحة الأستاذ من أي جهاز، ويحفظ تبويب «تقارير المفتش» نسخة التقرير ونتائجها
+المرتبطة مع RLS. توجد كل خطوات الإعداد في docs/inspector-reports.md داخل
+نسخة المصدر.
+
+إذا لم تُضبط متغيرات Supabase، تعمل النسخة في وضع المعاينة المحلي فقط؛
+لا تعتمد على localStorage كحفظ مركزي دائم ولا تدّعي الواجهة خلاف ذلك.

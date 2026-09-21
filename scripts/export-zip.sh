@@ -59,6 +59,7 @@ EXTRA=()
 [ -d "$ROOT/docs" ] && EXTRA+=("docs")
 [ -d "$ROOT/supabase" ] && EXTRA+=("supabase")
 [ -d "$ROOT/$DOCS_DIR" ] && EXTRA+=("$DOCS_DIR")
+[ -f "$ROOT/.env.example" ] && EXTRA+=(".env.example")
 (
   cd "$ROOT"
   zip -qrX "$SRC_ZIP" \

@@ -83,11 +83,13 @@ interface TestResultProps {
   massar?: string;
   /** النتيجة كما حُفظت — تُعرض بها أزرار تحميل ملف التلميذ(ة) */
   submission?: Submission;
+  /** نتيجة الإرسال إلى قاعدة البيانات المركزية إن كان Supabase مفعّلًا */
+  cloudSaveMessage?: string;
   onRestart: () => void;
   onHome: () => void;
 }
 
-export default function TestResult({ questions: QUESTIONS, report, name, className, massar, submission, onRestart, onHome }: TestResultProps) {
+export default function TestResult({ questions: QUESTIONS, report, name, className, massar, submission, cloudSaveMessage, onRestart, onHome }: TestResultProps) {
   const [openReview, setOpenReview] = useState<number | null>(null);
   const [showWriting, setShowWriting] = useState(false);
   const [downloadNote, setDownloadNote] = useState<string | null>(null);
@@ -427,6 +429,11 @@ export default function TestResult({ questions: QUESTIONS, report, name, classNa
         {submission && (
           <Reveal delay={120}>
             <div className="mt-10">
+              {cloudSaveMessage && (
+                <p role="status" className={`mb-3 rounded-2xl border px-5 py-3 text-xs font-bold leading-relaxed ${cloudSaveMessage.startsWith("تم") ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-gold-200 bg-gold-50 text-gold-800"}`}>
+                  {cloudSaveMessage}
+                </p>
+              )}
               <StudentDownloads sub={submission} variant="card" onNotice={setDownloadNote} />
               {downloadNote && (
                 <p role="status" className="mt-3 rounded-2xl border border-brand-200 bg-white px-5 py-3 text-xs font-bold leading-relaxed text-brand-800">

@@ -3,8 +3,9 @@
    ============================================================
 
    ⚠️ ملاحظة صريحة للأستاذ (مهمّة):
-   الموقع «ثابت» (ملفات HTML/CSS/JS فقط، بلا خادم ولا قاعدة بيانات)،
-   لذلك لا توجد حماية سرّية حقيقية يمكن تحقيقها من داخل المتصفح وحده.
+   عند عدم ضبط Supabase يكون الموقع ثابتًا (HTML/CSS/JS فقط)، لذلك لا توجد
+   حماية سرّية حقيقية يمكن تحقيقها من داخل المتصفح وحده. عند ضبط Supabase
+   يستعمل الدخول Supabase Auth، وتفرض RLS حماية التقارير والنتائج المركزية.
    ما يفعله هذا القفل فعليًا:
 
      1) يحجب اللوحة عن التلاميذ والزوّار: لا نتائج، لا تصدير، لا أزرار
@@ -25,6 +26,8 @@
      اسم المستعمل: imad
      كلمة المرور : qods2026
    ============================================================ */
+import { isCloudConfigured } from "./supabase";
+import { signInTeacher, signOutTeacher, updateTeacherCredentials } from "./cloudStorage";
 
 export type HashAlgo = "sha256" | "fnv";
 
@@ -167,6 +170,14 @@ export function readCreds(): StoredCreds | null {
 export async function activeCreds(): Promise<StoredCreds> {
   const stored = readCreds();
   if (stored) return stored;
+  if (isCloudConfigured()) {
+    return {
+      user: (import.meta.env.VITE_SUPABASE_TEACHER_EMAIL ?? "الأستاذ عبر Supabase").trim(),
+      hash: "",
+      algo: "sha256",
+      custom: true,
+    };
+  }
   const algo = supportedAlgo();
   return { user: DEFAULT_USER, hash: DEFAULT_HASH[algo], algo, custom: false };
 }
@@ -180,6 +191,13 @@ const sameUser = (a: string, b: string) => a.trim().toLowerCase() === b.trim().t
 
 /** التحقّق من اسم المستعمل وكلمة المرور */
 export async function verifyLogin(user: string, password: string): Promise<boolean> {
+  if (isCloudConfigured()) {
+    const configuredEmail = (import.meta.env.VITE_SUPABASE_TEACHER_EMAIL ?? "").trim();
+    const email = user.includes("@") ? user.trim() : configuredEmail;
+    if (!email) return false;
+    const result = await signInTeacher(email, password);
+    return result.ok;
+  }
   const creds = await activeCreds();
   if (!sameUser(user, creds.user)) return false;
   const algo: HashAlgo = creds.algo === "fnv" || !crypto.subtle ? "fnv" : "sha256";
@@ -213,6 +231,7 @@ export function lock(): void {
   ssDel(SESSION_KEY);
   ssDel(LEGACY_SESSION_KEY);
   lsDel(LEGACY_REMEMBER_KEY);
+  if (isCloudConfigured()) void signOutTeacher();
 }
 
 /* --------------------------- محاولات الدخول الفاشلة --------------------------- */
@@ -279,6 +298,13 @@ export async function changeCreds(
   if (nextPassword !== confirmPassword) return { ok: false, error: "كلمتا المرور غير متطابقتين." };
   if (!(await verifyLogin(user, currentPassword)) && !(await verifyLogin((await activeCreds()).user, currentPassword)))
     return { ok: false, error: "كلمة المرور الحالية غير صحيحة." };
+
+  if (isCloudConfigured()) {
+    const result = await updateTeacherCredentials(user.trim(), nextPassword);
+    if (!result.ok) return result;
+    resetFails();
+    return { ok: true };
+  }
 
   const algo = supportedAlgo();
   const hash = await digest(nextPassword, algo);

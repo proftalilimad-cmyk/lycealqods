@@ -131,6 +131,42 @@ export interface Submission {
   writingText?: string;
   /** المدة المستغرقة بالثواني */
   timeUsedSeconds?: number;
+  /** نوع التقويم الذي أنشأ السجل؛ السجلات القديمة تُعامل تشخيصيًا افتراضيًا. */
+  assessmentType?: "diagnostic" | "personal";
+}
+
+export type InspectorAssessmentType = "diagnostic" | "personal";
+export type InspectorReportStatus = "draft" | "approved" | "archived";
+
+/**
+ * لقطة تقرير المفتش التي تُحفظ في قاعدة البيانات. لا تُخزّن النتائج
+ * كملخّص مُنشأ يدويًا فقط؛ بل ترتبط بمعرفات السجلات التي بُنيت عليها.
+ */
+export interface InspectorReport {
+  id: string;
+  teacherId?: string;
+  teacherName: string;
+  institution: string;
+  academy: string;
+  directorate: string;
+  level: string;
+  subject: string;
+  className: string;
+  schoolYear: string;
+  assessmentType: InspectorAssessmentType;
+  periodFrom: string;
+  periodTo: string;
+  threshold: number;
+  tools: string;
+  context: string;
+  objectives: string;
+  supportDuration: string;
+  status: InspectorReportStatus;
+  submissionIds: string[];
+  createdAt: string;
+  updatedAt: string;
+  /** نسخة HTML كاملة قابلة لإعادة المعاينة والطباعة؛ لا تُستعمل مصدرًا للنتائج. */
+  htmlSnapshot?: string;
 }
 
 export interface Methodology {

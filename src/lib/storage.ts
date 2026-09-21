@@ -9,6 +9,8 @@ import {
   type DiagnosticSession,
 } from "../data/diagnosticSchedule";
 import { gradeAutoQuestion, gradeWriting, levelOf } from "./grading";
+import { deleteAllCloudSubmissions, loadCloudSubmissions, saveCloudSubmission, type SubmissionSaveResult } from "./cloudStorage";
+import { isCloudConfigured } from "./supabase";
 
 const KEY = "talil_platform_submissions_v1";
 /** تغيير الإصدار يعيد إنشاء Demo فقط، مع الإبقاء على كل نتيجة حقيقية كما هي. */
@@ -288,7 +290,7 @@ export function isDemoSubmission(submission: Submission): boolean {
  */
 export function getDiagnosticAttendance(submissions: Submission[], className?: string): DiagnosticAttendanceSummary[] {
   return ROSTER_CLASSES.filter(
-    (roster) => DIAGNOSTIC_DEMO_CLASS_SET.has(roster.label) && (!className || roster.label === className),
+    (roster) => (!className ? DIAGNOSTIC_DEMO_CLASS_SET.has(roster.label) : roster.label === className),
   )
     .map((roster) => {
       const classSubmissions = submissions.filter((submission) => submission.className === roster.label);
@@ -380,17 +382,62 @@ export function getSubmissions(): Submission[] {
   }
 }
 
-export function addSubmission(sub: Submission): void {
-  const list = getSubmissions();
-  list.push({
+function normalizeRealSubmission(sub: Submission): Submission {
+  return {
     ...sub,
     dataSource: sub.dataSource ?? "real",
     demo: false,
     isDemo: false,
     attendanceStatus: sub.attendanceStatus ?? "present",
     assessmentStatus: sub.assessmentStatus ?? "completed",
-  });
+    assessmentType: sub.assessmentType ?? "diagnostic",
+  };
+}
+
+/**
+ * يحفظ النتيجة محليًا كذاكرة مؤقتة، ثم يرسلها إلى قاعدة البيانات عند
+ * إعداد Supabase. لا نُخفي فشل الحفظ المركزي عن الواجهة.
+ */
+export async function addSubmission(sub: Submission): Promise<SubmissionSaveResult> {
+  const value = normalizeRealSubmission(sub);
+  const list = getSubmissions().filter((item) => item.id !== value.id);
+  list.push(value);
   localStorage.setItem(KEY, JSON.stringify(list));
+  if (!isCloudConfigured()) return { localSaved: true, cloudConfigured: false, cloudSaved: false };
+  try {
+    await saveCloudSubmission(value);
+    return { localSaved: true, cloudConfigured: true, cloudSaved: true };
+  } catch (error) {
+    return {
+      localSaved: true,
+      cloudConfigured: true,
+      cloudSaved: false,
+      error: error instanceof Error ? error.message : "تعذّر الحفظ المركزي.",
+    };
+  }
+}
+
+/**
+ * مصدر لوحة الأستاذ: عند تفعيل السحابة نستعمل نتائج قاعدة البيانات، ونبقي
+ * Demo محليًا ومعزولًا للعرض. لا نعرض سجلات حقيقية قديمة من localStorage
+ * على أنها مركزية إذا فشل الاتصال.
+ */
+export async function loadSubmissions(): Promise<{ submissions: Submission[]; remote: boolean; error?: string }> {
+  ensureSeeded();
+  const local = getSubmissions();
+  if (!isCloudConfigured()) return { submissions: local, remote: false };
+  const remote = await loadCloudSubmissions();
+  if (remote.error) {
+    return {
+      submissions: local.filter(isDemoSubmission),
+      remote: true,
+      error: remote.error,
+    };
+  }
+  return {
+    submissions: [...local.filter(isDemoSubmission), ...remote.submissions.filter((submission) => !isDemoSubmission(submission))],
+    remote: true,
+  };
 }
 
 function realSubmissions(): Submission[] {
@@ -420,6 +467,12 @@ export function clearDemoData(): void {
 export function clearAllData(): void {
   localStorage.removeItem(KEY);
   localStorage.setItem(SEED_FLAG, DEMO_DATA_VERSION);
+}
+
+/** يمسح النتائج المحلية والمركزية بعد تأكيد الأستاذ. */
+export async function clearAllStoredData(): Promise<void> {
+  clearAllData();
+  if (isCloudConfigured()) await deleteAllCloudSubmissions();
 }
 
 export function exportCsv(list: Submission[]): void {

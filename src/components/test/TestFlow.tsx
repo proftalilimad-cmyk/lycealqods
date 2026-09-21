@@ -182,6 +182,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
   const [report, setReport] = useState<TestReport | null>(null);
   /* النتيجة كما حُفظت — تُستعمل لأزرار تحميل ملف التلميذ(ة) */
   const [savedSub, setSavedSub] = useState<Submission | null>(null);
+  const [cloudSaveMessage, setCloudSaveMessage] = useState<string | null>(null);
 
   const rosterClass = DIAGNOSTIC_ROSTER_CLASSES.find((roster) => roster.label === className);
   const pickedStudent: RosterStudent | undefined = rosterClass?.students.find((st) => st.massar === studentPick);
@@ -261,12 +262,17 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
       rubric: r.rubric,
       writingText: r.writingText,
       timeUsedSeconds: r.timeUsedSeconds,
+      assessmentType: "diagnostic",
     };
-    try {
-      addSubmission(sub);
-    } catch {
-      /* وضع بدون تخزين */
-    }
+    setCloudSaveMessage(null);
+    void addSubmission(sub).then((result) => {
+      if (!result.cloudConfigured) return;
+      setCloudSaveMessage(
+        result.cloudSaved
+          ? "تم حفظ النتيجة في قاعدة البيانات المركزية."
+          : `تعذّر الحفظ المركزي: ${result.error ?? "تحقّق من إعدادات قاعدة البيانات."}`,
+      );
+    });
     setSavedSub(sub);
     setReport(r);
     setStage("done");
@@ -276,6 +282,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
   const restart = () => {
     setReport(null);
     setSavedSub(null);
+    setCloudSaveMessage(null);
     setName("");
     setClassName(diagnosticClassName ?? (bank ? bank.branch : ""));
     setStudentNo("");
@@ -318,6 +325,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
         className={className}
         massar={savedSub?.massar ?? pickedStudent?.massar}
         submission={savedSub ?? undefined}
+        cloudSaveMessage={cloudSaveMessage ?? undefined}
         onRestart={restart}
         onHome={onHome}
       />
