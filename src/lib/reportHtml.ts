@@ -263,7 +263,7 @@ const MODE_LABEL: Record<StudentDocMode, string> = {
   full: "الملف الفردي الكامل — الأجوبة + تقرير النتائج",
 };
 
-function compactAnswersPart(sub: Submission, rows: QuestionRows): string {
+function compactAnswersPart(rows: QuestionRows): string {
   const items = rows.rows
     .map((r) => {
       const state = !rows.hasAnswers ? "غير محفوظة" : r.isCorrect ? "صحيحة" : r.answered ? "تحتاج مراجعة" : "بدون إجابة";
@@ -290,7 +290,7 @@ function compactAnswersPart(sub: Submission, rows: QuestionRows): string {
 }
 
 function answersPart(sub: Submission, rows: QuestionRows, compact = false): string {
-  if (compact) return compactAnswersPart(sub, rows);
+  if (compact) return compactAnswersPart(rows);
   const items = rows.rows
     .map((r) => {
       const q = r.question;

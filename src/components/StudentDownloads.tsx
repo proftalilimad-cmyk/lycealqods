@@ -5,24 +5,26 @@
      • صفحة نتيجة التلميذ(ة) بعد إنهاء التقويم (نمط «card»).
      • جدول نتائج لوحة الأستاذ، سطر لكل تلميذ(ة) (نمط «row»).
 
-   الأزرار الخمسة المطلوبة:
-     1) أجوبة التلميذ PDF      → نافذة طباعة باسم الملف المطلوب
-     2) تقرير النتائج PDF      → التحليل التربوي والتوصيات
-     3) طباعة الملف الفردي     → الغلاف + الأجوبة + التقرير
-     4) Word (.doc)            → يُفتح في Word / LibreOffice
-     5) Excel (.xlsx)          → الأجوبة سؤالًا بسؤال + ملخص
+   أزرار الملف المطلوبة:
+     1) عرض التفاصيل           → فتح الملف الفردي الكامل في نافذة جديدة
+     2) أجوبة التلميذ PDF      → نافذة طباعة باسم الملف المطلوب
+     3) تقرير النتائج PDF      → التحليل التربوي والتوصيات
+     4) طباعة الملف الفردي     → الغلاف + الأجوبة + التقرير
+     5) Word (.doc)            → يُفتح في Word / LibreOffice
+     6) Excel (.xlsx)          → الأجوبة سؤالًا بسؤال + ملخص
 
    اسم الملف تلقائي ومنظّم:
      اسم_التلميذ_رقم_التلميذ_التقويم_التشخيصي.pdf
    ============================================================ */
 import { useState } from "react";
-import { FileDown, FileSpreadsheet, FileText, FileType2, Printer } from "lucide-react";
+import { ExternalLink, FileDown, FileSpreadsheet, FileText, FileType2, Printer } from "lucide-react";
 import type { Submission } from "../types";
 import { studentFileName } from "../lib/reportDoc";
 import {
   studentAnswersPdf,
   studentExcelFile,
   studentHtmlFile,
+  studentOpen,
   studentPrint,
   studentReportPdf,
   studentWordFile,
@@ -51,6 +53,14 @@ export default function StudentDownloads({ sub, variant = "card", onNotice }: St
   const pdfName = studentFileName(sub, "pdf");
 
   const actions: ActionDef[] = [
+    {
+      id: "open-details",
+      icon: ExternalLink,
+      label: "عرض التفاصيل",
+      hint: "فتح الملف الفردي الكامل في نافذة جديدة: الأجوبة والتقرير والتحليل",
+      run: () => studentOpen(sub),
+      done: "فُتح الملف الفردي الكامل في نافذة جديدة.",
+    },
     {
       id: "answers-pdf",
       icon: FileDown,

@@ -27,7 +27,7 @@ import { QUESTIONS } from "../data/questions";
 import { getBank } from "../data/testBanks";
 import { gradeAutoQuestion, levelOf, RECOMMENDATIONS } from "./grading";
 import { ROSTER_SCHOOL, ROSTER_YEAR } from "../data/rosters";
-import { displayClassName, scheduleForSubmission, sessionClockLabel, sessionDateLabel } from "../data/diagnosticSchedule";
+import { displayClassName } from "../data/diagnosticSchedule";
 
 /* ===================== معطيات ثابتة ===================== */
 export const MINISTRY_LINE = "المملكة المغربية — وزارة التربية الوطنية والتعليم الأولي والرياضية";
@@ -66,8 +66,11 @@ export function studentNumber3(sub: Submission): string {
   return digits ? digits.padStart(3, "0").slice(-3) : fileNamePart(raw);
 }
 
-/** اسم الملف الأساسي بلا امتداد: اسم_التلميذ_رقم_التلميذ_التقويم_التشخيصي */
+/** اسم الملف الأساسي بلا امتداد؛ سجلات Demo تحمل بادئة واضحة حتى لا تختلط بالملفات الحقيقية. */
 export function studentBaseName(sub: Submission): string {
+  if (sub.demo || sub.dataSource === "demo") {
+    return `DEMO_${fileNamePart(sub.name)}_${fileNamePart(sub.studentNo ?? studentNumber3(sub))}_${TEST_FILE_TAG}`;
+  }
   return `${fileNamePart(sub.name)}_${studentNumber3(sub)}_${TEST_FILE_TAG}`;
 }
 

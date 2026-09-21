@@ -175,6 +175,20 @@ export function studentHtmlFile(sub: Submission): void {
   downloadText(studentDocHtml(sub, "full"), studentFileName(sub, "html"), "text/html;charset=utf-8");
 }
 
+/** فتح الملف الفردي مباشرة من زر «عرض التفاصيل» داخل فضاء الأستاذ. */
+export function studentOpen(sub: Submission): void {
+  if (typeof window === "undefined") return;
+  const popup = window.open("", "_blank");
+  if (!popup) {
+    studentHtmlFile(sub);
+    return;
+  }
+  popup.opener = null;
+  popup.document.open();
+  popup.document.write(studentDocHtml(sub, "full"));
+  popup.document.close();
+}
+
 /** 5) الملف الفردي بصيغة Word (.doc) */
 export function studentWordFile(sub: Submission): void {
   const title = studentBaseName(sub);

@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { DiagnosticLevel, Route } from "../routes";
+import { scheduleForClass, sessionTimeLabel } from "../data/diagnosticSchedule";
 import Reveal from "./Reveal";
 import TestFlow from "./test/TestFlow";
 
@@ -50,14 +51,16 @@ type DiagnosticLevelInfo = (typeof DIAGNOSTIC_LEVELS)[number];
 
 interface DiagnosticProps {
   level?: DiagnosticLevel;
+  className?: string;
   go: (route: Route) => void;
 }
 
 const getLevelInfo = (id?: DiagnosticLevel): DiagnosticLevelInfo | undefined => DIAGNOSTIC_LEVELS.find((item) => item.id === id);
 
-function actualDiagnosticUrl(level: DiagnosticLevel): string {
+function actualDiagnosticUrl(level: DiagnosticLevel, className?: string): string {
   const base = `${window.location.origin}${window.location.pathname}`;
-  return `${base}#/diagnostic/${level}`;
+  const query = className ? `?class=${encodeURIComponent(className)}` : "";
+  return `${base}#/diagnostic/${level}${query}`;
 }
 
 function escapeHtml(value: string): string {
@@ -113,10 +116,13 @@ function printWindow(title: string, html: string): void {
 interface QRPanelProps {
   level: DiagnosticLevelInfo;
   onView: () => void;
+  className?: string;
 }
 
-function QRPanel({ level, onView }: QRPanelProps) {
-  const url = useMemo(() => actualDiagnosticUrl(level.id), [level.id]);
+function QRPanel({ level, onView, className }: QRPanelProps) {
+  const session = scheduleForClass(className, level.defaultBank);
+  const qrLabel = session?.displayClass ?? level.label;
+  const url = useMemo(() => actualDiagnosticUrl(level.id, className), [level.id, className]);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -147,7 +153,7 @@ function QRPanel({ level, onView }: QRPanelProps) {
     if (!qrDataUrl) return;
     const link = document.createElement("a");
     link.href = qrDataUrl;
-    link.download = `qr-${level.id}-diagnostic.png`;
+    link.download = `qr-${level.id}-${className ? className.replace(/\s+/g, "-") : "level"}-diagnostic.png`;
     link.click();
     notify("تم تحميل رمز QR بصيغة PNG عالية الجودة.");
   };
@@ -155,16 +161,16 @@ function QRPanel({ level, onView }: QRPanelProps) {
   const printQR = () => {
     if (!qrDataUrl) return;
     printWindow(
-      `QR Code — ${level.label}`,
-      `<div class="card"><h1>الدخول إلى التقويم التشخيصي</h1><h2>${escapeHtml(level.label)}</h2><img src="${qrDataUrl}" alt="QR Code"><p>امسح الرمز للدخول إلى التقويم التشخيصي</p><p class="small">${escapeHtml(url)}</p><p class="teacher">إعداد وإنجاز: الأستاذ عماد طليل — ثانوية القدس، القنيطرة</p></div>`,
+      `QR Code — ${qrLabel}`,
+      `<div class="card"><h1>الدخول إلى التقويم التشخيصي</h1><h2>${escapeHtml(qrLabel)}</h2><img src="${qrDataUrl}" alt="QR Code"><p>امسح الرمز للدخول إلى التقويم التشخيصي</p><p class="small">${escapeHtml(url)}</p><p class="teacher">إعداد وإنجاز: الأستاذ عماد طليل — ثانوية القدس، القنيطرة</p></div>`,
     );
   };
 
   const printCard = () => {
     if (!qrDataUrl) return;
     printWindow(
-      `بطاقة التقويم التشخيصي — ${level.label}`,
-      `<div class="card"><h1>الثانوية التأهيلية القدس</h1><p>مادة الاجتماعيات</p><h2>التقويم التشخيصي — ${escapeHtml(level.label)}</h2><img src="${qrDataUrl}" alt="QR Code"><p><strong>امسح الرمز للدخول إلى التقويم</strong></p><div class="instruction"><p>افتح كاميرا هاتفك، امسح رمز QR، اضغط على الرابط الظاهر، ثم ابدأ التقويم التشخيصي.</p></div><p class="teacher">الأستاذ عماد طليل</p></div>`,
+      `بطاقة التقويم التشخيصي — ${qrLabel}`,
+      `<div class="card"><h1>الثانوية التأهيلية القدس</h1><p>مادة الاجتماعيات</p><h2>التقويم التشخيصي — ${escapeHtml(qrLabel)}</h2><img src="${qrDataUrl}" alt="QR Code"><p><strong>امسح الرمز للدخول إلى التقويم</strong></p><div class="instruction"><p>افتح كاميرا هاتفك، امسح رمز QR، اضغط على الرابط الظاهر، ثم ابدأ التقويم التشخيصي.</p></div><p class="teacher">الأستاذ عماد طليل</p></div>`,
     );
   };
 
@@ -210,7 +216,7 @@ function QRPanel({ level, onView }: QRPanelProps) {
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
-                alt={`رمز QR للدخول إلى تقويم ${level.label}`}
+                alt={`رمز QR للدخول إلى تقويم ${qrLabel}`}
                 width={290}
                 height={290}
                 decoding="async"
@@ -225,7 +231,7 @@ function QRPanel({ level, onView }: QRPanelProps) {
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl bg-brand-50 p-4">
                 <p className="text-[11px] font-bold text-ink-500">المستوى</p>
-                <p className="mt-1 font-display text-base font-black text-brand-800">{level.label}</p>
+                <p className="mt-1 font-display text-base font-black text-brand-800">{qrLabel}</p>
               </div>
               <div className="rounded-2xl bg-gold-50 p-4">
                 <p className="text-[11px] font-bold text-ink-500">المادة</p>
@@ -274,8 +280,59 @@ function QRPanel({ level, onView }: QRPanelProps) {
 }
 
 /** بطاقة QR تُستعمل داخل لوحة الأستاذ فقط لتوزيع رابط المستوى على التلاميذ. */
-export function DiagnosticQRPanel({ level, onView }: QRPanelProps) {
-  return <QRPanel level={level} onView={onView} />;
+export function DiagnosticQRPanel({ level, onView, className }: QRPanelProps) {
+  return <QRPanel level={level} onView={onView} className={className} />;
+}
+
+/** QR صغير خاص بقسم واحد؛ الرابط يحمل المستوى والقسم معًا. */
+export function DiagnosticQRButton({ level, className, onView }: { level: DiagnosticLevelInfo; className: string; onView: () => void }) {
+  const session = scheduleForClass(className, level.defaultBank);
+  const url = useMemo(() => actualDiagnosticUrl(level.id, className), [level.id, className]);
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  useEffect(() => {
+    let alive = true;
+    QRCode.toDataURL(url, { width: 320, margin: 2, errorCorrectionLevel: "H", color: { dark: "#063828", light: "#ffffff" } })
+      .then((dataUrl) => alive && setQrDataUrl(dataUrl))
+      .catch(() => alive && setQrDataUrl(""));
+    return () => {
+      alive = false;
+    };
+  }, [url]);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = url;
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      input.remove();
+    }
+  };
+  const download = () => {
+    if (!qrDataUrl) return;
+    const link = document.createElement("a");
+    link.href = qrDataUrl;
+    link.download = `qr-${className.replace(/\s+/g, "-")}.png`;
+    link.click();
+  };
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-brand-100 bg-brand-50/60 p-2" title={url}>
+      {qrDataUrl ? <img src={qrDataUrl} alt={`QR ${session?.displayClass ?? className}`} className="size-16 rounded-lg bg-white p-1" /> : <span className="grid size-16 place-items-center rounded-lg bg-white text-[9px] text-ink-400">QR…</span>}
+      <div className="min-w-0">
+        <p className="text-[10px] font-extrabold text-brand-800">QR القسم</p>
+        <p className="mt-0.5 max-w-[150px] truncate text-[9px] text-ink-500">{session?.displayClass ?? className}</p>
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          <button type="button" onClick={onView} className="rounded-md bg-brand-700 px-2 py-1 text-[9px] font-extrabold text-white">عرض</button>
+          <button type="button" onClick={copy} className="rounded-md border border-brand-200 bg-white px-2 py-1 text-[9px] font-extrabold text-brand-700">نسخ</button>
+          <button type="button" onClick={download} disabled={!qrDataUrl} className="rounded-md border border-brand-200 bg-white px-2 py-1 text-[9px] font-extrabold text-brand-700 disabled:opacity-40">تحميل</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function LevelSelector({ go }: { go: (route: Route) => void }) {
@@ -327,7 +384,8 @@ function LevelSelector({ go }: { go: (route: Route) => void }) {
   );
 }
 
-function LevelPage({ level, go }: { level: DiagnosticLevelInfo; go: (route: Route) => void }) {
+function LevelPage({ level, className, go }: { level: DiagnosticLevelInfo; className?: string; go: (route: Route) => void }) {
+  const lockedSession = scheduleForClass(className, level.defaultBank);
 
   return (
     <section className="relative overflow-hidden pt-28 pb-20 md:pt-36">
@@ -343,18 +401,19 @@ function LevelPage({ level, go }: { level: DiagnosticLevelInfo; go: (route: Rout
             </span>
           </div>
           <div className="mt-8 max-w-3xl">
-            <p className="text-sm font-bold text-brand-700">التقويم التشخيصي · {level.label}</p>
-            <h1 className="mt-3 font-display text-3xl font-black leading-[1.3] text-ink-900 sm:text-4xl lg:text-5xl">صفحة تقويم {level.label}</h1>
-            <p className="mt-4 text-sm leading-loose text-ink-500 sm:text-base">{level.description} اختر المسلك المناسب أسفل بطاقة الدخول ثم ابدأ التقويم، وستُحفظ النتيجة مع المستوى والقسم ورقم التلميذ.</p>
+            <p className="text-sm font-bold text-brand-700">التقويم التشخيصي · {lockedSession?.displayClass ?? level.label}</p>
+            <h1 className="mt-3 font-display text-3xl font-black leading-[1.3] text-ink-900 sm:text-4xl lg:text-5xl">صفحة تقويم {lockedSession?.displayClass ?? level.label}</h1>
+            <p className="mt-4 text-sm leading-loose text-ink-500 sm:text-base">{level.description} {lockedSession ? `الموعد: ${sessionTimeLabel(lockedSession)}.` : "اختر المسلك المناسب أسفل بطاقة الدخول ثم ابدأ التقويم."} وستُحفظ النتيجة مع المستوى والقسم ورقم التلميذ.</p>
           </div>
         </Reveal>
 
         <div id="diagnostic-test" className="mt-12 scroll-mt-24">
           <TestFlow
-            key={level.id}
+            key={`${level.id}-${className ?? "all"}`}
             initialBank={level.defaultBank}
             diagnosticLevel={level.bankLevel}
             diagnosticLevelId={level.id}
+            diagnosticClassName={className}
             onHome={() => go({ view: "home" })}
           />
         </div>
@@ -363,7 +422,7 @@ function LevelPage({ level, go }: { level: DiagnosticLevelInfo; go: (route: Rout
   );
 }
 
-export default function Diagnostic({ level, go }: DiagnosticProps) {
+export default function Diagnostic({ level, className, go }: DiagnosticProps) {
   const info = getLevelInfo(level);
-  return info ? <LevelPage level={info} go={go} /> : <LevelSelector go={go} />;
+  return info ? <LevelPage level={info} className={className} go={go} /> : <LevelSelector go={go} />;
 }

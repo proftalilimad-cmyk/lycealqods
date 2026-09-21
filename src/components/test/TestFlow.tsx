@@ -29,6 +29,8 @@ interface TestFlowProps {
   diagnosticLevel?: string;
   /** المعرف الذي جاء به QR Code، ويُحفظ مع النتيجة. */
   diagnosticLevelId?: string;
+  /** قسم QR، إن وُجد: يُثبّت القسم مثلما يُثبّت المستوى. */
+  diagnosticClassName?: string;
   onBackToLevels?: () => void;
   onHome: () => void;
 }
@@ -167,11 +169,12 @@ function BankSelector({ onPick, level }: { onPick: (bank: TestBankDef) => void; 
   );
 }
 
-export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevelId, onBackToLevels, onHome }: TestFlowProps) {
+export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevelId, diagnosticClassName, onBackToLevels, onHome }: TestFlowProps) {
   const [bank, setBank] = useState<TestBankDef | undefined>(() => getBank(initialBank));
   const [stage, setStage] = useState<"intro" | "run" | "done">("intro");
   const [name, setName] = useState("");
-  const [className, setClassName] = useState("");
+  const [className, setClassName] = useState(diagnosticClassName ?? "");
+  const classLocked = Boolean(diagnosticClassName);
   const [studentNo, setStudentNo] = useState("");
   /* اختيار الاسم من اللائحة الرسمية للقسم (رقم مسار = المفتاح) */
   const [studentPick, setStudentPick] = useState("");
@@ -185,13 +188,14 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
 
   const pickBank = (b: TestBankDef) => {
     setBank(b);
-    setClassName("");
+    setClassName(diagnosticClassName ?? "");
     setStudentPick("");
     setStage("intro");
     window.scrollTo({ top: 0 });
   };
 
   const pickClass = (label: string) => {
+    if (classLocked) return;
     setClassName(label);
     setStudentPick("");
     setName("");
@@ -243,6 +247,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
       bankLevel: bank.level,
       diagnosticLevel: diagnosticLevelId ?? bank.level,
       sessionId: scheduleForClass(className, bank.id)?.id,
+      dataSource: "real",
       massar: pickedStudent?.massar,
       date: new Date().toISOString(),
       history: r.historyScore,
@@ -272,7 +277,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
     setReport(null);
     setSavedSub(null);
     setName("");
-    setClassName(bank ? bank.branch : "");
+    setClassName(diagnosticClassName ?? (bank ? bank.branch : ""));
     setStudentNo("");
     setStage("intro");
     window.scrollTo({ top: 0 });
@@ -337,14 +342,21 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
       <div className="relative mx-auto max-w-5xl px-5 sm:px-8">
         <Reveal>
           <div className="text-center">
-            <button
-              type="button"
-              onClick={changeLevel}
-              className="mb-4 inline-flex items-center gap-2 text-xs font-bold text-brand-700 transition-colors hover:text-brand-800"
-            >
-              <RotateCcw className="size-3.5" aria-hidden="true" />
-              {diagnosticLevel ? "تغيير المسلك" : "تغيير المستوى / المسلك"}
-            </button>
+            {classLocked ? (
+              <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-extrabold text-brand-700">
+                <Target className="size-3.5" aria-hidden="true" />
+                القسم مثبت عبر QR
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={changeLevel}
+                className="mb-4 inline-flex items-center gap-2 text-xs font-bold text-brand-700 transition-colors hover:text-brand-800"
+              >
+                <RotateCcw className="size-3.5" aria-hidden="true" />
+                {diagnosticLevel ? "تغيير المسلك" : "تغيير المستوى / المسلك"}
+              </button>
+            )}
             <h1 className="mt-1 font-display text-2xl font-black leading-[1.35] text-ink-900 sm:text-3xl lg:text-[2.4rem]">
               التقويم التشخيصي في الاجتماعيات
             </h1>
@@ -404,8 +416,8 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="s-class" className="field-label">القسم (من اللوائح الرسمية {ROSTER_YEAR}) <span className="text-rose-500">*</span></label>
-                  <select id="s-class" value={className} onChange={(e) => pickClass(e.target.value)} className="field">
-                    <option value="">— اختر القسم —</option>
+                    <select id="s-class" value={className} onChange={(e) => pickClass(e.target.value)} className="field" disabled={classLocked}>
+                      <option value="">— اختر القسم —</option>
                     {DIAGNOSTIC_ROSTER_CLASSES.map((c) => (
                       <option key={c.id} value={c.label}>
                         {c.label}
@@ -415,6 +427,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
                   <p className="mt-1 text-[10px] leading-relaxed text-ink-400">
                     المصدر: {ROSTER_SOURCE} — الثانوية التأهيلية القدس، القنيطرة.
                   </p>
+                  {classLocked && <p className="mt-1 text-[10px] font-extrabold text-brand-700">ثبّت QR هذا القسم الاختيار تلقائيًا.</p>}
                 </div>
                 <div>
                   <label htmlFor="s-no" className="field-label">

@@ -5,6 +5,7 @@ import {
   Award,
   BarChart3,
   ChartColumn,
+  ClipboardList,
   Download,
   FileSpreadsheet,
   FileText,
@@ -12,16 +13,27 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
+  Search,
   PieChart,
   ShieldAlert,
+  RotateCcw,
   Trash2,
   TrendingUp,
   Users,
 } from "lucide-react";
-import { clearAllData, ensureSeeded, exportCsv, getDiagnosticAttendance, getSubmissions } from "../lib/storage";
+import {
+  clearAllData,
+  clearDemoData,
+  ensureSeeded,
+  exportCsv,
+  getDiagnosticAttendance,
+  getSubmissions,
+  isDemoSubmission,
+  reseedDemoData,
+} from "../lib/storage";
 import { classReportFile, classReportPdf, resultsXlsx, scopeOf, selectionZip } from "../lib/reportExport";
 import StudentDownloads from "./StudentDownloads";
-import { DIAGNOSTIC_LEVELS, DiagnosticQRPanel } from "./Diagnostic";
+import { DIAGNOSTIC_LEVELS, DiagnosticQRButton, DiagnosticQRPanel } from "./Diagnostic";
 import { DIAGNOSTIC_SESSIONS, displayClassName, scheduledClassesForLevel, scheduleForSubmission, sessionTimeLabel } from "../data/diagnosticSchedule";
 import { activeCreds, isUnlocked, lock } from "../lib/teacherAuth";
 import type { Submission } from "../types";
@@ -39,36 +51,45 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
   const [qrLevel, setQrLevel] = useState<DiagnosticLevel>("jad3-moshtarak");
   const [confirmClear, setConfirmClear] = useState<null | "all">(null);
   /* تصفية حسب المستوى والقسم + اختيار عدة تلاميذ للتحميل الجماعي */
+  const [showDemo, setShowDemo] = useState(false);
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [bankFilter, setBankFilter] = useState<string>("all");
+  const [sessionFilter, setSessionFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     ensureSeeded();
-    // سجلات المعاينة تُحفظ داخليًا لاختبار المنصة، لكنها لا تُعرض كنتائج فعلية للأستاذ.
-    setSubs(getSubmissions().filter((submission) => !submission.demo));
+    setSubs(getSubmissions());
   }, []);
+
+  const visibleSubs = useMemo(
+    () => (showDemo ? subs : subs.filter((submission) => !isDemoSubmission(submission))),
+    [showDemo, subs],
+  );
 
   const levels = useMemo(
     () => Array.from(new Set([
       ...DIAGNOSTIC_SESSIONS.map((session) => session.bankLevel),
-      ...subs.map((submission) => submission.bankLevel).filter(Boolean) as string[],
+      ...visibleSubs.map((submission) => submission.bankLevel).filter(Boolean) as string[],
     ])).sort(),
-    [subs],
+    [visibleSubs],
   );
   const levelFiltered = useMemo(
-    () => (levelFilter === "all" ? subs : subs.filter((submission) => submission.bankLevel === levelFilter)),
-    [subs, levelFilter],
+    () => (levelFilter === "all" ? visibleSubs : visibleSubs.filter((submission) => submission.bankLevel === levelFilter)),
+    [visibleSubs, levelFilter],
   );
   const bankOptions = useMemo(() => {
     const options = new Map<string, string>();
     DIAGNOSTIC_SESSIONS.forEach((session) => options.set(session.bankId, session.branch));
-    subs.forEach((submission) => options.set(submission.bankId, submission.bankLabel ?? submission.bankId));
+    visibleSubs.forEach((submission) => {
+      if (submission.bankId) options.set(submission.bankId, submission.bankLabel ?? submission.bankId);
+    });
     return Array.from(options.entries()).sort((a, b) => a[1].localeCompare(b[1], "ar"));
-  }, [subs]);
+  }, [visibleSubs]);
   const visibleBankOptions = useMemo(
     () => bankOptions.filter(([id]) => levelFilter === "all" || levelFiltered.some((submission) => submission.bankId === id) || DIAGNOSTIC_SESSIONS.some((session) => session.bankId === id && session.bankLevel === levelFilter)),
     [bankOptions, levelFilter, levelFiltered],
@@ -77,9 +98,17 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
     () => (bankFilter === "all" ? levelFiltered : levelFiltered.filter((submission) => submission.bankId === bankFilter)),
     [levelFiltered, bankFilter],
   );
+  const sessionOptions = useMemo(
+    () => scheduledClassesForLevel(levelFilter === "all" ? undefined : levelFilter, bankFilter === "all" ? undefined : bankFilter),
+    [levelFilter, bankFilter],
+  );
+  const sessionFiltered = useMemo(
+    () => (sessionFilter === "all" ? bankFiltered : bankFiltered.filter((submission) => scheduleForSubmission(submission)?.id === sessionFilter)),
+    [bankFiltered, sessionFilter],
+  );
   const scopedResults = useMemo(
-    () => (classFilter === "all" ? bankFiltered : bankFiltered.filter((submission) => submission.className === classFilter)),
-    [bankFiltered, classFilter],
+    () => (classFilter === "all" ? sessionFiltered : sessionFiltered.filter((submission) => submission.className === classFilter)),
+    [sessionFiltered, classFilter],
   );
   const qrLevelInfo = DIAGNOSTIC_LEVELS.find((item) => item.id === qrLevel) ?? DIAGNOSTIC_LEVELS[0];
 
@@ -106,6 +135,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
       avgHist: avg((s) => s.history),
       avgGeo: avg((s) => s.geography),
       support,
+      answersSaved: scopedResults.filter((submission) => Array.isArray(submission.answers) && submission.answers.length > 0).length,
       skills,
     };
   }, [scopedResults]);
@@ -127,18 +157,24 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
   const maxBin = Math.max(1, ...histBins.map((b) => b.count));
   /* ---------- التحميل الفردي والجماعي ---------- */
   const classes = useMemo(() => {
-    const scheduled = scheduledClassesForLevel(levelFilter === "all" ? undefined : levelFilter, bankFilter === "all" ? undefined : bankFilter).map((session) => session.className);
-    return Array.from(new Set([...scheduled, ...bankFiltered.map((s) => s.className)])).sort();
-  }, [bankFiltered, bankFilter, levelFilter]);
+    const scheduled = sessionOptions.filter((session) => sessionFilter === "all" || session.id === sessionFilter).map((session) => session.className);
+    return Array.from(new Set([...scheduled, ...sessionFiltered.map((s) => s.className)])).sort();
+  }, [sessionFiltered, sessionFilter, sessionOptions]);
   const visibleSessions = useMemo(
-    () => scheduledClassesForLevel(levelFilter === "all" ? undefined : levelFilter, bankFilter === "all" ? undefined : bankFilter),
-    [levelFilter, bankFilter],
+    () => sessionOptions.filter((session) => sessionFilter === "all" || session.id === sessionFilter),
+    [sessionFilter, sessionOptions],
   );
   const attendance = useMemo(
-    () => getDiagnosticAttendance(bankFiltered, classFilter === "all" ? undefined : classFilter),
-    [bankFiltered, classFilter],
+    () => getDiagnosticAttendance(sessionFiltered, classFilter === "all" ? undefined : classFilter),
+    [sessionFiltered, classFilter],
   );
-  const filtered = scopedResults;
+  const filtered = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase("ar");
+    if (!query) return scopedResults;
+    return scopedResults.filter((submission) => [submission.name, submission.studentNo, submission.className, submission.bankLabel]
+      .filter(Boolean)
+      .some((value) => String(value).toLocaleLowerCase("ar").includes(query)));
+  }, [scopedResults, searchTerm]);
   const chosen = useMemo(() => (selected.length > 0 ? filtered.filter((s) => selected.includes(s.id)) : filtered), [filtered, selected]);
   const allChecked = filtered.length > 0 && filtered.every((s) => selected.includes(s.id));
 
@@ -167,7 +203,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
 
   const doClear = () => {
     if (confirmClear === "all") clearAllData();
-    setSubs(getSubmissions().filter((submission) => !submission.demo));
+    setSubs(getSubmissions());
     setConfirmClear(null);
   };
 
@@ -181,9 +217,53 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="font-display text-2xl font-black text-ink-900">نتائج التقويم التشخيصي</h2>
-              <p className="mt-2 text-sm text-ink-500">الجذع المشترك — التاريخ والجغرافيا · النقطة /20</p>
+              <p className="mt-2 text-sm text-ink-500">الأقسام والمواعيد — التاريخ والجغرافيا · النقطة /20</p>
             </div>
-            <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <label className="inline-flex items-center gap-2 rounded-xl border border-gold-200 bg-gold-50 px-3.5 py-2.5 text-xs font-extrabold text-gold-800">
+                <input
+                  type="checkbox"
+                  checked={showDemo}
+                  onChange={(event) => {
+                    setShowDemo(event.target.checked);
+                    setSelected([]);
+                    setLevelFilter("all");
+                    setBankFilter("all");
+                    setSessionFilter("all");
+                    setClassFilter("all");
+                  }}
+                  className="size-4 accent-gold-600"
+                />
+                عرض البيانات التجريبية ({subs.filter(isDemoSubmission).length})
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  reseedDemoData();
+                  setSubs(getSubmissions());
+                  setShowDemo(true);
+                  setNotice("تمت إعادة إنشاء البيانات التجريبية فقط؛ السجلات الحقيقية لم تُمس.");
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-gold-200 bg-white px-3.5 py-2.5 text-xs font-extrabold text-gold-800 transition-transform hover:-translate-y-0.5"
+              >
+                <RotateCcw className="size-4" aria-hidden="true" />
+                إعادة ضبط البيانات التجريبية
+              </button>
+              <button
+                type="button"
+                disabled={subs.filter(isDemoSubmission).length === 0}
+                onClick={() => {
+                  if (!window.confirm("سيُحذف النموذج التجريبي فقط، ولن تُحذف أي نتيجة حقيقية. هل تريد المتابعة؟")) return;
+                  clearDemoData();
+                  setSubs(getSubmissions());
+                  setShowDemo(false);
+                  setNotice("تم حذف البيانات التجريبية فقط. النتائج الحقيقية محفوظة.");
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-gold-200 bg-white px-3.5 py-2.5 text-xs font-extrabold text-gold-800 transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-40"
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+                حذف البيانات التجريبية
+              </button>
               <button
                 type="button"
                 onClick={() => exportCsv(filtered)}
@@ -241,8 +321,9 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {visibleSessions.map((session) => {
-                const sessionResults = subs.filter((submission) => submission.className === session.className && (!submission.bankId || submission.bankId === session.bankId));
+                const sessionResults = visibleSubs.filter((submission) => submission.className === session.className && (!submission.bankId || submission.bankId === session.bankId));
                 const support = sessionResults.length > 0 ? sessionResults.filter((submission) => submission.percent < 50).length : null;
+                const qrLevel = DIAGNOSTIC_LEVELS.find((item) => item.defaultBank === session.bankId) ?? DIAGNOSTIC_LEVELS[0];
                 return (
                   <div key={session.id} className="rounded-2xl border border-white bg-white p-4">
                     <div className="flex items-start justify-between gap-2">
@@ -254,12 +335,20 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                       {session.reportedParticipants !== undefined && <span>المشاركون حسب المعطى: {session.reportedParticipants}</span>}
                       <span>{support === null ? "نسبة الدعم: لا توجد نتائج فعلية" : `نسبة الدعم: ${Math.round((support / sessionResults.length) * 100)}٪ (${support}/${sessionResults.length})`}</span>
                     </div>
+                    <div className="mt-3">
+                      <DiagnosticQRButton
+                        level={qrLevel}
+                        className={session.className}
+                        onView={() => go({ view: "diagnostic", level: qrLevel.id, className: session.className })}
+                      />
+                    </div>
                     <div className="mt-3 flex flex-wrap gap-2 border-t border-ink-900/6 pt-3">
                       <button
                         type="button"
                         onClick={() => {
                           setLevelFilter(session.bankLevel);
                           setBankFilter(session.bankId);
+                          setSessionFilter(session.id);
                           setClassFilter(session.className);
                           setSelected([]);
                         }}
@@ -298,15 +387,18 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
         {stats && (
           <>
             {/* بطاقات الإحصاء */}
-            <div className="mt-8 grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-7">
+            <div className="mt-8 grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-10">
               {[
                 { icon: Users, v: String(stats.n), l: "المشاركون", c: "text-brand-600 bg-brand-50" },
+                { icon: ClipboardList, v: String(stats.n), l: "الحاضرون", c: "text-sky-600 bg-sky-50" },
                 { icon: TrendingUp, v: `${stats.avg}`, l: "متوسط القسم /20", c: "text-brand-600 bg-brand-50" },
+                { icon: Award, v: `${Math.round(((stats.n - stats.support) / stats.n) * 100)}٪`, l: "نسبة النجاح", c: "text-emerald-600 bg-emerald-50" },
                 { icon: Award, v: `${stats.best}`, l: "أعلى نقطة", c: "text-gold-600 bg-gold-50" },
                 { icon: ArrowDownUp, v: `${stats.worst}`, l: "أدنى نقطة", c: "text-ink-500 bg-paper-warm" },
                 { icon: BarChart3, v: `${stats.avgHist}`, l: "متوسط التاريخ /10", c: "text-gold-600 bg-gold-50" },
                 { icon: PieChart, v: `${stats.avgGeo}`, l: "متوسط الجغرافيا /10", c: "text-brand-600 bg-brand-50" },
                 { icon: ShieldAlert, v: `${stats.support}/${stats.n}`, l: `يحتاجون الدعم (${Math.round((stats.support / stats.n) * 100)}٪)`, c: "text-rose-500 bg-rose-50" },
+                { icon: FileText, v: `${stats.answersSaved}/${stats.n}`, l: "الإجابات المسجلة", c: "text-sky-600 bg-sky-50" },
               ].map((s, i) => (
                 <Reveal key={s.l} delay={i * 60}>
                   <div className="h-full rounded-2xl border border-ink-900/6 bg-white p-4 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_-18px_rgba(12,124,91,0.3)]">
@@ -469,12 +561,25 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                   <div>
                     <p className="font-display text-base font-extrabold text-ink-900">تحميل ملفات التلاميذ</p>
                     <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-ink-500">
-                      لكل تلميذ(ة) في الجدول أسفله خمسة أزرار: أجوبة PDF مختصرة في صفحتين · تقرير النتائج PDF · طباعة الملف الفردي · Word · Excel.
+                      لكل تلميذ(ة) في الجدول أسفله أزرار: عرض التفاصيل · أجوبة PDF مختصرة في صفحتين · تقرير النتائج PDF · طباعة الملف الفردي · Word · Excel.
                       ولمجموعة من التلاميذ: أرشيف ZIP مرتّب حسب المستوى والقسم، جدول نتائج Excel، وتقرير شامل PDF.
                       أسماء الملفات تُبنى تلقائيًا بالصيغة: <b className="font-extrabold text-brand-700">اسم_التلميذ_رقم_التلميذ_التقويم_التشخيصي.pdf</b>
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
+                      <span className="whitespace-nowrap">بحث</span>
+                      <span className="relative">
+                        <Search className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-400" aria-hidden="true" />
+                        <input
+                          value={searchTerm}
+                          onChange={(event) => setSearchTerm(event.target.value)}
+                          placeholder="اسم أو رقم تجريبي"
+                          className="field min-w-[180px] py-2 ps-8 text-xs"
+                          type="search"
+                        />
+                      </span>
+                    </label>
                     <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
                       <span className="whitespace-nowrap">المستوى</span>
                       <select
@@ -482,15 +587,16 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         onChange={(e) => {
                           setLevelFilter(e.target.value);
                           setBankFilter("all");
+                          setSessionFilter("all");
                           setClassFilter("all");
                           setSelected([]);
                         }}
                         className="field min-w-[170px] py-2 text-xs"
                       >
-                        <option value="all">كل المستويات ({subs.length})</option>
+                        <option value="all">كل المستويات ({visibleSubs.length})</option>
                         {levels.map((level) => (
                           <option key={level} value={level}>
-                            {level} ({subs.filter((s) => s.bankLevel === level).length})
+                            {level} ({visibleSubs.filter((s) => s.bankLevel === level).length})
                           </option>
                         ))}
                       </select>
@@ -501,6 +607,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         value={bankFilter}
                         onChange={(e) => {
                           setBankFilter(e.target.value);
+                          setSessionFilter("all");
                           setClassFilter("all");
                           setSelected([]);
                         }}
@@ -515,6 +622,25 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                       </select>
                     </label>
                     <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
+                      <span className="whitespace-nowrap">التاريخ / التوقيت</span>
+                      <select
+                        value={sessionFilter}
+                        onChange={(e) => {
+                          setSessionFilter(e.target.value);
+                          setClassFilter("all");
+                          setSelected([]);
+                        }}
+                        className="field min-w-[220px] py-2 text-xs"
+                      >
+                        <option value="all">كل المواعيد ({bankFiltered.length})</option>
+                        {sessionOptions.map((session) => (
+                          <option key={session.id} value={session.id}>
+                            {sessionTimeLabel(session)} ({visibleSubs.filter((submission) => scheduleForSubmission(submission)?.id === session.id).length})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
                       <span className="whitespace-nowrap">القسم</span>
                       <select
                         value={classFilter}
@@ -524,10 +650,10 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         }}
                         className="field min-w-[190px] py-2 text-xs"
                       >
-                        <option value="all">كل الأقسام ({bankFiltered.length})</option>
+                        <option value="all">كل الأقسام ({sessionFiltered.length})</option>
                         {classes.map((c) => (
                           <option key={c} value={c}>
-                            {displayClassName(c)} ({bankFiltered.filter((s) => s.className === c).length})
+                            {displayClassName(c)} ({sessionFiltered.filter((s) => s.className === c).length})
                           </option>
                         ))}
                       </select>

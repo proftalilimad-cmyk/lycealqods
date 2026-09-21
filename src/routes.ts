@@ -3,7 +3,7 @@ export type DiagnosticLevel = "jad3-moshtarak" | "1bac" | "2bac";
 export type Route =
   | { view: "home" }
   | { view: "about" }
-  | { view: "diagnostic"; level?: DiagnosticLevel }
+  | { view: "diagnostic"; level?: DiagnosticLevel; className?: string }
   | { view: "test"; bank?: string }
   | { view: "dashboard"; tab?: string }
   | { view: "lessons"; level?: string }
@@ -111,8 +111,10 @@ export function routeToPath(route: Route): string {
       return "/";
     case "about":
       return "/about";
-    case "diagnostic":
-      return route.level ? `/diagnostic/${encodeSegment(route.level)}` : "/diagnostic";
+    case "diagnostic": {
+      const base = route.level ? `/diagnostic/${encodeSegment(route.level)}` : "/diagnostic";
+      return route.className ? `${base}?class=${encodeSegment(route.className)}` : base;
+    }
     case "dashboard":
       return route.tab ? `/dashboard/${encodeSegment(route.tab)}` : "/dashboard";
     case "test":
@@ -155,8 +157,9 @@ export function routeFromPath(rawPath: string): Route {
       return { view };
     case "diagnostic": {
       const level = parts[1];
+      const className = query.get("class") ?? undefined;
       return level === "jad3-moshtarak" || level === "1bac" || level === "2bac"
-        ? { view: "diagnostic", level }
+        ? { view: "diagnostic", level, className }
         : { view: "diagnostic" };
     }
     case "dashboard":

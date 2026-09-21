@@ -100,6 +100,8 @@ export interface Submission {
   diagnosticLevel?: string;
   /** معرف الموعد/الحصة التنظيمي، إن كان القسم مرتبطًا بموعد محفوظ */
   sessionId?: string;
+  /** مصدر السجل: real للسجل الفعلي وdemo للنموذج المعزول */
+  dataSource?: "real" | "demo";
   /** رقم مسار التلميذ(ة) من اللائحة الرسمية للقسم */
   massar?: string;
   date: string;
