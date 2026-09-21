@@ -601,7 +601,9 @@ ${masthead()}
     <tbody>${rosterRows.length > 0 ? rosterRows
       .map((entry) => {
         const s = entry.submission;
-        const name = s ? `${esc(entry.student.name)} <small>(سجل التقويم: ${esc(s.name)})</small>` : esc(entry.student.name);
+        const name = s && s.name !== entry.student.name
+          ? `${esc(entry.student.name)} <small>(سجل التقويم: ${esc(s.name)})</small>`
+          : esc(entry.student.name);
         const score = s ? `${round2(s.total)} /20` : "—";
         const supportLabel = s ? (s.percent < 50 ? "نعم" : "لا") : "—";
         return `<tr><td class="num">${entry.student.n}</td><td>${name}</td><td class="num">${esc(entry.student.massar)}</td><td>${entry.attendanceStatus === "present" ? "حاضر" : "غائب"}</td><td>${entry.assessmentStatus === "completed" ? "أنجز" : entry.assessmentStatus === "not_started" ? "لم يبدأ" : "لم ينجز"}</td><td class="num">${score}</td><td>${supportLabel}</td></tr>`;

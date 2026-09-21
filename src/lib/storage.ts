@@ -13,7 +13,7 @@ import { gradeAutoQuestion, gradeWriting, levelOf } from "./grading";
 const KEY = "talil_platform_submissions_v1";
 /** تغيير الإصدار يعيد إنشاء Demo فقط، مع الإبقاء على كل نتيجة حقيقية كما هي. */
 const SEED_FLAG = "talil_platform_demo_seed_v5";
-export const DEMO_DATA_VERSION = "diagnostic-demo-v2-attendance";
+export const DEMO_DATA_VERSION = "diagnostic-demo-v3-roster-names";
 
 /**
  * الأقسام التي تدخل في النموذج التجريبي. لا تُستعمل هذه القائمة لإنشاء
@@ -35,7 +35,6 @@ interface DemoClassConfig {
   sessionId: string;
   count: number;
   firstStudentNo: number;
-  female?: boolean;
 }
 
 const DEMO_CLASSES: DemoClassConfig[] = [
@@ -73,7 +72,6 @@ const DEMO_CLASSES: DemoClassConfig[] = [
     sessionId: "bac2-hum-2-2026-09-21",
     count: 2,
     firstStudentNo: 9,
-    female: true,
   },
 ];
 
@@ -233,7 +231,10 @@ function demoSubmission(config: DemoClassConfig, order: number, profile: DemoPro
   const level = levelOf(percent);
   const studentNumber = config.firstStudentNo + order;
   const studentNo = `DEMO-${String(studentNumber).padStart(3, "0")}`;
-  const name = config.female && order < 2 ? `تلميذة تجريبية ${String(studentNumber).padStart(2, "0")}` : `تلميذ تجريبي ${String(studentNumber).padStart(2, "0")}`;
+  const roster = ROSTER_CLASSES.find((item) => item.label === config.className);
+  const rosterStudent = roster?.students[order];
+  if (!rosterStudent) throw new Error(`لا يوجد تلميذ في اللائحة للعينة التجريبية: ${config.className} / ${order + 1}`);
+  const name = rosterStudent.name;
   const session = DIAGNOSTIC_SESSIONS.find((item) => item.id === config.sessionId);
   const writing = demoWriting(questions, answers);
 
@@ -242,7 +243,7 @@ function demoSubmission(config: DemoClassConfig, order: number, profile: DemoPro
     name,
     className: config.className,
     studentNo,
-    massar: `DEMO-MASSAR-${String(studentNumber).padStart(3, "0")}`,
+    massar: rosterStudent.massar,
     bankId: config.bankId,
     bankLabel: bank?.branch,
     bankLevel: bank?.level,
@@ -312,7 +313,9 @@ export function getDiagnosticAttendance(submissions: Submission[], className?: s
       // Demo هو عينة من اللائحة: لا نوسّع حجم القسم بعدد النتائج، بل نربطها
       // بالطلاب الأوائل غير المستعملين ونُبقي بقية اللائحة غائبة.
       classSubmissions.filter(isDemoSubmission).forEach((submission) => {
-        const student = roster.students.find((candidate) => !usedRosterKeys.has(rosterKey(candidate)));
+        const matched = findRosterStudent(submission);
+        if (matched && usedRosterKeys.has(rosterKey(matched))) return;
+        const student = matched ?? roster.students.find((candidate) => !usedRosterKeys.has(rosterKey(candidate)));
         if (student) {
           assignments.set(rosterKey(student), submission);
           usedRosterKeys.add(rosterKey(student));
