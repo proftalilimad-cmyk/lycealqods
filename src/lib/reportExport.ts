@@ -296,7 +296,6 @@ function summarySheet(subs: Submission[]): Sheet {
     "الرتبة",
     "ر.ت",
     "التلميذ(ة)",
-    "رقم التلميذ في التقويم",
     "رقم مسار",
     "القسم",
     "المستوى",
@@ -321,8 +320,7 @@ function summarySheet(subs: Submission[]): Sheet {
       return [
         s ? list.findIndex((item) => item.id === s.id) + 1 : "—",
         entry.student.n,
-        s?.name ?? entry.student.name,
-        s?.studentNo ?? "—",
+        entry.student.name,
         entry.student.massar,
         displayClassName(entry.className),
         s ? bankLevelOf(s) : "—",
@@ -346,9 +344,8 @@ function summarySheet(subs: Submission[]): Sheet {
       const session = scheduleForSubmission(s);
       return [
         i + 1,
-        "—",
+        i + 1,
         s.name,
-        s.studentNo ?? "—",
         s.massar ?? "—",
         displayClassName(s.className),
         bankLevelOf(s),
@@ -370,23 +367,27 @@ function summarySheet(subs: Submission[]): Sheet {
   const n = list.length;
   const avg = (f: (x: Submission) => number) => (n ? round1(list.reduce((a, s) => a + f(s), 0) / n) : 0);
   rows.push([]);
-  rows.push(["", "", "متوسط المشاركين فقط", "", "", "", "", "", "", "", "", avg((s) => s.history), avg((s) => s.geography), avg((s) => s.total), avg((s) => s.percent), "", "", "", `${n} مشاركًا`, ""]);
+  rows.push([
+    "", "", "متوسط المشاركين فقط", "", "", "", "", "", "", "",
+    avg((s) => s.history), avg((s) => s.geography), avg((s) => s.total), avg((s) => s.percent),
+    "", "", "", `${n} مشاركًا`, "",
+  ]);
   return {
     name: "النتائج والحضور",
     title: `${TEST_TITLE} — ${SCHOOL_NAME} — ${TEACHER_NAME}`,
     rows: [header, ...rows],
-    widths: [7, 7, 26, 18, 15, 24, 16, 26, 32, 12, 12, 12, 14, 12, 10, 16, 26, 16, 18, 44],
+    widths: [7, 7, 26, 15, 24, 16, 26, 32, 12, 12, 12, 14, 12, 10, 16, 26, 16, 18, 44],
   };
 }
 
 function skillsSheet(subs: Submission[]): Sheet {
-  const header: Cell[] = ["التلميذ(ة)", "ر.ت", "القسم", "المهارة", "المحصَّل", "الأقصى", "النسبة ٪", "الحالة", "التوصية"];
+  const header: Cell[] = ["التلميذ(ة)", "رقم مسار", "القسم", "المهارة", "المحصَّل", "الأقصى", "النسبة ٪", "الحالة", "التوصية"];
   const rows: Cell[][] = [];
   for (const s of subs) {
     const a = analyse(s);
     const recos = recommendationsFor(s, a);
     a.skills.forEach((sk, i) => {
-      rows.push([s.name, s.studentNo ?? "—", displayClassName(s.className), sk.skill, round2(sk.got), round2(sk.max), sk.pct, sk.state, i === 0 ? (recos[0] ?? "") : ""]);
+      rows.push([s.name, s.massar ?? "—", displayClassName(s.className), sk.skill, round2(sk.got), round2(sk.max), sk.pct, sk.state, i === 0 ? (recos[0] ?? "") : ""]);
     });
   }
   return { name: "تحليل المهارات", title: "تحليل المهارات وتوصيات الدعم", rows: [header, ...rows], widths: [26, 7, 22, 30, 10, 10, 10, 16, 70] };
@@ -395,7 +396,7 @@ function skillsSheet(subs: Submission[]): Sheet {
 function answersSheet(subs: Submission[]): Sheet {
   const header: Cell[] = [
     "التلميذ(ة)",
-    "ر.ت",
+    "رقم مسار",
     "القسم",
     "موعد التقويم",
     "رقم السؤال",
@@ -416,7 +417,7 @@ function answersSheet(subs: Submission[]): Sheet {
     for (const q of r.rows) {
       rows.push([
         s.name,
-        s.studentNo ?? "—",
+        s.massar ?? "—",
         displayClassName(s.className),
         sessionTimeLabel(session),
         q.index,

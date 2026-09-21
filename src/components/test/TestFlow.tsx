@@ -303,7 +303,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
     return (
       <TestRunner
         questions={bank.questions}
-        student={{ name: name.trim(), className, studentNo: studentNo.trim() || undefined }}
+        student={{ name: name.trim(), className, massar: pickedStudent?.massar }}
         onFinish={finish}
       />
     );
@@ -316,7 +316,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
         questions={bank.questions}
         name={name.trim()}
         className={className}
-        studentNo={studentNo.trim() || undefined}
+        massar={savedSub?.massar ?? pickedStudent?.massar}
         submission={savedSub ?? undefined}
         onRestart={restart}
         onHome={onHome}

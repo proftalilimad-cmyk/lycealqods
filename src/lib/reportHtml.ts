@@ -247,10 +247,9 @@ function identityTable(sub: Submission, rows: QuestionRows): string {
 <tr><th>المستوى</th><td>${esc(bankLevelOf(sub))}</td><th>الشعبة / المسلك</th><td>${esc(branchOf(sub))}</td></tr>
 <tr><th>القسم</th><td>${esc(displayClassName(sub.className))}</td><th>المادة</th><td>${esc(SUBJECT_NAME)} (التاريخ والجغرافيا)</td></tr>
 <tr><th>تاريخ التقويم</th><td>${esc(sessionDateLabel(session))}</td><th>التوقيت</th><td>${esc(sessionClockLabel(session))}</td></tr>
-<tr><th>اسم التلميذ(ة)</th><td>${esc(sub.name)}</td><th>رقم التلميذ(ة)</th><td>${esc(sub.studentNo || "—")}</td></tr>
-<tr><th>رقم مسار</th><td>${esc(sub.massar || "—")}</td><th>تاريخ الإرسال</th><td>${esc(formatDate(sub.date))}</td></tr>
-<tr><th>المدة المستغرقة</th><td>${esc(formatDuration(sub.timeUsedSeconds))}</td><th>الأسئلة المجاب عنها</th><td>${esc(answered)}</td></tr>
-<tr><th>عدد الأسئلة</th><td colspan="3">${rows.rows.length} سؤالًا (${rows.maxPoints} نقطة)</td></tr>
+<tr><th>اسم التلميذ(ة)</th><td>${esc(sub.name)}</td><th>رقم مسار</th><td>${esc(sub.massar || "—")}</td></tr>
+<tr><th>تاريخ الإرسال</th><td>${esc(formatDate(sub.date))}</td><th>المدة المستغرقة</th><td>${esc(formatDuration(sub.timeUsedSeconds))}</td></tr>
+<tr><th>الأسئلة المجاب عنها</th><td>${esc(answered)}</td><th>عدد الأسئلة</th><td>${rows.rows.length} سؤالًا (${rows.maxPoints} نقطة)</td></tr>
 </tbody>
 </table>`;
 }
@@ -621,13 +620,13 @@ ${masthead()}
     support.length === 0
       ? `<p class="lead">${n === 0 ? "لا توجد نتائج فعلية محفوظة لهذا القسم." : "لا يوجد تلميذ(ة) تحت عتبة 50٪ في هذه المجموعة."}</p>`
       : `<table class="grid">
-    <thead><tr><th>ر.ت</th><th>التلميذ(ة)</th><th>المجموع /20</th><th>أضعف مهارة</th><th>إجراء الدعم المقترح</th></tr></thead>
+    <thead><tr><th>رقم مسار</th><th>التلميذ(ة)</th><th>المجموع /20</th><th>أضعف مهارة</th><th>إجراء الدعم المقترح</th></tr></thead>
     <tbody>${support
       .map((s) => {
         const a = analyse(s);
         const weak = a.skills[a.skills.length - 1];
         const reco = recommendationsFor(s, a)[0] ?? "دعم موجّه حسب المهارة الأضعف.";
-        return `<tr><td class="num">${esc(s.studentNo || "—")}</td><td>${esc(s.name)}</td><td class="num">${round2(s.total)}</td><td>${esc(weak ? `${weak.skill} (${weak.pct}٪)` : "—")}</td><td>${esc(reco)}</td></tr>`;
+        return `<tr><td class="num">${esc(s.massar || "—")}</td><td>${esc(s.name)}</td><td class="num">${round2(s.total)}</td><td>${esc(weak ? `${weak.skill} (${weak.pct}٪)` : "—")}</td><td>${esc(reco)}</td></tr>`;
       })
       .join("")}</tbody>
   </table>`

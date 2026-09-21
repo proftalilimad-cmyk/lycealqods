@@ -423,7 +423,7 @@ export function clearAllData(): void {
 }
 
 export function exportCsv(list: Submission[]): void {
-  const header = "ر.ت,التلميذ(ة),رقم سجل التقويم,رقم مسار,القسم,الحضور,التقويم,موعد التقويم,التاريخ /10,الجغرافيا /10,المجموع /20,النسبة,المستوى,تاريخ الإرسال\n";
+  const header = "ر.ت,التلميذ(ة),رقم مسار,القسم,الحضور,التقويم,موعد التقويم,التاريخ /10,الجغرافيا /10,المجموع /20,النسبة,المستوى,تاريخ الإرسال\n";
   const attendance = getDiagnosticAttendance(list);
   const rosterRows = attendance.flatMap((summary) => summary.students.map((entry) => ({ ...entry, className: summary.className })));
   const rows = rosterRows.length > 0
@@ -433,7 +433,6 @@ export function exportCsv(list: Submission[]): void {
         return [
           entry.student.n,
           entry.student.name,
-          s?.studentNo ?? "—",
           entry.student.massar,
           displayClassName(entry.className),
           entry.attendanceStatus === "present" ? "حاضر" : "غائب",
@@ -451,7 +450,7 @@ export function exportCsv(list: Submission[]): void {
     : list
       .map(
         (s) =>
-          `"—","${s.name}","${s.studentNo ?? "—"}","${s.massar ?? "—"}","${displayClassName(s.className)}","حاضر","أنجز","${sessionTimeLabel(scheduleForSubmission(s))}",${s.history},${s.geography},${s.total},${s.percent}%,"${s.level}","${new Date(
+          `"—","${s.name}","${s.massar ?? "—"}","${displayClassName(s.className)}","حاضر","أنجز","${sessionTimeLabel(scheduleForSubmission(s))}",${s.history},${s.geography},${s.total},${s.percent}%,"${s.level}","${new Date(
             s.date,
           ).toLocaleDateString("fr-MA")}"`,
       )

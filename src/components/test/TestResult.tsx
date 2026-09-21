@@ -80,14 +80,14 @@ interface TestResultProps {
   questions: Question[];
   name: string;
   className: string;
-  studentNo?: string;
+  massar?: string;
   /** النتيجة كما حُفظت — تُعرض بها أزرار تحميل ملف التلميذ(ة) */
   submission?: Submission;
   onRestart: () => void;
   onHome: () => void;
 }
 
-export default function TestResult({ questions: QUESTIONS, report, name, className, studentNo, submission, onRestart, onHome }: TestResultProps) {
+export default function TestResult({ questions: QUESTIONS, report, name, className, massar, submission, onRestart, onHome }: TestResultProps) {
   const [openReview, setOpenReview] = useState<number | null>(null);
   const [showWriting, setShowWriting] = useState(false);
   const [downloadNote, setDownloadNote] = useState<string | null>(null);
@@ -127,7 +127,7 @@ export default function TestResult({ questions: QUESTIONS, report, name, classNa
                 </p>
                 <h1 className="mt-4 font-display text-2xl font-black sm:text-3xl">
                   {name}
-                  {studentNo ? <span className="text-white/60"> (رقم {studentNo})</span> : null}
+                  {massar ? <span className="text-white/60"> (مسار {massar})</span> : null}
                 </h1>
                 <p className="mt-1.5 text-sm text-white/55">{displayClassName(className)}</p>
                 {diagnosticSession && <p className="mt-1 text-[11px] font-semibold text-gold-200/80">موعد التقويم: {sessionTimeLabel(diagnosticSession)}</p>}

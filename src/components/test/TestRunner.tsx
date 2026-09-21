@@ -20,7 +20,7 @@ export interface TestReport {
 }
 
 interface TestRunnerProps {
-  student: { name: string; className: string; studentNo?: string };
+  student: { name: string; className: string; massar?: string };
   questions: Question[];
   onFinish: (report: TestReport) => void;
 }
@@ -122,7 +122,7 @@ export default function TestRunner({ student, questions: QUESTIONS, onFinish }: 
                 </p>
                 <p className="text-[11px] text-ink-500">
                   {student.name}
-                  {student.studentNo ? ` (رقم ${student.studentNo})` : ""} · {student.className} · {answeredCount} مجاب عنها
+                  {student.massar ? ` (مسار ${student.massar})` : ""} · {student.className} · {answeredCount} مجاب عنها
                 </p>
               </div>
             </div>

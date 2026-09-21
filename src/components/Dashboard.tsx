@@ -467,10 +467,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                                   .map((entry) => (
                                     <tr key={`${summary.className}-${entry.student.massar}`} className="border-b border-ink-900/5 last:border-0">
                                       <td className="px-2 py-2">{entry.student.n}</td>
-                                      <td className="px-2 py-2 font-semibold">
-                                        {entry.student.name}
-                                        {entry.submission?.studentNo && <span className="ms-1 text-[9px] font-normal text-brand-700">(سجل {entry.submission.studentNo})</span>}
-                                      </td>
+                                      <td className="px-2 py-2 font-semibold">{entry.student.name}</td>
                                       <td className="px-2 py-2 font-mono text-[9px]" dir="ltr">{entry.student.massar}</td>
                                       <td className={`px-2 py-2 text-center font-bold ${entry.attendanceStatus === "present" ? "text-brand-700" : "text-rose-600"}`}>{entry.attendanceStatus === "present" ? "حاضر" : "غائب"}</td>
                                       <td className="px-2 py-2 text-center font-bold">{entry.assessmentStatus === "completed" ? "أنجز" : "لم ينجز"}</td>
@@ -794,6 +791,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                           />
                         </th>
                         <th className="px-6 py-3.5 text-start font-display text-xs font-extrabold">التلميذ(ة)</th>
+                        <th className="px-4 py-3.5 text-start font-display text-xs font-extrabold">رقم مسار</th>
                         <th className="px-4 py-3.5 text-start font-display text-xs font-extrabold">القسم</th>
                         <th className="px-4 py-3.5 text-start font-display text-xs font-extrabold">المستوى / المسلك</th>
                         <th className="px-4 py-3.5 text-center font-display text-xs font-extrabold">التاريخ /10</th>
@@ -819,8 +817,8 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                             </td>
                             <td className="px-6 py-3.5">
                               <span className="font-bold text-ink-900">{s.name}</span>
-                              {s.studentNo && <span className="ms-1.5 text-[11px] text-ink-500">(رقم {s.studentNo})</span>}
                             </td>
+                            <td className="px-4 py-3.5 font-mono text-[10px] text-ink-600" dir="ltr">{s.massar ?? "—"}</td>
                             <td className="px-4 py-3.5 text-xs text-ink-500">{displayClassName(s.className)}</td>
                             <td className="px-4 py-3.5">
                               <span className="rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-extrabold text-brand-700">{s.bankLabel ?? "الجذع المشترك"}</span>
