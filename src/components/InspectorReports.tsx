@@ -20,7 +20,7 @@ import { ROSTER_CLASSES } from "../data/rosters";
 import type { InspectorReport, Submission } from "../types";
 import { loadInspectorReports, deleteInspectorReport, saveInspectorReport } from "../lib/cloudStorage";
 import { isCloudConfigured } from "../lib/supabase";
-import { loadSubmissions } from "../lib/storage";
+import { isDemoSubmission, loadSubmissions } from "../lib/storage";
 import {
   analyseInspectorReport,
   defaultInspectorReport,
@@ -34,6 +34,7 @@ import StudentDownloads from "./StudentDownloads";
 import Reveal from "./Reveal";
 
 const today = () => new Date().toISOString().slice(0, 10);
+type ReportDataMode = "central" | "demo";
 
 function statusLabel(status: InspectorReport["status"]): string {
   return status === "approved" ? "معتمد" : status === "archived" ? "مؤرشف" : "مسودة";
@@ -64,14 +65,18 @@ export default function InspectorReports() {
   const [busy, setBusy] = useState<"data" | "reports" | "generate" | "save" | "delete" | null>(null);
   const [historySearch, setHistorySearch] = useState("");
   const [historyStatus, setHistoryStatus] = useState<"all" | InspectorReport["status"]>("all");
+  const [dataMode, setDataMode] = useState<ReportDataMode>(() => (isCloudConfigured() ? "central" : "demo"));
 
   const central = isCloudConfigured();
-  // Official reports never consume localStorage or Demo. Without the cloud
-  // connection the UI remains a setup/empty state instead of inventing data.
-  const reportSubmissions = useMemo(
-    () => central ? submissions.filter((submission) => !submission.demo && !submission.isDemo && submission.dataSource !== "demo") : [],
+  const demoSubmissions = useMemo(() => submissions.filter(isDemoSubmission), [submissions]);
+  const centralSubmissions = useMemo(
+    () => central ? submissions.filter((submission) => !isDemoSubmission(submission)) : [],
     [central, submissions],
   );
+  // Demo is an explicitly labelled, isolated preview source. It is never
+  // sent to the central reports table.
+  const reportSubmissions = dataMode === "demo" ? demoSubmissions : centralSubmissions;
+  const includeDemo = dataMode === "demo";
 
   useEffect(() => {
     let alive = true;
@@ -112,8 +117,48 @@ export default function InspectorReports() {
   ])).sort((a, b) => a.localeCompare(b, "ar")), [submissions]);
 
   const classesForLevel = useMemo(() => classOptions.filter((className) => draft.level === "غير محدد" || !draft.level || levelForClass(className, submissions) === draft.level), [classOptions, draft.level, submissions]);
-  const analysis = useMemo(() => analyseInspectorReport(draft, reportSubmissions), [draft, reportSubmissions]);
-  const realCount = reportSubmissions.length;
+  const analysis = useMemo(() => analyseInspectorReport(draft, reportSubmissions, includeDemo), [draft, reportSubmissions, includeDemo]);
+  const realCount = centralSubmissions.length;
+  const demoDateRange = useMemo(() => {
+    const dates = demoSubmissions
+      .map((submission) => submission.date.slice(0, 10))
+      .filter(Boolean)
+      .sort();
+    return { from: dates[0] ?? today(), to: dates[dates.length - 1] ?? today() };
+  }, [demoSubmissions]);
+
+  useEffect(() => {
+    if (dataMode !== "demo" || draft.className || demoSubmissions.length === 0) return;
+    const firstClass = demoSubmissions[0].className;
+    setDraft((previous) => ({
+      ...previous,
+      className: firstClass,
+      level: levelForClass(firstClass, demoSubmissions),
+      periodFrom: demoDateRange.from,
+      periodTo: demoDateRange.to,
+      updatedAt: new Date().toISOString(),
+    }));
+  }, [dataMode, demoDateRange.from, demoDateRange.to, demoSubmissions, draft.className]);
+
+  const chooseDataMode = (mode: ReportDataMode) => {
+    setDataMode(mode);
+    setPreview(null);
+    if (mode === "demo" && demoSubmissions.length > 0) {
+      const firstClass = demoSubmissions[0].className;
+      setDraft((previous) => ({
+        ...previous,
+        className: firstClass,
+        level: levelForClass(firstClass, demoSubmissions),
+        periodFrom: demoDateRange.from,
+        periodTo: demoDateRange.to,
+        submissionIds: [],
+        updatedAt: new Date().toISOString(),
+      }));
+      setNotice({ kind: "warn", text: "تم تفعيل Demo: ستُستعمل بيانات تجريبية معزولة للمعاينة والتصدير فقط، ولن تُحفظ كتقرير مركزي." });
+    } else if (mode === "central") {
+      setNotice({ kind: central ? "ok" : "warn", text: central ? "تم تفعيل مصدر النتائج المركزية." : "مصدر النتائج المركزية غير مهيأ؛ لا توجد بيانات حقيقية للعرض." });
+    }
+  };
 
   const setField = <K extends keyof InspectorReport>(key: K, value: InspectorReport[K]) => {
     setDraft((previous) => ({ ...previous, [key]: value, updatedAt: new Date().toISOString() }));
@@ -121,10 +166,11 @@ export default function InspectorReports() {
   };
 
   const newReport = () => {
-    const next = defaultInspectorReport(draft.className);
-    next.level = draft.level || next.level;
-    next.periodFrom = today();
-    next.periodTo = today();
+    const demoClass = dataMode === "demo" ? (demoSubmissions[0]?.className ?? draft.className) : draft.className;
+    const next = defaultInspectorReport(demoClass);
+    next.level = dataMode === "demo" && demoClass ? levelForClass(demoClass, demoSubmissions) : (draft.level || next.level);
+    next.periodFrom = dataMode === "demo" ? demoDateRange.from : today();
+    next.periodTo = dataMode === "demo" ? demoDateRange.to : today();
     setDraft(next);
     setPreview(null);
     setNotice(null);
@@ -141,19 +187,23 @@ export default function InspectorReports() {
     }
     setBusy("generate");
     const updated = updateReportFromAnalysis(draft, analysis);
-    const html = inspectorReportHtml(updated, analyseInspectorReport(updated, reportSubmissions));
+    const html = inspectorReportHtml(updated, analyseInspectorReport(updated, reportSubmissions, includeDemo));
     setDraft({ ...updated, htmlSnapshot: html });
     setPreview({ report: updated, html });
     setBusy(null);
     if (!analysis.hasRealResults) {
-      setNotice({ kind: "warn", text: "تم إنشاء معاينة بلا أرقام مختلقة: لا توجد نتائج فعلية مطابقة للاختيار الحالي." });
+      setNotice({ kind: "warn", text: dataMode === "demo" ? "لا توجد بيانات Demo مطابقة للاختيار الحالي." : "تم إنشاء معاينة بلا أرقام مختلقة: لا توجد نتائج مركزية مطابقة للاختيار الحالي." });
     } else {
-      setNotice({ kind: "ok", text: `تم تحليل ${analysis.participants} نتيجة فعلية من القسم المحدد.` });
+      setNotice({ kind: dataMode === "demo" ? "warn" : "ok", text: dataMode === "demo" ? `تم تحليل ${analysis.participants} نتيجة Demo للمعاينة فقط.` : `تم تحليل ${analysis.participants} نتيجة مركزية من القسم المحدد.` });
     }
     if (saveAfter) await save(updated, html);
   };
 
   const save = async (value = draft, html = value.htmlSnapshot) => {
+    if (dataMode === "demo") {
+      setNotice({ kind: "warn", text: "تم إعداد نسخة Demo للمعاينة والتصدير فقط. لم تُحفظ بيانات تجريبية في التقارير المركزية." });
+      return;
+    }
     if (!central) {
       setNotice({ kind: "warn", text: "المعاينة والتصدير متاحان، لكن الحفظ الدائم متوقف حتى تُضبط قاعدة Supabase وRLS." });
       return;
@@ -218,15 +268,16 @@ export default function InspectorReports() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1.5 text-xs font-extrabold text-brand-700"><FileBarChart className="size-4" aria-hidden="true" /> تقارير المفتش</span>
                 <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold ${central ? "bg-emerald-50 text-emerald-700" : "bg-gold-50 text-gold-800"}`}><Database className="size-3.5" aria-hidden="true" />{central ? "قاعدة مركزية مفعّلة" : "المعاينة فقط — قاعدة البيانات غير مفعّلة"}</span>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold ${dataMode === "demo" ? "bg-amber-100 text-amber-800" : "bg-brand-50 text-brand-700"}`}>{dataMode === "demo" ? "مصدر Demo معزول" : "مصدر النتائج المركزية"}</span>
               </div>
               <h2 className="mt-4 font-display text-2xl font-black text-ink-900">تقرير التقويم الشخصي للمفتش</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-500">أنشئ تقريرًا رسميًا من النتائج الفعلية المرتبطة بالقسم والفترة المحددين. لا تُستعمل بيانات Demo في التقرير، ولا تُعرض هذه المعطيات خارج فضاء الأستاذ المحمي.</p>
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-500">{dataMode === "demo" ? "استعمل البيانات التجريبية المعزولة لإنجاز تقرير كامل للمعاينة والتصدير. لا تُحفظ هذه النسخة ضمن التقارير المركزية." : "أنشئ تقريرًا رسميًا من النتائج المركزية الفعلية المرتبطة بالقسم والفترة المحددين. لا تُعرض هذه المعطيات خارج فضاء الأستاذ المحمي."}</p>
             </div>
             <button type="button" onClick={newReport} className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 hover:bg-brand-100"><Plus className="size-4" aria-hidden="true" /> تقرير جديد</button>
           </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
             <div className="rounded-2xl bg-paper-warm/70 p-3 text-center"><b className="block font-display text-xl font-black text-ink-900">{analysis.totalStudents}</b><span className="text-[10px] font-bold text-ink-500">تلاميذ اللائحة</span></div>
-            <div className="rounded-2xl bg-brand-50 p-3 text-center"><b className="block font-display text-xl font-black text-brand-700">{analysis.participants}</b><span className="text-[10px] font-bold text-ink-500">نتائج فعلية مطابقة</span></div>
+            <div className="rounded-2xl bg-brand-50 p-3 text-center"><b className="block font-display text-xl font-black text-brand-700">{analysis.participants}</b><span className="text-[10px] font-bold text-ink-500">{dataMode === "demo" ? "نتائج Demo مطابقة" : "نتائج مركزية مطابقة"}</span></div>
             <div className="rounded-2xl bg-gold-50 p-3 text-center"><b className="block font-display text-xl font-black text-gold-800">{realCount}</b><span className="text-[10px] font-bold text-ink-500">النتائج المركزية المتاحة</span></div>
           </div>
         </div>
@@ -235,7 +286,14 @@ export default function InspectorReports() {
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         <Reveal delay={80}>
           <form className="rounded-3xl border border-ink-900/6 bg-white p-5 sm:p-6" onSubmit={(event) => { event.preventDefault(); void generate(true); }}>
-            <div className="flex items-center justify-between gap-3"><p className="flex items-center gap-2 font-display text-base font-extrabold text-ink-900"><ClipboardCheck className="size-5 text-brand-600" aria-hidden="true" /> معطيات التقرير</p><span className="text-[10px] font-bold text-ink-400">كل المؤشرات من النتائج المحفوظة</span></div>
+            <div className="flex items-center justify-between gap-3"><p className="flex items-center gap-2 font-display text-base font-extrabold text-ink-900"><ClipboardCheck className="size-5 text-brand-600" aria-hidden="true" /> معطيات التقرير</p><span className="text-[10px] font-bold text-ink-400">{dataMode === "demo" ? "بيانات تجريبية للمعاينة" : "كل المؤشرات من النتائج المركزية"}</span></div>
+            <div className="mt-4 rounded-2xl border border-ink-900/8 bg-paper-warm/50 p-3">
+              <p className="text-[11px] font-extrabold text-ink-700">مصدر البيانات المستعمل في التقرير</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <button type="button" onClick={() => chooseDataMode("demo")} className={`rounded-xl border px-3 py-2.5 text-start text-[11px] font-extrabold transition ${dataMode === "demo" ? "border-amber-300 bg-amber-100 text-amber-900" : "border-ink-900/10 bg-white text-ink-600 hover:border-amber-200"}`}>Demo — بيانات تجريبية معزولة<span className="mt-0.5 block text-[10px] font-semibold opacity-75">للمعاينة والتصدير فقط، دون حفظ مركزي</span></button>
+                <button type="button" onClick={() => chooseDataMode("central")} className={`rounded-xl border px-3 py-2.5 text-start text-[11px] font-extrabold transition ${dataMode === "central" ? "border-brand-300 bg-brand-50 text-brand-800" : "border-ink-900/10 bg-white text-ink-600 hover:border-brand-200"}`}>النتائج المركزية<span className="mt-0.5 block text-[10px] font-semibold opacity-75">المصدر الرسمي المرتبط بالأستاذ والقسم</span></button>
+              </div>
+            </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Field label="المستوى الدراسي"><select value={draft.level} onChange={(event) => { setField("level", event.target.value); setField("className", ""); }} className="field"><option value="">كل المستويات</option>{levels.map((level) => <option key={level} value={level}>{level}</option>)}</select></Field>
               <Field label="المادة الدراسية"><select value={draft.subject} onChange={(event) => setField("subject", event.target.value)} className="field"><option value="الاجتماعيات">الاجتماعيات</option><option value="التاريخ">التاريخ</option><option value="الجغرافيا">الجغرافيا</option></select></Field>
@@ -252,9 +310,9 @@ export default function InspectorReports() {
               <Field label="المديرية الإقليمية"><input value={draft.directorate} onChange={(event) => setField("directorate", event.target.value)} className="field" /></Field>
             </div>
             <div className="mt-3 grid gap-3"><TextField label="السياق العام" value={draft.context} onChange={(value) => setField("context", value)} /><TextField label="أهداف التقويم" value={draft.objectives} onChange={(value) => setField("objectives", value)} /><TextField label="الأدوات المعتمدة" value={draft.tools} onChange={(value) => setField("tools", value)} /><TextField label="مدة خطة الدعم" value={draft.supportDuration} onChange={(value) => setField("supportDuration", value)} /></div>
-            <div className="mt-5 rounded-2xl border border-brand-200 bg-brand-50/60 p-3 text-[11px] font-semibold leading-relaxed text-brand-900"><strong>تحقق البيانات:</strong> {analysis.hasRealResults ? `سيُبنى التقرير من ${analysis.participants} نتيجة فعلية، ولن تدخل سجلات Demo.` : "لا توجد نتائج فعلية مطابقة؛ سيظهر التقرير بصفر/شرطة دون اختلاق أي نتيجة."}</div>
+            <div className="mt-5 rounded-2xl border border-brand-200 bg-brand-50/60 p-3 text-[11px] font-semibold leading-relaxed text-brand-900"><strong>تحقق البيانات:</strong> {analysis.hasRealResults ? (dataMode === "demo" ? `سيُبنى التقرير من ${analysis.participants} نتيجة Demo معزولة، ولن تُحفظ كتقرير مركزي.` : `سيُبنى التقرير من ${analysis.participants} نتيجة مركزية، ولن تدخل سجلات Demo.`) : (dataMode === "demo" ? "لا توجد بيانات Demo مطابقة؛ سيظهر التقرير بصفر/شرطة دون اختلاق أي نتيجة." : "لا توجد نتائج مركزية مطابقة؛ سيظهر التقرير بصفر/شرطة دون اختلاق أي نتيجة.")}</div>
             <div className="mt-5 flex flex-wrap gap-2">
-              <button type="submit" disabled={busy !== null || !draft.className} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-xs font-black text-white shadow-lg shadow-brand-700/20 enabled:hover:bg-brand-700 disabled:opacity-40"><FileBarChart className="size-4" aria-hidden="true" />{busy === "generate" || busy === "save" ? "جارٍ الإنشاء والحفظ…" : "إنشاء تقرير التقويم الشخصي للمفتش"}</button>
+              <button type="submit" disabled={busy !== null || !draft.className} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-xs font-black text-white shadow-lg shadow-brand-700/20 enabled:hover:bg-brand-700 disabled:opacity-40"><FileBarChart className="size-4" aria-hidden="true" />{busy === "generate" || busy === "save" ? "جارٍ الإنشاء والحفظ…" : (dataMode === "demo" ? "إنشاء تقرير Demo للمعاينة" : "إنشاء تقرير التقويم الشخصي للمفتش")}</button>
               <button type="button" disabled={busy !== null || !draft.className} onClick={() => void generate(false)} className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-4 py-3 text-xs font-extrabold text-brand-700 enabled:hover:bg-brand-50 disabled:opacity-40"><Eye className="size-4" aria-hidden="true" /> معاينة دون حفظ</button>
             </div>
           </form>
@@ -286,7 +344,7 @@ export default function InspectorReports() {
         </section>
       </Reveal>
 
-      {preview && <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="معاينة تقرير المفتش"><button type="button" onClick={() => setPreview(null)} className="absolute inset-0 bg-brand-950/70 backdrop-blur-sm" aria-label="إغلاق المعاينة" /><div className="relative flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"><header className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-900/10 bg-white px-4 py-3"><div><p className="font-display text-sm font-black text-ink-900">معاينة: تقرير التقويم الشخصي للمفتش</p><p className="text-[10px] font-semibold text-ink-500">{reportClassLabel(preview.report)} · النسخة المبنية من {preview.report.submissionIds.length} نتيجة مرتبطة</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void save(preview.report, preview.html)} disabled={!central || busy === "save"} className="inline-flex items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-[10px] font-extrabold text-brand-700 disabled:opacity-40"><Save className="size-3.5" /> حفظ مركزي</button><button type="button" onClick={() => void exportPdf()} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-[10px] font-extrabold text-white"><FileDown className="size-3.5" /> تصدير PDF</button><button type="button" onClick={() => setPreview(null)} className="grid size-8 place-items-center rounded-xl border border-ink-900/10 text-ink-500" aria-label="إغلاق"><X className="size-4" /></button></div></header><iframe title="معاينة تقرير التقويم الشخصي للمفتش" srcDoc={preview.html} className="min-h-0 flex-1 bg-[#eeeae1]" /></div></div>}
+      {preview && <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="معاينة تقرير المفتش"><button type="button" onClick={() => setPreview(null)} className="absolute inset-0 bg-brand-950/70 backdrop-blur-sm" aria-label="إغلاق المعاينة" /><div className="relative flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"><header className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-900/10 bg-white px-4 py-3"><div><p className="font-display text-sm font-black text-ink-900">معاينة: تقرير التقويم الشخصي للمفتش</p><p className="text-[10px] font-semibold text-ink-500">{reportClassLabel(preview.report)} · النسخة المبنية من {preview.report.submissionIds.length} نتيجة مرتبطة</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void save(preview.report, preview.html)} disabled={!central || dataMode === "demo" || busy === "save"} className="inline-flex items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-[10px] font-extrabold text-brand-700 disabled:opacity-40"><Save className="size-3.5" /> {dataMode === "demo" ? "الحفظ المركزي غير متاح لـDemo" : "حفظ مركزي"}</button><button type="button" onClick={() => void exportPdf()} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-[10px] font-extrabold text-white"><FileDown className="size-3.5" /> تصدير PDF</button><button type="button" onClick={() => setPreview(null)} className="grid size-8 place-items-center rounded-xl border border-ink-900/10 text-ink-500" aria-label="إغلاق"><X className="size-4" /></button></div></header><iframe title="معاينة تقرير التقويم الشخصي للمفتش" srcDoc={preview.html} className="min-h-0 flex-1 bg-[#eeeae1]" /></div></div>}
 
       {studentCard && <div className="fixed inset-0 z-[75] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="البطاقة الفردية للتلميذ"><button type="button" onClick={() => setStudentCard(null)} className="absolute inset-0 bg-brand-950/65 backdrop-blur-sm" aria-label="إغلاق البطاقة" /><div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-7"><div className="flex items-start justify-between gap-3"><div><p className="font-display text-xl font-black text-ink-900">البطاقة الفردية للتلميذ(ة)</p><p className="mt-1 text-xs font-semibold text-ink-500">{studentCard.name} · {studentCard.level} · {displayClassName(studentCard.className)}</p></div><button type="button" onClick={() => setStudentCard(null)} className="grid size-9 place-items-center rounded-xl border border-ink-900/10 text-ink-500" aria-label="إغلاق"><X className="size-4" /></button></div><div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4"><div className="rounded-xl bg-paper-warm p-3 text-center"><b className="block font-display text-lg font-black text-ink-900">{studentCard.score === undefined ? "—" : `${studentCard.score}/${studentCard.maxScore}`}</b><span className="text-[10px] font-bold text-ink-500">النقطة</span></div><div className="rounded-xl bg-brand-50 p-3 text-center"><b className="block font-display text-lg font-black text-brand-700">{studentCard.percent === undefined ? "—" : `${studentCard.percent}٪`}</b><span className="text-[10px] font-bold text-ink-500">النسبة</span></div><div className="rounded-xl bg-sky-50 p-3 text-center"><b className="block font-display text-lg font-black text-sky-700">{studentCard.attendance}</b><span className="text-[10px] font-bold text-ink-500">الحضور</span></div><div className="rounded-xl bg-gold-50 p-3 text-center"><b className="block font-display text-lg font-black text-gold-800">{studentCard.assessment}</b><span className="text-[10px] font-bold text-ink-500">التقويم</span></div></div><div className="mt-5 grid gap-4 sm:grid-cols-2"><div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4"><p className="font-display text-sm font-extrabold text-emerald-800">الكفايات المتحكم فيها</p><p className="mt-2 text-xs leading-relaxed text-ink-700">{studentCard.controlled.length ? studentCard.controlled.join("، ") : "لا توجد كفاية بلغت العتبة في النتيجة الحالية."}</p></div><div className="rounded-2xl border border-rose-200 bg-rose-50/60 p-4"><p className="font-display text-sm font-extrabold text-rose-800">الكفايات غير المتحكم فيها</p><p className="mt-2 text-xs leading-relaxed text-ink-700">{studentCard.uncontrolled.length ? studentCard.uncontrolled.join("، ") : "لا توجد كفاية تحت العتبة."}</p></div></div><div className="mt-4 rounded-2xl border border-gold-200 bg-gold-50/60 p-4"><p className="font-display text-sm font-extrabold text-gold-800">الاحتياجات والتوصيات التربوية</p>{studentCard.recommendations.length ? <ul className="mt-2 list-disc space-y-1 ps-5 text-xs leading-relaxed text-ink-700">{studentCard.recommendations.map((recommendation) => <li key={recommendation}>{recommendation}</li>)}</ul> : <p className="mt-2 text-xs text-ink-600">{studentCard.attendance === "غائب" ? "لم ينجز التلميذ(ة) التقويم؛ لا تُنشأ توصية مبنية على نتيجة غير موجودة." : "لا توجد توصيات إضافية من النتائج الحالية."}</p>}</div>{studentCard.submission && <div className="mt-5"><StudentDownloads sub={studentCard.submission} variant="card" onNotice={(text) => setNotice({ kind: "ok", text })} /></div>}<p className="mt-4 text-center text-[10px] font-semibold text-ink-400">هذه البطاقة جزء من الفضاء الخاص ولا تُعرض في الواجهة العامة.</p></div></div>}
     </div>

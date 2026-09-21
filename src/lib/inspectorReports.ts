@@ -63,6 +63,7 @@ export interface InspectorAnalysis {
   supportSkills: InspectorSkillAnalysis[];
   commonDifficulties: string[];
   hasRealResults: boolean;
+  dataSource: "central" | "demo";
 }
 
 const HISTORY_SKILLS = new Set([
@@ -117,9 +118,9 @@ export function scoreForReport(report: InspectorReport, submission: Submission):
   return { score, max: 20, percent: round1(submission.percent) };
 }
 
-function byClassAndPeriod(report: InspectorReport, submissions: Submission[]): Submission[] {
+function byClassAndPeriod(report: InspectorReport, submissions: Submission[], includeDemo = false): Submission[] {
   return submissions
-    .filter((submission) => !isDemoSubmission(submission))
+    .filter((submission) => includeDemo || !isDemoSubmission(submission))
     .filter((submission) => !report.className || submission.className === report.className)
     .filter((submission) => (submission.assessmentType ?? "diagnostic") === report.assessmentType)
     .filter((submission) => reportDateWindow(report, submission));
@@ -242,8 +243,8 @@ function distributions(report: InspectorReport, submissions: Submission[]): Insp
   });
 }
 
-export function analyseInspectorReport(report: InspectorReport, allSubmissions: Submission[]): InspectorAnalysis {
-  const submissions = byClassAndPeriod(report, allSubmissions);
+export function analyseInspectorReport(report: InspectorReport, allSubmissions: Submission[], includeDemo = false): InspectorAnalysis {
+  const submissions = byClassAndPeriod(report, allSubmissions, includeDemo);
   const students = studentRows(report, submissions);
   const totalStudents = students.length;
   const participants = submissions.length;
@@ -282,6 +283,7 @@ export function analyseInspectorReport(report: InspectorReport, allSubmissions: 
     supportSkills,
     commonDifficulties: supportSkills.slice().sort((a, b) => a.percent - b.percent).slice(0, 5).map((skill) => skill.skill),
     hasRealResults: participants > 0,
+    dataSource: includeDemo ? "demo" : "central",
   };
 }
 
