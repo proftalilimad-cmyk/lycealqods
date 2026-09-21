@@ -73,13 +73,14 @@ export interface CloudReportResult {
   error?: string;
 }
 
-function reportFromRow(row: { payload?: unknown; html_snapshot?: string | null }): InspectorReport | null {
+function reportFromRow(row: { payload?: unknown; html_snapshot?: string | null; updated_at?: string | null }): InspectorReport | null {
   if (!row.payload || typeof row.payload !== "object") return null;
   const payload = row.payload as InspectorReport;
   if (typeof payload.id !== "string") return null;
   return {
     ...payload,
     htmlSnapshot: row.html_snapshot ?? payload.htmlSnapshot,
+    updatedAt: row.updated_at ?? payload.updatedAt,
   };
 }
 
@@ -121,10 +122,10 @@ export async function saveInspectorReport(report: InspectorReport): Promise<Insp
   const { data, error } = await client
     .from("inspector_reports")
     .upsert(reportRow(value, ownerId), { onConflict: "id" })
-    .select("payload, html_snapshot")
+    .select("payload, html_snapshot, updated_at")
     .single();
   if (error) throw new Error(readableError(error));
-  return reportFromRow(data as { payload?: unknown; html_snapshot?: string | null }) ?? value;
+  return reportFromRow(data as { payload?: unknown; html_snapshot?: string | null; updated_at?: string | null }) ?? value;
 }
 
 /** لا تعيد هذه الدالة أي تقرير إلا للمستخدم المصادق عليه (تفرضه RLS أيضًا). */
@@ -133,13 +134,13 @@ export async function loadInspectorReports(): Promise<CloudReportResult> {
   if (!client) return { reports: [], error: cloudConfigHint() };
   const { data, error } = await client
     .from("inspector_reports")
-    .select("payload, html_snapshot")
+    .select("payload, html_snapshot, updated_at")
     .order("updated_at", { ascending: false })
     .limit(200);
   if (error) return { reports: [], error: readableError(error) };
   return {
     reports: (data ?? [])
-      .map((row) => reportFromRow(row as { payload?: unknown; html_snapshot?: string | null }))
+      .map((row) => reportFromRow(row as { payload?: unknown; html_snapshot?: string | null; updated_at?: string | null }))
       .filter((report): report is InspectorReport => report !== null),
   };
 }
