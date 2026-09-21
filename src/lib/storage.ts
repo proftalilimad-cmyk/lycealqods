@@ -13,7 +13,7 @@ import { deleteAllCloudSubmissions, loadCloudSubmissions, saveCloudSubmission, t
 import { isAssessmentSubmissionConfigured, isCloudConfigured } from "./supabase";
 
 const KEY = "talil_platform_submissions_v1";
-/** تغيير الإصدار يعيد إنشاء Demo فقط، مع الإبقاء على كل نتيجة حقيقية كما هي. */
+/** تغيير الإصدار يعيد إنشاء Demo فقط؛ النتائج الحقيقية مصدرها Supabase. */
 const SEED_FLAG = "talil_platform_demo_seed_v5";
 export const DEMO_DATA_VERSION = "diagnostic-demo-v3-roster-names";
 
@@ -423,8 +423,8 @@ export async function addSubmission(sub: Submission): Promise<SubmissionSaveResu
 
 /**
  * مصدر لوحة الأستاذ: عند تفعيل السحابة نستعمل نتائج قاعدة البيانات، ونبقي
- * Demo محليًا ومعزولًا للعرض. لا نعرض سجلات حقيقية قديمة من localStorage
- * على أنها مركزية إذا فشل الاتصال.
+ * Demo محليًا ومعزولًا للعرض. لا نعرض أي سجل حقيقي من localStorage
+ * على أنه مركزي إذا فشل الاتصال.
  */
 export async function loadSubmissions(): Promise<{ submissions: Submission[]; remote: boolean; error?: string }> {
   ensureSeeded();
@@ -444,26 +444,31 @@ export async function loadSubmissions(): Promise<{ submissions: Submission[]; re
   };
 }
 
-function realSubmissions(): Submission[] {
-  return getSubmissions().filter((submission) => !isDemoSubmission(submission));
-}
-
-/** يضمن البذر التجريبي، مع استبدال Demo القديم فقط وحماية النتائج الحقيقية. */
+/**
+ * Demo هو المحتوى الوحيد المسموح ببقائه في localStorage. هذا يحذف تلقائيًا
+ * سجلات النتائج الحقيقية التي خزنتها الإصدارات القديمة، مع بقاء مصدرها
+ * الرسمي هو Supabase فقط.
+ */
 export function ensureSeeded(): void {
-  if (localStorage.getItem(SEED_FLAG) === DEMO_DATA_VERSION) return;
-  localStorage.setItem(KEY, JSON.stringify([...realSubmissions(), ...seeded()]));
+  const local = getSubmissions();
+  const localDemo = local.filter(isDemoSubmission);
+  if (localStorage.getItem(SEED_FLAG) === DEMO_DATA_VERSION) {
+    if (local.length !== localDemo.length) localStorage.setItem(KEY, JSON.stringify(localDemo));
+    return;
+  }
+  localStorage.setItem(KEY, JSON.stringify([...localDemo, ...seeded()]));
   localStorage.setItem(SEED_FLAG, DEMO_DATA_VERSION);
 }
 
-/** إعادة إنشاء النموذج من الصفر مع الحفاظ على كل السجلات الحقيقية. */
+/** إعادة إنشاء Demo من الصفر؛ لا تلمس النتائج المركزية. */
 export function reseedDemoData(): void {
-  localStorage.setItem(KEY, JSON.stringify([...realSubmissions(), ...seeded()]));
+  localStorage.setItem(KEY, JSON.stringify(seeded()));
   localStorage.setItem(SEED_FLAG, DEMO_DATA_VERSION);
 }
 
-/** حذف Demo فقط، ولا يمس أي سجل حقيقي. */
+/** حذف Demo فقط؛ النتائج الحقيقية لا تُحفظ محليًا أصلًا. */
 export function clearDemoData(): void {
-  localStorage.setItem(KEY, JSON.stringify(realSubmissions()));
+  localStorage.setItem(KEY, JSON.stringify([]));
   localStorage.setItem(SEED_FLAG, DEMO_DATA_VERSION);
 }
 
