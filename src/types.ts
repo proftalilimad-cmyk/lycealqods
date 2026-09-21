@@ -87,6 +87,9 @@ export interface RubricResult {
 
 export type SkillsMap = Record<string, { got: number; max: number }>;
 
+export type AttendanceStatus = "present" | "absent";
+export type AssessmentStatus = "completed" | "not_started" | "absent";
+
 export interface Submission {
   id: string;
   name: string;
@@ -102,6 +105,12 @@ export interface Submission {
   sessionId?: string;
   /** مصدر السجل: real للسجل الفعلي وdemo للنموذج المعزول */
   dataSource?: "real" | "demo";
+  /** علامة صريحة إضافية لسجل النموذج التجريبي */
+  isDemo?: boolean;
+  /** حالة الحضور المنفصلة عن نتيجة التقويم */
+  attendanceStatus?: AttendanceStatus;
+  /** حالة المشاركة المنفصلة عن الحضور */
+  assessmentStatus?: AssessmentStatus;
   /** رقم مسار التلميذ(ة) من اللائحة الرسمية للقسم */
   massar?: string;
   date: string;

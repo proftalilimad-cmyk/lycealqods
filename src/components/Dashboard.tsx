@@ -102,6 +102,13 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
     [bankFiltered, classFilter],
   );
   const qrLevelInfo = DIAGNOSTIC_LEVELS.find((item) => item.id === qrLevel) ?? DIAGNOSTIC_LEVELS[0];
+  const attendance = useMemo(
+    () => getDiagnosticAttendance(bankFiltered, classFilter === "all" ? undefined : classFilter),
+    [bankFiltered, classFilter],
+  );
+  const attendanceTotal = attendance.reduce((sum, summary) => sum + summary.total, 0);
+  const attendancePresent = attendance.reduce((sum, summary) => sum + summary.present, 0);
+  const attendanceAbsent = attendance.reduce((sum, summary) => sum + summary.absent, 0);
 
   const stats = useMemo(() => {
     const n = scopedResults.length;
@@ -127,9 +134,12 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
       avgGeo: avg((s) => s.geography),
       support,
       answersSaved: scopedResults.filter((submission) => Array.isArray(submission.answers) && submission.answers.length > 0).length,
+      rosterTotal: attendanceTotal || n,
+      present: attendance.length > 0 ? attendancePresent : n,
+      absent: attendance.length > 0 ? attendanceAbsent : 0,
       skills,
     };
-  }, [scopedResults]);
+  }, [attendance.length, attendanceAbsent, attendancePresent, attendanceTotal, scopedResults]);
 
   const histBins = useMemo(() => {
     const bins = [
@@ -155,10 +165,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
     const scheduled = visibleSessions.map((session) => session.className);
     return Array.from(new Set([...scheduled, ...bankFiltered.map((s) => s.className)])).sort();
   }, [bankFiltered, visibleSessions]);
-  const attendance = useMemo(
-    () => getDiagnosticAttendance(bankFiltered, classFilter === "all" ? undefined : classFilter),
-    [bankFiltered, classFilter],
-  );
   const filtered = useMemo(() => {
     const query = searchTerm.trim().toLocaleLowerCase("ar");
     if (!query) return scopedResults;
@@ -229,10 +235,11 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
               <button
                 type="button"
                 onClick={() => {
+                  if (!window.confirm("ستُعاد إنشاء العينة التجريبية مع الحفاظ على اللائحة الكاملة ونتائج التلاميذ الحقيقية. هل تريد المتابعة؟")) return;
                   reseedDemoData();
                   setSubs(getSubmissions());
                   setShowDemo(true);
-                  setNotice("تمت إعادة إنشاء البيانات التجريبية فقط؛ السجلات الحقيقية لم تُمس.");
+                  setNotice("تمت إعادة إنشاء العينة التجريبية فقط؛ اللائحة الكاملة والنتائج الحقيقية لم تُمس.");
                 }}
                 className="inline-flex items-center gap-2 rounded-xl border border-gold-200 bg-white px-3.5 py-2.5 text-xs font-extrabold text-gold-800 transition-transform hover:-translate-y-0.5"
               >
@@ -313,16 +320,17 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
             <div className="mt-3 grid gap-2 md:grid-cols-2">
               {visibleSessions.map((session) => {
                 const sessionResults = visibleSubs.filter((submission) => submission.className === session.className && (!submission.bankId || submission.bankId === session.bankId));
+                const sessionAttendance = attendance.find((summary) => summary.className === session.className);
                 const support = sessionResults.length > 0 ? sessionResults.filter((submission) => submission.percent < 50).length : null;
                 const qrLevel = DIAGNOSTIC_LEVELS.find((item) => item.defaultBank === session.bankId) ?? DIAGNOSTIC_LEVELS[0];
                 return (
                   <div key={session.id} className="rounded-2xl border border-white bg-white p-3">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-display text-[13px] font-extrabold text-ink-900">{session.displayClass}</p>
-                      <span className="rounded-full bg-brand-50 px-2 py-1 text-[10px] font-bold text-brand-700">{sessionResults.length} نتائج محفوظة</span>
+                      <span className="rounded-full bg-brand-50 px-2 py-1 text-[10px] font-bold text-brand-700">{sessionAttendance ? `${sessionAttendance.present}/${sessionAttendance.total} حاضرون` : `${sessionResults.length} نتائج`}</span>
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold text-ink-500">
-                      {session.reportedParticipants !== undefined && <span>المشاركون حسب المعطى: {session.reportedParticipants}</span>}
+                      {sessionAttendance && <span>غائبون: {sessionAttendance.absent} · أنجزوا: {sessionAttendance.participants}</span>}
                       <span>{support === null ? "نسبة الدعم: لا توجد نتائج فعلية" : `نسبة الدعم: ${Math.round((support / sessionResults.length) * 100)}٪ (${support}/${sessionResults.length})`}</span>
                     </div>
                     <div className="mt-2">
@@ -377,11 +385,13 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
         {stats && (
           <>
             {/* بطاقات الإحصاء */}
-            <div className="mt-8 grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-10">
+            <div className="mt-8 grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-12">
               {[
-                { icon: Users, v: String(stats.n), l: "المشاركون", c: "text-brand-600 bg-brand-50" },
-                { icon: ClipboardList, v: String(stats.n), l: "الحاضرون", c: "text-sky-600 bg-sky-50" },
-                { icon: TrendingUp, v: `${stats.avg}`, l: "متوسط القسم /20", c: "text-brand-600 bg-brand-50" },
+                { icon: Users, v: String(stats.rosterTotal), l: "إجمالي تلاميذ القسم", c: "text-brand-600 bg-brand-50" },
+                { icon: ClipboardList, v: String(stats.present), l: "الحاضرون", c: "text-sky-600 bg-sky-50" },
+                { icon: ShieldAlert, v: String(stats.absent), l: "الغائبون", c: "text-rose-500 bg-rose-50" },
+                { icon: Archive, v: String(stats.n), l: "المشاركون في التقويم", c: "text-gold-600 bg-gold-50" },
+                { icon: TrendingUp, v: `${stats.avg}`, l: "متوسط المشاركين /20", c: "text-brand-600 bg-brand-50" },
                 { icon: Award, v: `${Math.round(((stats.n - stats.support) / stats.n) * 100)}٪`, l: "نسبة النجاح", c: "text-emerald-600 bg-emerald-50" },
                 { icon: Award, v: `${stats.best}`, l: "أعلى نقطة", c: "text-gold-600 bg-gold-50" },
                 { icon: ArrowDownUp, v: `${stats.worst}`, l: "أدنى نقطة", c: "text-ink-500 bg-paper-warm" },
@@ -421,7 +431,11 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                     {attendance.map((summary) => (
                       <div key={summary.className} className="rounded-2xl border border-white bg-white p-4">
                         <p className="font-display text-sm font-extrabold text-ink-900">{displayClassName(summary.className)}</p>
-                        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
+                          <div className="rounded-xl bg-paper-warm p-2.5">
+                            <p className="font-display text-xl font-black text-ink-900">{summary.total}</p>
+                            <p className="text-[10px] font-bold text-ink-500">مجموع اللائحة</p>
+                          </div>
                           <div className="rounded-xl bg-brand-50 p-2.5">
                             <p className="font-display text-xl font-black text-brand-700">{summary.present}</p>
                             <p className="text-[10px] font-bold text-ink-500">حاضرون</p>
@@ -430,19 +444,43 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                             <p className="font-display text-xl font-black text-rose-600">{summary.absent}</p>
                             <p className="text-[10px] font-bold text-ink-500">غائبون</p>
                           </div>
-                          <div className="rounded-xl bg-paper-warm p-2.5">
-                            <p className="font-display text-xl font-black text-ink-900">{summary.total}</p>
-                            <p className="text-[10px] font-bold text-ink-500">مجموع القسم</p>
+                          <div className="rounded-xl bg-sky-50 p-2.5">
+                            <p className="font-display text-xl font-black text-sky-700">{summary.participants}</p>
+                            <p className="text-[10px] font-bold text-ink-500">أنجزوا التقويم</p>
                           </div>
                         </div>
-                        {summary.absentStudents.length > 0 && (
-                          <details className="mt-3 rounded-xl bg-rose-50/70 px-3 py-2 text-[11px] text-rose-700">
-                            <summary className="cursor-pointer font-extrabold">عرض لائحة الغائبين ({summary.absent})</summary>
-                            <p className="mt-2 leading-loose">
-                              {summary.absentStudents.map((student) => `${student.n}. ${student.name}`).join(" · ")}
-                            </p>
-                          </details>
-                        )}
+                        <p className="mt-2 text-center text-[10px] font-bold text-ink-500">نسبة الحضور: {Math.round((summary.present / summary.total) * 100)}٪ · نسبة الغياب: {Math.round((summary.absent / summary.total) * 100)}٪</p>
+                        <details className="mt-3 rounded-xl border border-ink-900/6 bg-white px-3 py-2 text-[11px] text-ink-700">
+                          <summary className="cursor-pointer font-extrabold text-brand-800">عرض سجل الحضور والمشاركة الكامل ({summary.total})</summary>
+                          <div className="mt-2 overflow-x-auto">
+                            <table className="w-full min-w-[560px] text-[10px]">
+                              <thead><tr className="border-b border-ink-900/8 text-ink-500"><th className="px-2 py-2 text-start">ر.ت</th><th className="px-2 py-2 text-start">التلميذ(ة)</th><th className="px-2 py-2 text-start">رقم مسار</th><th className="px-2 py-2 text-center">الحضور</th><th className="px-2 py-2 text-center">التقويم</th><th className="px-2 py-2 text-center">النتيجة</th></tr></thead>
+                              <tbody>
+                                {summary.students
+                                  .filter((entry) => {
+                                    const query = searchTerm.trim().toLocaleLowerCase("ar");
+                                    if (!query) return true;
+                                    return [entry.student.name, entry.student.massar, entry.submission?.name, entry.submission?.studentNo]
+                                      .filter(Boolean)
+                                      .some((value) => String(value).toLocaleLowerCase("ar").includes(query));
+                                  })
+                                  .map((entry) => (
+                                    <tr key={`${summary.className}-${entry.student.massar}`} className="border-b border-ink-900/5 last:border-0">
+                                      <td className="px-2 py-2">{entry.student.n}</td>
+                                      <td className="px-2 py-2 font-semibold">
+                                        {entry.student.name}
+                                        {entry.submission?.studentNo && <span className="ms-1 text-[9px] font-normal text-brand-700">(سجل {entry.submission.studentNo})</span>}
+                                      </td>
+                                      <td className="px-2 py-2 font-mono text-[9px]" dir="ltr">{entry.student.massar}</td>
+                                      <td className={`px-2 py-2 text-center font-bold ${entry.attendanceStatus === "present" ? "text-brand-700" : "text-rose-600"}`}>{entry.attendanceStatus === "present" ? "حاضر" : "غائب"}</td>
+                                      <td className="px-2 py-2 text-center font-bold">{entry.assessmentStatus === "completed" ? "أنجز" : "لم ينجز"}</td>
+                                      <td className="px-2 py-2 text-center font-bold">{entry.submission ? `${entry.submission.total}/20` : "—"}</td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </details>
                       </div>
                     ))}
                   </div>

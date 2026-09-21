@@ -12,8 +12,6 @@ export interface DiagnosticSession {
   date?: string;
   start?: string;
   end?: string;
-  /** عدد الحاضرين المصرّح به في الموعد، لا يُنشئ سجلات فردية. */
-  reportedParticipants?: number;
 }
 
 export const DIAGNOSTIC_SESSIONS: DiagnosticSession[] = [
@@ -57,7 +55,6 @@ export const DIAGNOSTIC_SESSIONS: DiagnosticSession[] = [
     date: "21/09/2026",
     start: "08:00",
     end: "09:00",
-    reportedParticipants: 8,
   },
   {
     id: "bac2-hum-2-2026-09-21",
@@ -69,7 +66,6 @@ export const DIAGNOSTIC_SESSIONS: DiagnosticSession[] = [
     date: "21/09/2026",
     start: "10:00",
     end: "12:00",
-    reportedParticipants: 2,
   },
 ];
 

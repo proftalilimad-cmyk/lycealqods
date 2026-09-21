@@ -1,4 +1,4 @@
-import type { Answer, Question, Submission } from "../types";
+import type { Answer, AssessmentStatus, AttendanceStatus, Question, Submission } from "../types";
 import { ROSTER_CLASSES, type RosterStudent } from "../data/rosters";
 import { getBank } from "../data/testBanks";
 import {
@@ -13,7 +13,7 @@ import { gradeAutoQuestion, gradeWriting, levelOf } from "./grading";
 const KEY = "talil_platform_submissions_v1";
 /** تغيير الإصدار يعيد إنشاء Demo فقط، مع الإبقاء على كل نتيجة حقيقية كما هي. */
 const SEED_FLAG = "talil_platform_demo_seed_v5";
-export const DEMO_DATA_VERSION = "diagnostic-demo-v1";
+export const DEMO_DATA_VERSION = "diagnostic-demo-v2-attendance";
 
 /**
  * الأقسام التي تدخل في النموذج التجريبي. لا تُستعمل هذه القائمة لإنشاء
@@ -77,12 +77,38 @@ const DEMO_CLASSES: DemoClassConfig[] = [
   },
 ];
 
+export interface DiagnosticStudentAttendance {
+  student: RosterStudent;
+  attendanceStatus: AttendanceStatus;
+  assessmentStatus: AssessmentStatus;
+  isDemo: boolean;
+  submission?: Submission;
+}
+
 export interface DiagnosticAttendanceSummary {
   className: string;
   total: number;
   present: number;
   absent: number;
+  participants: number;
   absentStudents: RosterStudent[];
+  students: DiagnosticStudentAttendance[];
+}
+
+/** سجل مستقل للتلميذ داخل القسم، قبل ربطه بسجل نتيجة التقويم. */
+export interface DiagnosticStudentRecord {
+  student: {
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    massarCode: string;
+    level: string;
+    className: string;
+  };
+  attendanceStatus: AttendanceStatus;
+  assessmentStatus: AssessmentStatus;
+  isDemo: boolean;
+  submission?: Submission;
 }
 
 interface DemoProfile {
@@ -233,7 +259,10 @@ function demoSubmission(config: DemoClassConfig, order: number, profile: DemoPro
     rubric: writing.rubric,
     writingText: writing.text,
     timeUsedSeconds: 25 * 60 + ((order * 7) % 26) * 60,
+    attendanceStatus: "present",
+    assessmentStatus: "completed",
     demo: true,
+    isDemo: true,
     dataSource: "demo",
   };
 }
@@ -248,10 +277,14 @@ function seeded(): Submission[] {
 }
 
 export function isDemoSubmission(submission: Submission): boolean {
-  return submission.demo === true || submission.dataSource === "demo";
+  return submission.demo === true || submission.isDemo === true || submission.dataSource === "demo";
 }
 
-/** مقارنة النتائج باللوائح الرسمية أو عرض حضور النموذج التجريبي دون إنشاء غائبين وهميين. */
+/**
+ * يبني حالة الحضور من اللائحة الكاملة، لا من عدد النتائج فقط.
+ * في النموذج التجريبي تُحجز أول عينة من اللائحة للمشاركين، بينما تبقى
+ * بقية الأسماء غائبة بلا إجابات أو نقط أو تحليل.
+ */
 export function getDiagnosticAttendance(submissions: Submission[], className?: string): DiagnosticAttendanceSummary[] {
   return ROSTER_CLASSES.filter(
     (roster) => DIAGNOSTIC_DEMO_CLASS_SET.has(roster.label) && (!className || roster.label === className),
@@ -259,29 +292,80 @@ export function getDiagnosticAttendance(submissions: Submission[], className?: s
     .map((roster) => {
       const classSubmissions = submissions.filter((submission) => submission.className === roster.label);
       if (classSubmissions.length === 0) return null;
-      if (classSubmissions.some(isDemoSubmission)) {
-        return {
-          className: roster.label,
-          total: classSubmissions.length,
-          present: classSubmissions.length,
-          absent: 0,
-          absentStudents: [],
-        };
-      }
-      const presentKeys = new Set(
-        classSubmissions
-          .flatMap((submission) => [submission.massar, submission.name].filter(Boolean) as string[]),
+
+      const assignments = new Map<string, Submission>();
+      const usedRosterKeys = new Set<string>();
+      const rosterKey = (student: RosterStudent) => student.massar || student.name;
+      const findRosterStudent = (submission: Submission): RosterStudent | undefined => roster.students.find(
+        (student) => Boolean(submission.massar && student.massar === submission.massar) || student.name === submission.name,
       );
-      const absentStudents = roster.students.filter((student) => !presentKeys.has(student.massar) && !presentKeys.has(student.name));
+
+      // النتائج الحقيقية تُربط بما يوجد فعليًا في اللائحة عبر مسار أو الاسم.
+      classSubmissions.filter((submission) => !isDemoSubmission(submission)).forEach((submission) => {
+        const student = findRosterStudent(submission);
+        if (student && !usedRosterKeys.has(rosterKey(student))) {
+          assignments.set(rosterKey(student), submission);
+          usedRosterKeys.add(rosterKey(student));
+        }
+      });
+
+      // Demo هو عينة من اللائحة: لا نوسّع حجم القسم بعدد النتائج، بل نربطها
+      // بالطلاب الأوائل غير المستعملين ونُبقي بقية اللائحة غائبة.
+      classSubmissions.filter(isDemoSubmission).forEach((submission) => {
+        const student = roster.students.find((candidate) => !usedRosterKeys.has(rosterKey(candidate)));
+        if (student) {
+          assignments.set(rosterKey(student), submission);
+          usedRosterKeys.add(rosterKey(student));
+        }
+      });
+
+      const students = roster.students.map((student): DiagnosticStudentAttendance => {
+        const submission = assignments.get(rosterKey(student));
+        return {
+          student,
+          attendanceStatus: submission ? "present" : "absent",
+          assessmentStatus: submission ? "completed" : "absent",
+          isDemo: Boolean(submission && isDemoSubmission(submission)),
+          submission,
+        };
+      });
+      const present = students.filter((entry) => entry.attendanceStatus === "present").length;
+      const absentStudents = students.filter((entry) => entry.attendanceStatus === "absent").map((entry) => entry.student);
       return {
         className: roster.label,
         total: roster.students.length,
-        present: roster.students.length - absentStudents.length,
-        absent: absentStudents.length,
+        present,
+        absent: roster.students.length - present,
+        participants: students.filter((entry) => entry.assessmentStatus === "completed").length,
         absentStudents,
+        students,
       };
     })
     .filter((summary): summary is DiagnosticAttendanceSummary => summary !== null);
+}
+
+/** اللائحة الكاملة بصيغة موحّدة: سجل التلميذ + الحضور + المشاركة. */
+export function getDiagnosticStudentRecords(submissions: Submission[], className?: string): DiagnosticStudentRecord[] {
+  return getDiagnosticAttendance(submissions, className).flatMap((summary) => {
+    const session = DIAGNOSTIC_SESSIONS.find((item) => item.className === summary.className);
+    return summary.students.map((entry) => {
+      const parts = entry.student.name.trim().split(/\s+/);
+      return {
+        student: {
+          firstName: parts[0] ?? "",
+          lastName: parts.slice(1).join(" "),
+          fullName: entry.student.name,
+          massarCode: entry.student.massar,
+          level: session?.bankLevel ?? "غير محدد",
+          className: summary.className,
+        },
+        attendanceStatus: entry.attendanceStatus,
+        assessmentStatus: entry.assessmentStatus,
+        isDemo: entry.isDemo,
+        submission: entry.submission,
+      };
+    });
+  });
 }
 
 export function getSubmissions(): Submission[] {
@@ -295,7 +379,14 @@ export function getSubmissions(): Submission[] {
 
 export function addSubmission(sub: Submission): void {
   const list = getSubmissions();
-  list.push({ ...sub, dataSource: sub.dataSource ?? "real", demo: false });
+  list.push({
+    ...sub,
+    dataSource: sub.dataSource ?? "real",
+    demo: false,
+    isDemo: false,
+    attendanceStatus: sub.attendanceStatus ?? "present",
+    assessmentStatus: sub.assessmentStatus ?? "completed",
+  });
   localStorage.setItem(KEY, JSON.stringify(list));
 }
 
@@ -329,15 +420,39 @@ export function clearAllData(): void {
 }
 
 export function exportCsv(list: Submission[]): void {
-  const header = "التلميذ,القسم,المستوى - المسلك,موعد التقويم,التاريخ /10,الجغرافيا /10,المجموع /20,النسبة,المستوى,تاريخ الإرسال\n";
-  const rows = list
-    .map(
-      (s) =>
-        `"${s.name}","${displayClassName(s.className)}","${s.bankLabel ?? "الجذع المشترك"}","${sessionTimeLabel(scheduleForSubmission(s))}",${s.history},${s.geography},${s.total},${s.percent}%,${s.level},"${new Date(
-          s.date,
-        ).toLocaleDateString("fr-MA")}"`,
-    )
-    .join("\n");
+  const header = "ر.ت,التلميذ(ة),رقم سجل التقويم,رقم مسار,القسم,الحضور,التقويم,موعد التقويم,التاريخ /10,الجغرافيا /10,المجموع /20,النسبة,المستوى,تاريخ الإرسال\n";
+  const attendance = getDiagnosticAttendance(list);
+  const rosterRows = attendance.flatMap((summary) => summary.students.map((entry) => ({ ...entry, className: summary.className })));
+  const rows = rosterRows.length > 0
+    ? rosterRows
+      .map((entry) => {
+        const s = entry.submission;
+        return [
+          entry.student.n,
+          entry.student.name,
+          s?.studentNo ?? "—",
+          entry.student.massar,
+          displayClassName(entry.className),
+          entry.attendanceStatus === "present" ? "حاضر" : "غائب",
+          entry.assessmentStatus === "completed" ? "أنجز" : "لم ينجز",
+          s ? sessionTimeLabel(scheduleForSubmission(s)) : "—",
+          s ? s.history : "—",
+          s ? s.geography : "—",
+          s ? s.total : "—",
+          s ? `${s.percent}%` : "—",
+          s?.level ?? "—",
+          s ? new Date(s.date).toLocaleDateString("fr-MA") : "—",
+        ].map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",");
+      })
+      .join("\n")
+    : list
+      .map(
+        (s) =>
+          `"—","${s.name}","${s.studentNo ?? "—"}","${s.massar ?? "—"}","${displayClassName(s.className)}","حاضر","أنجز","${sessionTimeLabel(scheduleForSubmission(s))}",${s.history},${s.geography},${s.total},${s.percent}%,"${s.level}","${new Date(
+            s.date,
+          ).toLocaleDateString("fr-MA")}"`,
+      )
+      .join("\n");
   const csv = "﻿" + header + rows;
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);

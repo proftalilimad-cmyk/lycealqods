@@ -14,6 +14,7 @@
    • ZIP: أرشيف بأسماء عربية (UTF-8) مرتّب حسب المستوى ثم القسم.
    ============================================================ */
 import type { Submission } from "../types";
+import { getDiagnosticAttendance } from "./storage";
 import { displayClassName, scheduleForClass, scheduleForSubmission, sessionTimeLabel } from "../data/diagnosticSchedule";
 import {
   SCHOOL_NAME,
@@ -134,6 +135,7 @@ export function scopeOf(subs: Submission[], className?: string): ClassScope {
   const explicitClass = className && className !== "all" ? className : undefined;
   const oneClass = classes.length === 1 ? classes[0] : explicitClass;
   const session = oneClass ? scheduleForClass(oneClass, list[0]?.bankId) : list.length === 1 ? scheduleForSubmission(list[0]) : undefined;
+  const attendance = getDiagnosticAttendance(list, oneClass);
   const branches = Array.from(new Set(list.map((s) => branchOf(s))));
   const levels = Array.from(new Set(list.map((s) => bankLevelOf(s))));
   const resolvedBranch = branches.length === 1 ? branches[0] : session?.branch;
@@ -151,6 +153,7 @@ export function scopeOf(subs: Submission[], className?: string): ClassScope {
     fileLabel,
     classCount: classes.length || (oneClass ? 1 : 0),
     schedule: session,
+    attendance,
   };
 }
 
@@ -287,15 +290,20 @@ ${Array.from(byFolder.entries())
 /* ===================== أوراق Excel ===================== */
 function summarySheet(subs: Submission[]): Sheet {
   const list = [...subs].sort((a, b) => b.total - a.total);
+  const attendance = getDiagnosticAttendance(subs);
+  const rosterRows = attendance.flatMap((summary) => summary.students.map((entry) => ({ ...entry, className: summary.className })));
   const header: Cell[] = [
     "الرتبة",
     "ر.ت",
     "التلميذ(ة)",
+    "رقم التلميذ في التقويم",
     "رقم مسار",
     "القسم",
     "المستوى",
     "الشعبة / المسلك",
     "موعد التقويم",
+    "الحضور",
+    "التقويم",
     "التاريخ /10",
     "الجغرافيا /10",
     "المجموع /20",
@@ -306,38 +314,68 @@ function summarySheet(subs: Submission[]): Sheet {
     "الأسئلة المجاب عنها",
     "اسم ملف التلميذ",
   ];
-  const rows: Cell[][] = list.map((s, i) => {
-    const r = questionRows(s);
-    const session = scheduleForSubmission(s);
-    return [
-      i + 1,
-      s.studentNo ?? "—",
-      s.name,
-      s.massar ?? "—",
-      displayClassName(s.className),
-      bankLevelOf(s),
-      branchOf(s),
-      sessionTimeLabel(session),
-      round2(s.history),
-      round2(s.geography),
-      round2(s.total),
-      round1(s.percent),
-      s.level,
-      formatDate(s.date),
-      formatDuration(s.timeUsedSeconds),
-      r.hasAnswers ? `${r.answeredCount}/${r.rows.length}` : "غير محفوظة",
-      studentFileName(s, "pdf"),
-    ];
-  });
+  const rows: Cell[][] = rosterRows.length > 0
+    ? rosterRows.map((entry) => {
+      const s = entry.submission;
+      const session = s ? scheduleForSubmission(s) : undefined;
+      return [
+        s ? list.findIndex((item) => item.id === s.id) + 1 : "—",
+        entry.student.n,
+        s?.name ?? entry.student.name,
+        s?.studentNo ?? "—",
+        entry.student.massar,
+        displayClassName(entry.className),
+        s ? bankLevelOf(s) : "—",
+        s ? branchOf(s) : "—",
+        s ? sessionTimeLabel(session) : "—",
+        entry.attendanceStatus === "present" ? "حاضر" : "غائب",
+        entry.assessmentStatus === "completed" ? "أنجز" : "لم ينجز",
+        s ? round2(s.history) : "—",
+        s ? round2(s.geography) : "—",
+        s ? round2(s.total) : "—",
+        s ? round1(s.percent) : "—",
+        s?.level ?? "—",
+        s ? formatDate(s.date) : "—",
+        s ? formatDuration(s.timeUsedSeconds) : "—",
+        s ? (() => { const r = questionRows(s); return r.hasAnswers ? `${r.answeredCount}/${r.rows.length}` : "غير محفوظة"; })() : "—",
+        s ? studentFileName(s, "pdf") : "—",
+      ];
+    })
+    : list.map((s, i) => {
+      const r = questionRows(s);
+      const session = scheduleForSubmission(s);
+      return [
+        i + 1,
+        "—",
+        s.name,
+        s.studentNo ?? "—",
+        s.massar ?? "—",
+        displayClassName(s.className),
+        bankLevelOf(s),
+        branchOf(s),
+        sessionTimeLabel(session),
+        "حاضر",
+        "أنجز",
+        round2(s.history),
+        round2(s.geography),
+        round2(s.total),
+        round1(s.percent),
+        s.level,
+        formatDate(s.date),
+        formatDuration(s.timeUsedSeconds),
+        r.hasAnswers ? `${r.answeredCount}/${r.rows.length}` : "غير محفوظة",
+        studentFileName(s, "pdf"),
+      ];
+    });
   const n = list.length;
   const avg = (f: (x: Submission) => number) => (n ? round1(list.reduce((a, s) => a + f(s), 0) / n) : 0);
   rows.push([]);
-  rows.push(["", "", "متوسط القسم", "", "", "", "", "", avg((s) => s.history), avg((s) => s.geography), avg((s) => s.total), avg((s) => s.percent), "", "", "", `${n} مشاركًا`, ""]);
+  rows.push(["", "", "متوسط المشاركين فقط", "", "", "", "", "", "", "", "", avg((s) => s.history), avg((s) => s.geography), avg((s) => s.total), avg((s) => s.percent), "", "", "", `${n} مشاركًا`, ""]);
   return {
-    name: "النتائج",
+    name: "النتائج والحضور",
     title: `${TEST_TITLE} — ${SCHOOL_NAME} — ${TEACHER_NAME}`,
     rows: [header, ...rows],
-    widths: [7, 7, 26, 14, 24, 16, 26, 32, 12, 14, 12, 10, 16, 26, 16, 18, 44],
+    widths: [7, 7, 26, 18, 15, 24, 16, 26, 32, 12, 12, 12, 14, 12, 10, 16, 26, 16, 18, 44],
   };
 }
 

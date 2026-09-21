@@ -11,6 +11,7 @@
    ومنع انقسام السؤال أو الجدول بين صفحتين.
    ============================================================ */
 import type { Submission } from "../types";
+import type { DiagnosticAttendanceSummary, DiagnosticStudentAttendance } from "./storage";
 import { RECOMMENDATIONS } from "./grading";
 import { displayClassName, scheduleForSubmission, sessionClockLabel, sessionDateLabel, sessionTimeLabel, type DiagnosticSession } from "../data/diagnosticSchedule";
 import {
@@ -448,6 +449,8 @@ export interface ClassScope {
   classCount: number;
   /** الموعد التنظيمي للقسم، إن كان محددًا */
   schedule?: DiagnosticSession;
+  /** اللائحة الكاملة وحالات الحضور والمشاركة، لا النتائج فقط */
+  attendance?: DiagnosticAttendanceSummary[];
 }
 
 function bins(subs: Submission[]): { label: string; count: number; pct: number }[] {
@@ -479,10 +482,21 @@ function aggregateSkills(subs: Submission[]): { skill: string; got: number; max:
     .sort((a, b) => b.pct - a.pct);
 }
 
-/** تقرير شامل: إحصاءات القسم + جدول النتائج + قائمة الدعم + الخلاصة */
+function rosterRowsForReport(attendance: DiagnosticAttendanceSummary[]): DiagnosticStudentAttendance[] {
+  return attendance
+    .flatMap((summary) => summary.students)
+    .sort((a, b) => a.student.n - b.student.n || a.student.name.localeCompare(b.student.name, "ar"));
+}
+
+/** تقرير شامل: إحصاءات القسم + الحضور الكامل + جدول النتائج + قائمة الدعم + الخلاصة */
 export function classReportBody(subs: Submission[], scope: ClassScope): string {
   const list = [...subs].sort((a, b) => b.total - a.total);
   const n = list.length;
+  const attendance = scope.attendance ?? [];
+  const rosterRows = rosterRowsForReport(attendance);
+  const rosterTotal = attendance.reduce((sum, summary) => sum + summary.total, 0);
+  const presentCount = attendance.reduce((sum, summary) => sum + summary.present, 0);
+  const absentCount = attendance.reduce((sum, summary) => sum + summary.absent, 0);
   const avg = (f: (s: Submission) => number) => (n ? round1(list.reduce((a, s) => a + f(s), 0) / n) : 0);
   const totals = list.map((s) => s.total);
   const best = n ? Math.max(...totals) : 0;
@@ -503,7 +517,9 @@ export function classReportBody(subs: Submission[], scope: ClassScope): string {
     : n
       ? displayClassName(list[0].className)
       : "—";
-  const reportedCount = session?.reportedParticipants ?? (n > 0 ? n : undefined);
+  const totalListed = rosterTotal || n;
+  const presentListed = attendance.length > 0 ? presentCount : n;
+  const absentListed = attendance.length > 0 ? absentCount : 0;
 
   return `<section class="cover">
 ${masthead()}
@@ -513,8 +529,9 @@ ${masthead()}
 <table class="grid id-table">
 <tbody>
 <tr><th>المستوى</th><td>${esc(scope.level ?? (n ? bankLevelOf(list[0]) : session?.bankLevel ?? "—"))}</td><th>الشعبة / المسلك</th><td>${esc(scope.branch ?? (n ? branchOf(list[0]) : session?.branch ?? "—"))}</td></tr>
-<tr><th>القسم</th><td>${esc(reportClass)}</td><th>النتائج المحفوظة</th><td>${n} تلميذ(ة)</td></tr>
-<tr><th>الحاضرون/المشاركون حسب الموعد</th><td>${reportedCount !== undefined ? `${reportedCount} تلميذ(ة)` : "غير محدد"}</td><th>تاريخ التقويم</th><td>${esc(sessionDateLabel(session))}</td></tr>
+<tr><th>القسم</th><td>${esc(reportClass)}</td><th>مجموع التلاميذ في اللائحة</th><td>${totalListed} تلميذ(ة)</td></tr>
+<tr><th>الحاضرون</th><td>${presentListed} تلميذ(ة)</td><th>الغائبون</th><td>${absentListed} تلميذ(ة)</td></tr>
+<tr><th>المشاركون في التقويم</th><td>${n} تلميذ(ة)</td><th>تاريخ التقويم</th><td>${esc(sessionDateLabel(session))}</td></tr>
 <tr><th>التوقيت</th><td>${esc(sessionTimeLabel(session))}</td><th>تاريخ التحرير</th><td>${esc(formatDate(new Date().toISOString()))}</td></tr>
 <tr><th>التقويم</th><td colspan="3">${esc(TEST_TITLE)} — 20 سؤالًا / 20 نقطة / 60 دقيقة</td></tr>
 <tr><th>الأستاذ</th><td>${esc(TEACHER_NAME)}</td><th>المؤسسة</th><td>${esc(SCHOOL_NAME)}</td></tr>
@@ -534,12 +551,16 @@ ${masthead()}
   <table class="grid">
     <thead><tr><th>المؤشر</th><th>القيمة</th><th>ملاحظة</th></tr></thead>
     <tbody>
-      <tr><td>عدد المشاركين</td><td class="num">${n}</td><td>نتائج محفوظة ضمن النطاق المحدد</td></tr>
+      <tr><td>مجموع التلاميذ في اللائحة</td><td class="num">${totalListed}</td><td>${attendance.length ? "اللائحة الكاملة للقسم" : "لا توجد لائحة مرتبطة بهذا النطاق"}</td></tr>
+      <tr><td>الحاضرون</td><td class="num">${presentListed}</td><td>${totalListed ? `نسبة الحضور: ${Math.round((presentListed / totalListed) * 100)}٪` : "—"}</td></tr>
+      <tr><td>الغائبون</td><td class="num">${absentListed}</td><td>${totalListed ? `نسبة الغياب: ${Math.round((absentListed / totalListed) * 100)}٪` : "—"}</td></tr>
+      <tr><td>المشاركون في التقويم</td><td class="num">${n}</td><td>لا يدخل الغائبون في المعدلات أو النجاح أو الدعم</td></tr>
       <tr><td>متوسط القسم /20</td><td class="num">${n ? avg((s) => s.total) : "—"}</td><td>${n ? `النسبة المئوية: ${avg((s) => s.percent)}٪` : "لا توجد نتائج فعلية محفوظة"}</td></tr>
       <tr><td>متوسط التاريخ /10</td><td class="num">${n ? avgHist : "—"}</td><td>${n ? (avgHist >= avgGeo ? "أعلى نسبيًا من الجغرافيا" : "أدنى نسبيًا من الجغرافيا") : "لا توجد نتائج فعلية محفوظة"}</td></tr>
       <tr><td>متوسط الجغرافيا /10</td><td class="num">${n ? avgGeo : "—"}</td><td>${n ? (avgGeo > avgHist ? "أعلى نسبيًا من التاريخ" : "أدنى نسبيًا من التاريخ") : "لا توجد نتائج فعلية محفوظة"}</td></tr>
       <tr><td>أعلى / أدنى نقطة</td><td class="num">${n ? `${best} / ${worst}` : "—"}</td><td>${n ? `المدى: ${round1(best - worst)} نقطة` : "لا توجد نتائج فعلية محفوظة"}</td></tr>
       <tr><td>نسبة التحكّم (≥ 50٪)</td><td class="num">${n ? `${Math.round(((n - support.length) / n) * 100)}٪` : "—"}</td><td>${n ? `${n - support.length} من ${n} تلميذ(ة)` : "لا توجد نتائج فعلية محفوظة"}</td></tr>
+      <tr><td>يحتاجون إلى دعم</td><td class="num">${support.length}</td><td>${n ? `${support.length} يحتاجون · ${n - support.length} لا يحتاجون` : "لا توجد نتائج فعلية محفوظة"}</td></tr>
       <tr><td>تحكّم جيد (≥ 70٪)</td><td class="num">${good.length}</td><td>${good.map((s) => s.name).slice(0, 6).join("، ")}${good.length > 6 ? " …" : ""}</td></tr>
       <tr><td>سجلات بأجوبة تفصيلية</td><td class="num">${withAnswers}</td><td>${n === 0 ? "لا توجد نتائج فعلية محفوظة" : withAnswers === n ? "كل السجلات تتضمن أجوبة كل سؤال" : "بقية السجلات محفوظة قبل تفعيل حفظ الأجوبة"}</td></tr>
     </tbody>
@@ -574,16 +595,22 @@ ${masthead()}
 </section>
 
 <section class="part">
-  <h2>4. جدول نتائج التلاميذ</h2>
+  <h2>4. جدول جميع تلاميذ القسم والحضور والمشاركة</h2>
   <table class="grid">
-    <thead><tr><th>الرتبة</th><th>ر.ت</th><th>التلميذ(ة)</th><th>القسم</th><th>التاريخ /10</th><th>الجغرافيا /10</th><th>المجموع /20</th><th>النسبة</th><th>المستوى</th></tr></thead>
-    <tbody>${list.length > 0 ? list
-      .map(
-        (s, i) =>
-          `<tr><td class="num">${i + 1}</td><td class="num">${esc(s.studentNo || "—")}</td><td>${esc(s.name)}</td><td>${esc(displayClassName(s.className))}</td><td class="num">${round2(s.history)}</td><td class="num">${round2(s.geography)}</td><td class="num"><b>${round2(s.total)}</b></td><td class="num">${round1(s.percent)}٪</td><td>${esc(s.level)}</td></tr>`,
-      )
-      .join("") : `<tr><td colspan="9">لا توجد نتائج فعلية محفوظة لهذا القسم، لذلك لا توجد أسماء أو نقاط أو إجابات لعرضها.</td></tr>`}</tbody>
+    <thead><tr><th>ر.ت</th><th>اسم التلميذ(ة)</th><th>رقم مسار</th><th>الحضور</th><th>التقويم</th><th>النقطة /20</th><th>الدعم</th></tr></thead>
+    <tbody>${rosterRows.length > 0 ? rosterRows
+      .map((entry) => {
+        const s = entry.submission;
+        const name = s ? `${esc(entry.student.name)} <small>(سجل التقويم: ${esc(s.name)})</small>` : esc(entry.student.name);
+        const score = s ? `${round2(s.total)} /20` : "—";
+        const supportLabel = s ? (s.percent < 50 ? "نعم" : "لا") : "—";
+        return `<tr><td class="num">${entry.student.n}</td><td>${name}</td><td class="num">${esc(entry.student.massar)}</td><td>${entry.attendanceStatus === "present" ? "حاضر" : "غائب"}</td><td>${entry.assessmentStatus === "completed" ? "أنجز" : entry.assessmentStatus === "not_started" ? "لم يبدأ" : "لم ينجز"}</td><td class="num">${score}</td><td>${supportLabel}</td></tr>`;
+      })
+      .join("") : list.length > 0 ? list
+        .map((s, i) => `<tr><td class="num">${i + 1}</td><td>${esc(s.name)}</td><td class="num">${esc(s.massar || "—")}</td><td>حاضر</td><td>أنجز</td><td class="num">${round2(s.total)} /20</td><td>${s.percent < 50 ? "نعم" : "لا"}</td></tr>`)
+        .join("") : `<tr><td colspan="7">لا توجد لائحة أو نتائج محفوظة لهذا النطاق.</td></tr>`}</tbody>
   </table>
+  <p class="lead">النقط والتحليل والدعم حُسبت فقط للتلاميذ الذين أنجزوا التقويم؛ الغائبون محفوظون في اللائحة دون إجابات أو نتيجة.</p>
 </section>
 
 <section class="part">
