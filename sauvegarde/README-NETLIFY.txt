@@ -22,8 +22,10 @@
 أضف في Netlify → Site configuration → Environment variables:
   VITE_SUPABASE_URL
   VITE_SUPABASE_ANON_KEY
+  VITE_PUBLIC_SITE_KEY
   VITE_SUPABASE_TEACHER_EMAIL
-ثم أعد Deploy للموقع. عندها تُرسل نتائج التقويم إلى قاعدة البيانات وتظهر
+ثم أعد Deploy للموقع. يجب أن يكون VITE_PUBLIC_SITE_KEY مربوطًا بUUID الأستاذ
+في جدول teacher_public_keys. عندها تُرسل نتائج التقويم إلى قاعدة البيانات وتظهر
 في لوحة الأستاذ من أي جهاز، ويحفظ تبويب «تقارير المفتش» نسخة التقرير ونتائجها
 المرتبطة مع RLS. توجد كل خطوات الإعداد في docs/inspector-reports.md داخل
 نسخة المصدر.

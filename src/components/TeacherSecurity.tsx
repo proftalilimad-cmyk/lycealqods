@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { CheckCircle2, KeyRound, Lock, RotateCcw, Save, ShieldAlert, UserRound } from "lucide-react";
 import { activeCreds, changeCreds, DEFAULT_USER, restoreDefaults, supportedAlgo } from "../lib/teacherAuth";
-import { isCloudConfigured } from "../lib/supabase";
+import { isSupabaseClientConfigured } from "../lib/supabase";
 import Reveal from "./Reveal";
 
 /* ============================================================
@@ -48,7 +48,7 @@ export default function TeacherSecurity() {
   };
 
   const defaults = () => {
-    if (isCloudConfigured()) {
+    if (isSupabaseClientConfigured()) {
       setMsg({ kind: "err", text: "الحساب المركزي لا يملك بيانات افتراضية محلية. استعمل تغيير كلمة المرور أو Supabase Auth." });
       return;
     }
@@ -72,7 +72,7 @@ export default function TeacherSecurity() {
           </p>
           <p className="mt-1 text-[11px] font-semibold text-ink-500">
             المستعمل الحالي: <strong dir="ltr" className="text-brand-700">{who ?? DEFAULT_USER}</strong>{" "}
-            {isCloudConfigured()
+            {isSupabaseClientConfigured()
               ? "· تتم إدارة كلمة المرور بواسطة Supabase Auth ولا تُخزّن داخل الموقع."
               : <>· بصمة الكلمة محفوظة بخوارزمية <span dir="ltr">{supportedAlgo() === "sha256" ? "SHA-256" : "بديلة (سياق غير آمن)"}</span> — لا تُخزَّن الكلمة نفسها.</>}
           </p>
@@ -154,7 +154,7 @@ export default function TeacherSecurity() {
             حدود هذه الحماية (بأمانة)
           </p>
           <ul className="mt-4 space-y-2.5 text-[11px] font-semibold leading-relaxed text-gold-800/90">
-            {isCloudConfigured() ? <>
+            {isSupabaseClientConfigured() ? <>
               <li>• الحساب يتحقق عبر Supabase Auth، ولا تُحفظ كلمة المرور في JavaScript.</li>
               <li>• التقارير مرتبطة بمالكها عبر RLS؛ لا يقرأها الزائر أو حساب آخر.</li>
               <li>• نتائج التلاميذ لا تملك الواجهة العامة سياسة قراءة لها، وتُجلب بعد مصادقة الأستاذ.</li>
@@ -165,7 +165,7 @@ export default function TeacherSecurity() {
             </>}
           </ul>
           <p className="mt-4 rounded-xl bg-white/70 px-4 py-3 text-[11px] font-bold leading-relaxed text-ink-700">
-            {isCloudConfigured() ? "تم تفعيل الحماية المركزية. حافظ على RLS ولا تضع service_role key في الواجهة." : <>لتفعيل الحماية والحفظ الدائم: نفّذ <span dir="ltr">supabase/migrations/001_inspector_reports.sql</span> ثم أضف متغيرات Supabase في Netlify كما في <span dir="ltr">docs/inspector-reports.md</span>.</>}
+            {isSupabaseClientConfigured() ? "تم تفعيل الحماية المركزية. حافظ على RLS ولا تضع service_role key في الواجهة." : <>لتفعيل الحماية والحفظ الدائم: نفّذ <span dir="ltr">supabase/migrations/001_inspector_reports.sql</span> ثم أضف متغيرات Supabase في Netlify كما في <span dir="ltr">docs/inspector-reports.md</span>.</>}
           </p>
         </div>
       </Reveal>

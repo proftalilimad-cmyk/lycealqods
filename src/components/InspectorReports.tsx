@@ -66,6 +66,12 @@ export default function InspectorReports() {
   const [historyStatus, setHistoryStatus] = useState<"all" | InspectorReport["status"]>("all");
 
   const central = isCloudConfigured();
+  // Official reports never consume localStorage or Demo. Without the cloud
+  // connection the UI remains a setup/empty state instead of inventing data.
+  const reportSubmissions = useMemo(
+    () => central ? submissions.filter((submission) => !submission.demo && !submission.isDemo && submission.dataSource !== "demo") : [],
+    [central, submissions],
+  );
 
   useEffect(() => {
     let alive = true;
@@ -106,8 +112,8 @@ export default function InspectorReports() {
   ])).sort((a, b) => a.localeCompare(b, "ar")), [submissions]);
 
   const classesForLevel = useMemo(() => classOptions.filter((className) => draft.level === "غير محدد" || !draft.level || levelForClass(className, submissions) === draft.level), [classOptions, draft.level, submissions]);
-  const analysis = useMemo(() => analyseInspectorReport(draft, submissions), [draft, submissions]);
-  const realCount = submissions.filter((submission) => !submission.demo && !submission.isDemo && submission.dataSource !== "demo").length;
+  const analysis = useMemo(() => analyseInspectorReport(draft, reportSubmissions), [draft, reportSubmissions]);
+  const realCount = reportSubmissions.length;
 
   const setField = <K extends keyof InspectorReport>(key: K, value: InspectorReport[K]) => {
     setDraft((previous) => ({ ...previous, [key]: value, updatedAt: new Date().toISOString() }));
@@ -135,7 +141,7 @@ export default function InspectorReports() {
     }
     setBusy("generate");
     const updated = updateReportFromAnalysis(draft, analysis);
-    const html = inspectorReportHtml(updated, analyseInspectorReport(updated, submissions));
+    const html = inspectorReportHtml(updated, analyseInspectorReport(updated, reportSubmissions));
     setDraft({ ...updated, htmlSnapshot: html });
     setPreview({ report: updated, html });
     setBusy(null);
@@ -221,7 +227,7 @@ export default function InspectorReports() {
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
             <div className="rounded-2xl bg-paper-warm/70 p-3 text-center"><b className="block font-display text-xl font-black text-ink-900">{analysis.totalStudents}</b><span className="text-[10px] font-bold text-ink-500">تلاميذ اللائحة</span></div>
             <div className="rounded-2xl bg-brand-50 p-3 text-center"><b className="block font-display text-xl font-black text-brand-700">{analysis.participants}</b><span className="text-[10px] font-bold text-ink-500">نتائج فعلية مطابقة</span></div>
-            <div className="rounded-2xl bg-gold-50 p-3 text-center"><b className="block font-display text-xl font-black text-gold-800">{realCount}</b><span className="text-[10px] font-bold text-ink-500">كل النتائج المركزية/المحلية</span></div>
+            <div className="rounded-2xl bg-gold-50 p-3 text-center"><b className="block font-display text-xl font-black text-gold-800">{realCount}</b><span className="text-[10px] font-bold text-ink-500">النتائج المركزية المتاحة</span></div>
           </div>
         </div>
       </Reveal>

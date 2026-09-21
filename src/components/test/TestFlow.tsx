@@ -19,6 +19,7 @@ import { TEST_DURATION_SECONDS } from "../../data/questions";
 import { scheduleForClass } from "../../data/diagnosticSchedule";
 import type { Submission } from "../../types";
 import { addSubmission } from "../../lib/storage";
+import { isAssessmentSubmissionConfigured } from "../../lib/supabase";
 import Reveal from "../Reveal";
 import TestRunner, { type TestReport } from "./TestRunner";
 import TestResult from "./TestResult";
@@ -180,6 +181,8 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
   const [studentPick, setStudentPick] = useState("");
   const [error, setError] = useState("");
   const [report, setReport] = useState<TestReport | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   /* النتيجة كما حُفظت — تُستعمل لأزرار تحميل ملف التلميذ(ة) */
   const [savedSub, setSavedSub] = useState<Submission | null>(null);
   const [cloudSaveMessage, setCloudSaveMessage] = useState<string | null>(null);
@@ -236,7 +239,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
     window.scrollTo({ top: 0 });
   };
 
-  const finish = (r: TestReport) => {
+  const finish = async (r: TestReport) => {
     if (!bank) return;
     const sub: Submission = {
       id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `s-${Date.now()}`,
@@ -265,24 +268,30 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
       assessmentType: "diagnostic",
     };
     setCloudSaveMessage(null);
-    void addSubmission(sub).then((result) => {
-      if (!result.cloudConfigured) return;
-      setCloudSaveMessage(
-        result.cloudSaved
-          ? "تم حفظ النتيجة في قاعدة البيانات المركزية."
-          : `تعذّر الحفظ المركزي: ${result.error ?? "تحقّق من إعدادات قاعدة البيانات."}`,
-      );
-    });
-    setSavedSub(sub);
-    setReport(r);
-    setStage("done");
-    window.scrollTo({ top: 0 });
+    setSaveError("");
+    setSaving(true);
+    try {
+      const result = await addSubmission(sub);
+      if (!result.cloudSaved) throw new Error(result.error ?? "تعذّر الحفظ المركزي.");
+      setCloudSaveMessage("تم حفظ النتيجة في قاعدة البيانات المركزية.");
+      setSavedSub(sub);
+      setReport(r);
+      setStage("done");
+      window.scrollTo({ top: 0 });
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "تعذّر الحفظ المركزي.";
+      setSaveError(`لم تُحفظ النتيجة. ${message}`);
+      throw reason;
+    } finally {
+      setSaving(false);
+    }
   };
 
   const restart = () => {
     setReport(null);
     setSavedSub(null);
     setCloudSaveMessage(null);
+    setSaveError("");
     setName("");
     setClassName(diagnosticClassName ?? (bank ? bank.branch : ""));
     setStudentNo("");
@@ -312,6 +321,8 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
         questions={bank.questions}
         student={{ name: name.trim(), className, massar: pickedStudent?.massar }}
         onFinish={finish}
+        saving={saving}
+        saveError={saveError}
       />
     );
   }
@@ -500,6 +511,11 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
                   {error}
                 </p>
               )}
+              {!isAssessmentSubmissionConfigured() && (
+                <p className="rounded-xl border border-gold-200 bg-gold-50 px-4 py-3 text-xs font-semibold leading-relaxed text-gold-800" role="status">
+                  الإرسال المركزي غير مهيأ بعد. أعد نشر الموقع بعد إضافة VITE_PUBLIC_SITE_KEY وربطه بحساب الأستاذ في Supabase؛ لا تُحفظ النتائج الحقيقية في localStorage.
+                </p>
+              )}
 
               <div className="rounded-2xl bg-paper-warm/70 p-4 text-[11px] leading-relaxed text-ink-500">
                 <p className="font-extrabold text-ink-700">تعليمات مهمة:</p>
@@ -513,7 +529,8 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
               <button
                 type="button"
                 onClick={start}
-                className="btn-shine group flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-l from-gold-400 to-gold-500 px-8 py-4 text-base font-extrabold text-ink-950 shadow-xl shadow-gold-600/25 transition-all duration-300 hover:-translate-y-0.5"
+                disabled={!isAssessmentSubmissionConfigured()}
+                className="btn-shine group flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-l from-gold-400 to-gold-500 px-8 py-4 text-base font-extrabold text-ink-950 shadow-xl shadow-gold-600/25 transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Play className="size-5" aria-hidden="true" />
                 ابدأ التقويم التشخيصي

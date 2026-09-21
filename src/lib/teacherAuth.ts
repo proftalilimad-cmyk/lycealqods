@@ -26,7 +26,7 @@
      اسم المستعمل: imad
      كلمة المرور : qods2026
    ============================================================ */
-import { isCloudConfigured } from "./supabase";
+import { isSupabaseClientConfigured } from "./supabase";
 import { signInTeacher, signOutTeacher, updateTeacherCredentials } from "./cloudStorage";
 
 export type HashAlgo = "sha256" | "fnv";
@@ -170,7 +170,7 @@ export function readCreds(): StoredCreds | null {
 export async function activeCreds(): Promise<StoredCreds> {
   const stored = readCreds();
   if (stored) return stored;
-  if (isCloudConfigured()) {
+  if (isSupabaseClientConfigured()) {
     return {
       user: (import.meta.env.VITE_SUPABASE_TEACHER_EMAIL ?? "الأستاذ عبر Supabase").trim(),
       hash: "",
@@ -191,7 +191,7 @@ const sameUser = (a: string, b: string) => a.trim().toLowerCase() === b.trim().t
 
 /** التحقّق من اسم المستعمل وكلمة المرور */
 export async function verifyLogin(user: string, password: string): Promise<boolean> {
-  if (isCloudConfigured()) {
+  if (isSupabaseClientConfigured()) {
     const configuredEmail = (import.meta.env.VITE_SUPABASE_TEACHER_EMAIL ?? "").trim();
     const email = user.includes("@") ? user.trim() : configuredEmail;
     if (!email) return false;
@@ -231,7 +231,7 @@ export function lock(): void {
   ssDel(SESSION_KEY);
   ssDel(LEGACY_SESSION_KEY);
   lsDel(LEGACY_REMEMBER_KEY);
-  if (isCloudConfigured()) void signOutTeacher();
+  if (isSupabaseClientConfigured()) void signOutTeacher();
 }
 
 /* --------------------------- محاولات الدخول الفاشلة --------------------------- */
@@ -299,7 +299,7 @@ export async function changeCreds(
   if (!(await verifyLogin(user, currentPassword)) && !(await verifyLogin((await activeCreds()).user, currentPassword)))
     return { ok: false, error: "كلمة المرور الحالية غير صحيحة." };
 
-  if (isCloudConfigured()) {
+  if (isSupabaseClientConfigured()) {
     const result = await updateTeacherCredentials(user.trim(), nextPassword);
     if (!result.ok) return result;
     resetFails();

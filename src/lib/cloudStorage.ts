@@ -1,5 +1,5 @@
 import type { InspectorReport, Submission } from "../types";
-import { cloudConfigHint, getSupabase, isCloudConfigured } from "./supabase";
+import { cloudConfigHint, getSupabase, isCloudConfigured, publicSiteKey } from "./supabase";
 
 export interface SubmissionSaveResult {
   localSaved: boolean;
@@ -35,23 +35,18 @@ function normalizedSubmission(submission: Submission): Submission {
 }
 
 /**
- * يرسل نتيجة التلميذ إلى جدول لا يملك الجمهور صلاحية قراءته.
- * سياسة INSERT العامة في ملف SQL تسمح بإرسال النتيجة فقط؛ القراءة للأستاذ
- * المصادق عليه وحده. لا نرسل نتائج Demo إلى قاعدة البيانات.
+ * يرسل نتيجة التلميذ عبر RPC كتابة فقط إلى جدول لا يملك الجمهور صلاحية قراءته.
+ * القراءة للأستاذ المصادق عليه وحده. لا نرسل نتائج Demo إلى قاعدة البيانات.
  */
 export async function saveCloudSubmission(submission: Submission): Promise<void> {
   const client = getSupabase();
-  if (!client) throw new Error(cloudConfigHint());
+  if (!client || !publicSiteKey) throw new Error(cloudConfigHint());
   const value = normalizedSubmission(submission);
-  const { error } = await client.from("student_submissions").insert({
-    id: value.id,
-    class_name: value.className,
-    level: value.bankLevel ?? null,
-    bank_id: value.bankId ?? null,
-    massar: value.massar ?? null,
-    assessment_type: value.assessmentType ?? "diagnostic",
-    submitted_at: value.date,
-    payload: value,
+  // Anonymous students call a SECURITY DEFINER RPC. They never receive a
+  // table INSERT/SELECT path and the RPC resolves the teacher from the key.
+  const { error } = await client.rpc("submit_assessment_result", {
+    p_site_key: publicSiteKey,
+    p_submission: value,
   });
   if (error) throw new Error(readableError(error));
 }
@@ -92,6 +87,9 @@ function reportRow(report: InspectorReport, ownerId: string) {
   return {
     id: report.id,
     owner_id: ownerId,
+    institution: report.institution,
+    academy: report.academy,
+    directorate: report.directorate,
     class_name: report.className,
     level: report.level,
     subject: report.subject,

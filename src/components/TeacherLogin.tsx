@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { ArrowLeft, Eye, EyeOff, KeyRound, Lock, ShieldCheck, TimerReset, UserRound } from "lucide-react";
-import { isCloudConfigured } from "../lib/supabase";
+import { isSupabaseClientConfigured } from "../lib/supabase";
 import {
   LOCKOUT_MS,
   MAX_FAILS,
@@ -182,7 +182,7 @@ export default function TeacherLogin({ onUnlock, go }: TeacherLoginProps) {
 
             <p className="rounded-xl bg-paper-warm/70 px-4 py-3 text-[10px] leading-relaxed text-ink-500">
               <strong className="text-ink-700">تنبيه أمانة:</strong>{" "}
-              {isCloudConfigured()
+              {isSupabaseClientConfigured()
                 ? "الدخول يتحقق عبر Supabase Auth، والنتائج والتقارير مرتبطة بقاعدة مركزية محمية بسياسات RLS. لا تشارك بيانات الحساب."
                 : "لم تُضبط قاعدة مركزية بعد؛ هذا القفل المحلي يحجب اللوحة عن الزوّار العاديين، لكن تفعيل Supabase Auth وRLS مطلوب للحماية الدائمة."}
             </p>

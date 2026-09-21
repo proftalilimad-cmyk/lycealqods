@@ -22,10 +22,12 @@ export interface TestReport {
 interface TestRunnerProps {
   student: { name: string; className: string; massar?: string };
   questions: Question[];
-  onFinish: (report: TestReport) => void;
+  onFinish: (report: TestReport) => void | Promise<void>;
+  saving?: boolean;
+  saveError?: string;
 }
 
-export default function TestRunner({ student, questions: QUESTIONS, onFinish }: TestRunnerProps) {
+export default function TestRunner({ student, questions: QUESTIONS, onFinish, saving = false, saveError = "" }: TestRunnerProps) {
   const [answers, setAnswers] = useState<Answer[]>(() => QUESTIONS.map(() => null));
   const [current, setCurrent] = useState(0);
   const [remaining, setRemaining] = useState(TEST_DURATION_SECONDS);
@@ -43,8 +45,8 @@ export default function TestRunner({ student, questions: QUESTIONS, onFinish }: 
   const answeredCount = QUESTIONS.reduce((s, _, i) => s + (isAnswered(i) ? 1 : 0), 0);
   const unanswered = QUESTIONS.map((q, i) => ({ id: q.id, unanswered: !isAnswered(i) })).filter((x) => x.unanswered);
 
-  const finish = () => {
-    if (finishedRef.current) return;
+  const finish = async () => {
+    if (finishedRef.current || saving) return;
     finishedRef.current = true;
     let historyScore = 0;
     let geographyScore = 0;
@@ -62,19 +64,24 @@ export default function TestRunner({ student, questions: QUESTIONS, onFinish }: 
     const writingText = typeof answers[answers.length - 1] === "string" ? (answers[answers.length - 1] as string) : "";
     const rubric = gradeWriting(writingQ.kind === "writing" ? writingText : "");
 
-    onFinish({
-      historyScore,
-      geographyScore,
-      total,
-      percent,
-      levelLabel: lvl.label,
-      levelTone: lvl.tone,
-      skills: buildSkillsMap(QUESTIONS, answers),
-      answers,
-      rubric,
-      writingText,
-      timeUsedSeconds: TEST_DURATION_SECONDS - remaining,
-    });
+    try {
+      await onFinish({
+        historyScore,
+        geographyScore,
+        total,
+        percent,
+        levelLabel: lvl.label,
+        levelTone: lvl.tone,
+        skills: buildSkillsMap(QUESTIONS, answers),
+        answers,
+        rubric,
+        writingText,
+        timeUsedSeconds: TEST_DURATION_SECONDS - remaining,
+      });
+    } catch {
+      // Keep the answers open so the student can retry the central save.
+      finishedRef.current = false;
+    }
   };
 
   const finishRef = useRef(finish);
@@ -141,7 +148,8 @@ export default function TestRunner({ student, questions: QUESTIONS, onFinish }: 
             <button
               type="button"
               onClick={() => setConfirming(true)}
-              className="btn-shine inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-brand-700/25 transition-transform hover:-translate-y-0.5"
+              disabled={saving}
+              className="btn-shine inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-brand-700/25 transition-transform hover:-translate-y-0.5 disabled:opacity-50"
             >
               <Send className="size-4" aria-hidden="true" />
               إرسال الاختبار
@@ -156,6 +164,9 @@ export default function TestRunner({ student, questions: QUESTIONS, onFinish }: 
             />
           </div>
         </div>
+
+        {saveError && <p role="alert" className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-bold leading-relaxed text-rose-700"><TriangleAlert className="me-2 inline size-4" />{saveError} يمكنك إعادة الإرسال بعد التحقق من الاتصال.</p>}
+        {saving && <p role="status" className="mb-5 rounded-2xl border border-brand-200 bg-brand-50 px-5 py-3 text-sm font-bold text-brand-700">جارٍ حفظ النتيجة في قاعدة البيانات المركزية…</p>}
 
         <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
           {/* بطاقة السؤال */}
@@ -274,10 +285,11 @@ export default function TestRunner({ student, questions: QUESTIONS, onFinish }: 
               </button>
               <button
                 type="button"
-                onClick={finish}
-                className="rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-brand-700/25 transition-transform hover:-translate-y-0.5"
+                onClick={() => { void finish(); }}
+                disabled={saving}
+                className="rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-brand-700/25 transition-transform hover:-translate-y-0.5 disabled:opacity-50"
               >
-                تأكيد الإرسال
+                {saving ? "جارٍ الحفظ…" : "تأكيد الإرسال"}
               </button>
             </div>
           </div>

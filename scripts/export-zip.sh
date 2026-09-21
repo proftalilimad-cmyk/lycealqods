@@ -73,6 +73,14 @@ cp -f "$SITE_ZIP" "$OUT/site-talil-imad.zip"
 cp -f "$SRC_ZIP" "$OUT/site-talil-imad-source.zip"
 cp -f "$SRC_ZIP" "$OUT/imad-source.zip"
 
+# نسخ الأسماء المعتمدة إلى مجلد sauvegarde (الأرشيف الجاهز قد يتجاوز 100MB
+# ولذلك يبقى site-talil-imad.zip خارج GitHub، بينما تحفظ نسخة المصدر المتتبعة).
+BACKUP_DIR="$ROOT/sauvegarde"
+mkdir -p "$BACKUP_DIR"
+cp -f "$OUT/site-talil-imad.zip" "$BACKUP_DIR/site-talil-imad.zip"
+cp -f "$OUT/site-talil-imad-source.zip" "$BACKUP_DIR/site-talil-imad-source.zip"
+cp -f "$OUT/imad-source.zip" "$BACKUP_DIR/imad-source.zip"
+
 echo
 echo "================ النتيجة ================"
 for z in "$SITE_ZIP" "$SRC_ZIP"; do

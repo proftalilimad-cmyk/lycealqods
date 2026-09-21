@@ -10,7 +10,7 @@ import {
 } from "../data/diagnosticSchedule";
 import { gradeAutoQuestion, gradeWriting, levelOf } from "./grading";
 import { deleteAllCloudSubmissions, loadCloudSubmissions, saveCloudSubmission, type SubmissionSaveResult } from "./cloudStorage";
-import { isCloudConfigured } from "./supabase";
+import { isAssessmentSubmissionConfigured, isCloudConfigured } from "./supabase";
 
 const KEY = "talil_platform_submissions_v1";
 /** تغيير الإصدار يعيد إنشاء Demo فقط، مع الإبقاء على كل نتيجة حقيقية كما هي. */
@@ -395,21 +395,25 @@ function normalizeRealSubmission(sub: Submission): Submission {
 }
 
 /**
- * يحفظ النتيجة محليًا كذاكرة مؤقتة، ثم يرسلها إلى قاعدة البيانات عند
- * إعداد Supabase. لا نُخفي فشل الحفظ المركزي عن الواجهة.
+ * الحفظ الدائم للنتيجة يمر عبر Supabase فقط. لا نضع سجل التلميذ الحقيقي
+ * في localStorage ولا نعرضه على أنه محفوظ إذا فشل الاتصال المركزي.
  */
 export async function addSubmission(sub: Submission): Promise<SubmissionSaveResult> {
   const value = normalizeRealSubmission(sub);
-  const list = getSubmissions().filter((item) => item.id !== value.id);
-  list.push(value);
-  localStorage.setItem(KEY, JSON.stringify(list));
-  if (!isCloudConfigured()) return { localSaved: true, cloudConfigured: false, cloudSaved: false };
+  if (!isAssessmentSubmissionConfigured()) {
+    return {
+      localSaved: false,
+      cloudConfigured: isCloudConfigured(),
+      cloudSaved: false,
+      error: "التخزين المركزي غير مهيأ. أضف VITE_PUBLIC_SITE_KEY واربطه بقاعدة Supabase.",
+    };
+  }
   try {
     await saveCloudSubmission(value);
-    return { localSaved: true, cloudConfigured: true, cloudSaved: true };
+    return { localSaved: false, cloudConfigured: true, cloudSaved: true };
   } catch (error) {
     return {
-      localSaved: true,
+      localSaved: false,
       cloudConfigured: true,
       cloudSaved: false,
       error: error instanceof Error ? error.message : "تعذّر الحفظ المركزي.",
@@ -424,18 +428,18 @@ export async function addSubmission(sub: Submission): Promise<SubmissionSaveResu
  */
 export async function loadSubmissions(): Promise<{ submissions: Submission[]; remote: boolean; error?: string }> {
   ensureSeeded();
-  const local = getSubmissions();
-  if (!isCloudConfigured()) return { submissions: local, remote: false };
+  const localDemo = getSubmissions().filter(isDemoSubmission);
+  if (!isCloudConfigured()) return { submissions: localDemo, remote: false, error: "التخزين المركزي غير مهيأ؛ النتائج الحقيقية لا تُعرض من ذاكرة المتصفح." };
   const remote = await loadCloudSubmissions();
   if (remote.error) {
     return {
-      submissions: local.filter(isDemoSubmission),
+      submissions: localDemo,
       remote: true,
       error: remote.error,
     };
   }
   return {
-    submissions: [...local.filter(isDemoSubmission), ...remote.submissions.filter((submission) => !isDemoSubmission(submission))],
+    submissions: [...localDemo, ...remote.submissions.filter((submission) => !isDemoSubmission(submission))],
     remote: true,
   };
 }
