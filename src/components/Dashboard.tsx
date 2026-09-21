@@ -892,9 +892,9 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
    ============================================================ */
 
 const TABS = [
-  { id: "results", label: "نتائج التقويم التشخيصي", icon: ChartColumn },
-  { id: "jadadat", label: "الجذاذات", icon: FileText },
-  { id: "security", label: "الدخول والأمان", icon: KeyRound },
+  { id: "results", label: "نتائج التقويم التشخيصي", hint: "الحضور، النتائج، التقارير والتصدير", icon: ChartColumn },
+  { id: "jadadat", label: "الجذاذات", hint: "إعداد الدروس والأنشطة والتقويم", icon: FileText },
+  { id: "security", label: "الدخول والأمان", hint: "حماية الفضاء وإدارة الجلسة", icon: KeyRound },
 ] as const;
 
 export type DashboardTab = (typeof TABS)[number]["id"];
@@ -939,40 +939,45 @@ export default function Dashboard({ tab, go }: DashboardProps) {
       <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
         {/* الترويسة */}
         <Reveal>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold text-brand-700">
-                <LayoutDashboard className="size-3.5" aria-hidden="true" />
-                لوحة الأستاذ · فضاء محمي
-              </span>
-              <h1 className="mt-4 font-display text-3xl font-black text-ink-900 sm:text-4xl">
-                فضاء الأستاذ الخاص
-              </h1>
-              <p className="mt-2 text-sm leading-relaxed text-ink-500">
-                نتائج التقويم التشخيصي · الدخول والأمان
-                {who && (
-                  <>
-                    {" "}
-                    · متصل باسم <strong dir="ltr" className="font-extrabold text-brand-700">{who}</strong>
-                  </>
-                )}
-                <br />
-                إعداد وإنجاز: الأستاذ عماد طليل — ثانوية القدس، القنيطرة
-              </p>
+          <header className="relative overflow-hidden rounded-3xl border border-brand-200/70 bg-white p-5 shadow-[0_22px_55px_-30px_rgba(4,36,26,0.35)] sm:p-6">
+            <div className="pointer-events-none absolute inset-y-0 start-0 w-1.5 bg-gradient-to-b from-gold-400 via-brand-500 to-brand-900" aria-hidden="true" />
+            <div className="relative flex flex-wrap items-start justify-between gap-5">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1.5 text-xs font-semibold text-brand-700">
+                    <LayoutDashboard className="size-3.5" aria-hidden="true" />
+                    فضاء الأستاذ الخاص
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-extrabold text-emerald-700">
+                    <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" /> جلسة محمية
+                  </span>
+                </div>
+                <h1 className="mt-4 font-display text-2xl font-black text-ink-900 sm:text-3xl">لوحة القيادة التعليمية</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-500">
+                  مركز واحد لتنظيم التقويم التشخيصي، متابعة الحضور، قراءة النتائج، وإعداد التقارير.
+                  {who && (
+                    <>
+                      {" "}المستخدم المتصل: <strong dir="ltr" className="font-extrabold text-brand-700">{who}</strong>
+                    </>
+                  )}
+                </p>
+                <p className="mt-2 text-[11px] font-semibold text-ink-400">إعداد وإنجاز: الأستاذ عماد طليل — ثانوية القدس، القنيطرة</p>
+              </div>
+              <button
+                type="button"
+                onClick={signOut}
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-extrabold text-rose-600 transition-transform hover:-translate-y-0.5"
+              >
+                <LogOut className="size-4" aria-hidden="true" />
+                تسجيل الخروج
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={signOut}
-              className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-extrabold text-rose-600 transition-transform hover:-translate-y-0.5"
-            >
-              <LogOut className="size-4" aria-hidden="true" />
-              تسجيل الخروج
-            </button>
-          </div>
+          </header>
         </Reveal>
 
         {/* التبويبات */}
-        <div className="mt-7 flex flex-wrap gap-2" role="tablist" aria-label="أقسام لوحة الأستاذ">
+        <nav className="mt-5 rounded-3xl border border-ink-900/8 bg-white/80 p-2 shadow-[0_18px_45px_-32px_rgba(4,36,26,0.3)]" role="tablist" aria-label="أقسام لوحة الأستاذ">
+          <div className="grid gap-2 md:grid-cols-3">
           {TABS.map((t) => {
             const on = active === t.id;
             return (
@@ -982,18 +987,24 @@ export default function Dashboard({ tab, go }: DashboardProps) {
                 role="tab"
                 aria-selected={on}
                 onClick={() => go({ view: "dashboard", tab: t.id })}
-                className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-extrabold transition-all ${
+                className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-start transition-all ${
                   on
                     ? "border-brand-500 bg-brand-600 text-white shadow-[0_14px_30px_-16px_rgba(12,124,91,0.9)]"
                     : "border-ink-900/10 bg-white text-ink-700 hover:border-brand-300 hover:text-brand-700"
                 }`}
               >
-                <t.icon className="size-4" aria-hidden="true" />
-                {t.label}
+                <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${on ? "bg-white/15 text-gold-200" : "bg-brand-50 text-brand-700"}`}>
+                  <t.icon className="size-4" aria-hidden="true" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-extrabold">{t.label}</span>
+                  <span className={`mt-0.5 block truncate text-[10px] font-semibold ${on ? "text-white/70" : "text-ink-400"}`}>{t.hint}</span>
+                </span>
               </button>
             );
           })}
-        </div>
+          </div>
+        </nav>
 
         {/* محتوى التبويب */}
         <div className="mt-7">
