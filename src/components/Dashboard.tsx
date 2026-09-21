@@ -34,7 +34,7 @@ import {
 import { classReportFile, classReportPdf, resultsXlsx, scopeOf, selectionZip } from "../lib/reportExport";
 import StudentDownloads from "./StudentDownloads";
 import { DIAGNOSTIC_LEVELS, DiagnosticQRButton, DiagnosticQRPanel } from "./Diagnostic";
-import { DIAGNOSTIC_SESSIONS, displayClassName, scheduledClassesForLevel, scheduleForSubmission, sessionTimeLabel } from "../data/diagnosticSchedule";
+import { DIAGNOSTIC_SESSIONS, displayClassName, scheduledClassesForLevel } from "../data/diagnosticSchedule";
 import { activeCreds, isUnlocked, lock } from "../lib/teacherAuth";
 import type { Submission } from "../types";
 import type { DiagnosticLevel, Route } from "../routes";
@@ -54,7 +54,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
   const [showDemo, setShowDemo] = useState(false);
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [bankFilter, setBankFilter] = useState<string>("all");
-  const [sessionFilter, setSessionFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -98,17 +97,9 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
     () => (bankFilter === "all" ? levelFiltered : levelFiltered.filter((submission) => submission.bankId === bankFilter)),
     [levelFiltered, bankFilter],
   );
-  const sessionOptions = useMemo(
-    () => scheduledClassesForLevel(levelFilter === "all" ? undefined : levelFilter, bankFilter === "all" ? undefined : bankFilter),
-    [levelFilter, bankFilter],
-  );
-  const sessionFiltered = useMemo(
-    () => (sessionFilter === "all" ? bankFiltered : bankFiltered.filter((submission) => scheduleForSubmission(submission)?.id === sessionFilter)),
-    [bankFiltered, sessionFilter],
-  );
   const scopedResults = useMemo(
-    () => (classFilter === "all" ? sessionFiltered : sessionFiltered.filter((submission) => submission.className === classFilter)),
-    [sessionFiltered, classFilter],
+    () => (classFilter === "all" ? bankFiltered : bankFiltered.filter((submission) => submission.className === classFilter)),
+    [bankFiltered, classFilter],
   );
   const qrLevelInfo = DIAGNOSTIC_LEVELS.find((item) => item.id === qrLevel) ?? DIAGNOSTIC_LEVELS[0];
 
@@ -156,17 +147,17 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
 
   const maxBin = Math.max(1, ...histBins.map((b) => b.count));
   /* ---------- التحميل الفردي والجماعي ---------- */
-  const classes = useMemo(() => {
-    const scheduled = sessionOptions.filter((session) => sessionFilter === "all" || session.id === sessionFilter).map((session) => session.className);
-    return Array.from(new Set([...scheduled, ...sessionFiltered.map((s) => s.className)])).sort();
-  }, [sessionFiltered, sessionFilter, sessionOptions]);
   const visibleSessions = useMemo(
-    () => sessionOptions.filter((session) => sessionFilter === "all" || session.id === sessionFilter),
-    [sessionFilter, sessionOptions],
+    () => scheduledClassesForLevel(levelFilter === "all" ? undefined : levelFilter, bankFilter === "all" ? undefined : bankFilter),
+    [levelFilter, bankFilter],
   );
+  const classes = useMemo(() => {
+    const scheduled = visibleSessions.map((session) => session.className);
+    return Array.from(new Set([...scheduled, ...bankFiltered.map((s) => s.className)])).sort();
+  }, [bankFiltered, visibleSessions]);
   const attendance = useMemo(
-    () => getDiagnosticAttendance(sessionFiltered, classFilter === "all" ? undefined : classFilter),
-    [sessionFiltered, classFilter],
+    () => getDiagnosticAttendance(bankFiltered, classFilter === "all" ? undefined : classFilter),
+    [bankFiltered, classFilter],
   );
   const filtered = useMemo(() => {
     const query = searchTerm.trim().toLocaleLowerCase("ar");
@@ -229,7 +220,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                     setSelected([]);
                     setLevelFilter("all");
                     setBankFilter("all");
-                    setSessionFilter("all");
                     setClassFilter("all");
                   }}
                   className="size-4 accent-gold-600"
@@ -312,9 +302,9 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
           <div className="mt-7 rounded-3xl border border-gold-200/80 bg-gold-50/45 p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="font-display text-base font-extrabold text-ink-900">مواعيد وأقسام التقويم</p>
+                <p className="font-display text-base font-extrabold text-ink-900">أقسام التقويم التشخيصي</p>
                 <p className="mt-1 text-[11px] leading-relaxed text-ink-500">
-                  الموعد ثابت حسب القسم. تُعرض النتائج المحفوظة فقط؛ القسم الذي لا يملك سجلات يبقى دون أسماء أو إجابات مُنشأة.
+                  تُعرض النتائج المحفوظة فقط؛ القسم الذي لا يملك سجلات يبقى دون أسماء أو إجابات مُنشأة.
                 </p>
               </div>
               <span className="rounded-full bg-white px-3 py-1.5 text-[10px] font-extrabold text-gold-700">{visibleSessions.length} أقسام مهيأة</span>
@@ -330,7 +320,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                       <p className="font-display text-sm font-extrabold text-ink-900">{session.displayClass}</p>
                       <span className="rounded-full bg-brand-50 px-2 py-1 text-[10px] font-bold text-brand-700">{sessionResults.length} نتائج محفوظة</span>
                     </div>
-                    <p className="mt-2 text-[11px] font-bold text-brand-700">{sessionTimeLabel(session)}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10.5px] font-semibold text-ink-500">
                       {session.reportedParticipants !== undefined && <span>المشاركون حسب المعطى: {session.reportedParticipants}</span>}
                       <span>{support === null ? "نسبة الدعم: لا توجد نتائج فعلية" : `نسبة الدعم: ${Math.round((support / sessionResults.length) * 100)}٪ (${support}/${sessionResults.length})`}</span>
@@ -348,7 +337,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         onClick={() => {
                           setLevelFilter(session.bankLevel);
                           setBankFilter(session.bankId);
-                          setSessionFilter(session.id);
                           setClassFilter(session.className);
                           setSelected([]);
                         }}
@@ -587,7 +575,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         onChange={(e) => {
                           setLevelFilter(e.target.value);
                           setBankFilter("all");
-                          setSessionFilter("all");
                           setClassFilter("all");
                           setSelected([]);
                         }}
@@ -607,7 +594,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         value={bankFilter}
                         onChange={(e) => {
                           setBankFilter(e.target.value);
-                          setSessionFilter("all");
                           setClassFilter("all");
                           setSelected([]);
                         }}
@@ -622,25 +608,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                       </select>
                     </label>
                     <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
-                      <span className="whitespace-nowrap">التاريخ / التوقيت</span>
-                      <select
-                        value={sessionFilter}
-                        onChange={(e) => {
-                          setSessionFilter(e.target.value);
-                          setClassFilter("all");
-                          setSelected([]);
-                        }}
-                        className="field min-w-[220px] py-2 text-xs"
-                      >
-                        <option value="all">كل المواعيد ({bankFiltered.length})</option>
-                        {sessionOptions.map((session) => (
-                          <option key={session.id} value={session.id}>
-                            {sessionTimeLabel(session)} ({visibleSubs.filter((submission) => scheduleForSubmission(submission)?.id === session.id).length})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="flex items-center gap-2 text-xs font-extrabold text-ink-700">
                       <span className="whitespace-nowrap">القسم</span>
                       <select
                         value={classFilter}
@@ -650,10 +617,10 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         }}
                         className="field min-w-[190px] py-2 text-xs"
                       >
-                        <option value="all">كل الأقسام ({sessionFiltered.length})</option>
+                        <option value="all">كل الأقسام ({bankFiltered.length})</option>
                         {classes.map((c) => (
                           <option key={c} value={c}>
-                            {displayClassName(c)} ({sessionFiltered.filter((s) => s.className === c).length})
+                            {displayClassName(c)} ({bankFiltered.filter((s) => s.className === c).length})
                           </option>
                         ))}
                       </select>
@@ -789,7 +756,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                         <th className="px-6 py-3.5 text-start font-display text-xs font-extrabold">التلميذ(ة)</th>
                         <th className="px-4 py-3.5 text-start font-display text-xs font-extrabold">القسم</th>
                         <th className="px-4 py-3.5 text-start font-display text-xs font-extrabold">المستوى / المسلك</th>
-                        <th className="px-4 py-3.5 text-start font-display text-xs font-extrabold">موعد التقويم</th>
                         <th className="px-4 py-3.5 text-center font-display text-xs font-extrabold">التاريخ /10</th>
                         <th className="px-4 py-3.5 text-center font-display text-xs font-extrabold">الجغرافيا /10</th>
                         <th className="px-4 py-3.5 text-center font-display text-xs font-extrabold">المجموع /20</th>
@@ -819,7 +785,6 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                             <td className="px-4 py-3.5">
                               <span className="rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-extrabold text-brand-700">{s.bankLabel ?? "الجذع المشترك"}</span>
                             </td>
-                            <td className="px-4 py-3.5 text-xs font-semibold leading-relaxed text-brand-700">{sessionTimeLabel(scheduleForSubmission(s))}</td>
                             <td className="px-4 py-3.5 text-center font-semibold text-ink-700">{s.history}</td>
                             <td className="px-4 py-3.5 text-center font-semibold text-ink-700">{s.geography}</td>
                             <td className="px-4 py-3.5 text-center font-display text-base font-black text-ink-900">{s.total}</td>
