@@ -1,17 +1,33 @@
-SAUVEGARDE DU SITE — HOSTINGER
+نسخ احتياطية الموقع — 21/09/2026
 
-site-talil-imad-hostinger.zip
-Version complète prête pour Hostinger et Netlify.
-Elle contient index.html à la racine et les dossiers decks/, files/, exports/ et images/.
-Elle contient également les fichiers SEO prêts à publier : robots.txt, sitemap.xml, _redirects et _headers.
+1) site-talil-imad.zip
+   النسخة الكاملة الجاهزة للنشر على Hostinger أو Netlify.
+   تحتوي على index.html في الجذر، وجميع ملفات public المنشورة، وQR،
+   والتقارير، وملفات الجذاذات، وSEO routes.
 
-Hostinger : décompresser puis envoyer le contenu directement dans public_html.
-Netlify : décompresser puis glisser le dossier contenant index.html dans « Deploy manually ».
+   Hostinger:
+   - فك الضغط.
+   - ارفع محتويات المجلد الذي يحتوي index.html مباشرة إلى public_html.
 
-site-talil-imad-source.zip
-Version source du projet pour archivage et développement.
+   Netlify:
+   - فك الضغط.
+   - من https://app.netlify.com/ اختر Add new site ثم Deploy manually.
+   - اسحب المجلد الذي يحتوي index.html.
+   - رابط لوحة الأستاذ بعد النشر:
+     https://courstalil.netlify.app/#/dashboard
 
-IMPORTANT
-Le fichier complet Hostinger est volumineux et ne doit pas être ajouté à GitHub
-(car GitHub bloque les fichiers individuels de plus de 100 Mo). Il reste disponible
-comme fichier de sauvegarde dans cet espace de travail.
+2) site-talil-imad-source.zip
+   نسخة المصدر الكاملة للتطوير وإعادة البناء.
+
+حفظ نتائج التلاميذ:
+- التطبيق الحالي يعمل كتطبيق ثابت Static SPA.
+- نتيجة التلميذ تُحفظ في localStorage داخل المتصفح عبر لوحة الأستاذ.
+- لذلك تظهر النتائج في لوحة الأستاذ عند استعمال نفس المتصفح/الجهاز.
+- لا تنتقل نتائج التلاميذ تلقائيًا بين أجهزة مختلفة أو بين متصفحات مختلفة.
+- التخزين المركزي لجميع التلاميذ في لوحة Netlify يحتاج Backend/قاعدة بيانات
+  (مثل Supabase أو Netlify Functions/Blobs) مع إعدادات وصول مستقلة؛ لا توضع
+  مفاتيح أو بيانات سرية داخل هذا الأرشيف.
+
+ملاحظة GitHub:
+site-talil-imad.zip حجمه يتجاوز 100MB، لذلك يبقى داخل مساحة النسخ الاحتياطي
+وخارج GitHub كملف Git عادي. نسخة المصدر وحدها محفوظة داخل مجلد sauvegarde.

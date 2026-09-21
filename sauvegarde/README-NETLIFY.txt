@@ -1,23 +1,22 @@
-SAUVEGARDE ET DÉPLOIEMENT NETLIFY
+نشر النسخة الكاملة على Netlify
 
-Fichier prêt à publier :
-  site-talil-imad-hostinger.zip
+الملف:
+  sauvegarde/site-talil-imad.zip
 
-Ce fichier est la version statique complète du site. Il contient index.html à
-la racine ainsi que les dossiers decks/, files/, exports/ et images/. Il contient
-également robots.txt, sitemap.xml, _redirects et _headers pour le SEO et les
-routes propres de l’application.
+الخطوات:
+1. فك الضغط.
+2. افتح https://app.netlify.com/ وسجّل الدخول إلى الحساب الصحيح.
+3. اختر Add new site ثم Deploy manually.
+4. اسحب المجلد الذي يحتوي index.html إلى Netlify.
+5. افتح:
+   https://courstalil.netlify.app/#/dashboard
 
-Pour publier sur Netlify :
-1. Télécharger puis décompresser site-talil-imad-hostinger.zip.
-2. Ouvrir https://app.netlify.com/ et se connecter.
-3. Choisir « Add new site » puis « Deploy manually ».
-4. Glisser-déposer le dossier décompressé qui contient index.html.
-5. Attendre la fin du déploiement, puis ouvrir l’URL Netlify fournie.
+لرفع تحديث لاحق، استعمل الأرشيف الجديد بنفس الطريقة أو اربط الموقع
+بمستودع GitHub مع إعداد البناء:
+  Build command: npm run build
+  Publish directory: dist
 
-Pour Hostinger :
-- Décompresser le même fichier.
-- Envoyer son contenu directement dans public_html.
-
-La version source pour le développement est :
-  site-talil-imad-source.zip
+مهم بخصوص نتائج التلاميذ:
+النسخة الحالية تحفظ النتائج في localStorage داخل المتصفح. هذا مناسب للمعاينة
+والاستعمال على نفس الجهاز، لكنه لا يوفر قاعدة نتائج مركزية مشتركة بين أجهزة
+التلاميذ والأستاذ. التخزين المركزي يتطلب Backend/قاعدة بيانات منفصلة.
