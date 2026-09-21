@@ -272,7 +272,7 @@ export default function InspectorReports() {
                 <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold ${dataMode === "demo" ? "bg-amber-100 text-amber-800" : "bg-brand-50 text-brand-700"}`}>{dataMode === "demo" ? "مصدر Demo معزول" : "مصدر النتائج المركزية"}</span>
               </div>
               <h2 className="mt-4 font-display text-2xl font-black text-ink-900">تقرير التقويم الشخصي للمفتش</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-500">{dataMode === "demo" ? "استعمل البيانات التجريبية المعزولة لإنجاز تقرير كامل للمعاينة والتصدير. لا تُحفظ هذه النسخة ضمن التقارير المركزية." : "أنشئ تقريرًا رسميًا من النتائج المركزية الفعلية المرتبطة بالقسم والفترة المحددين. لا تُعرض هذه المعطيات خارج فضاء الأستاذ المحمي."}</p>
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-500">استعمل البيانات التجريبية المعزولة لتطوير تقرير التقويم الشخصي للمفتش، ومعاينته وتصديره. لا تُحفظ نسخة Demo ضمن التقارير المركزية.</p>
             </div>
             <button type="button" onClick={newReport} className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 hover:bg-brand-100"><Plus className="size-4" aria-hidden="true" /> تقرير جديد</button>
           </div>
