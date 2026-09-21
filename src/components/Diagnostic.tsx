@@ -212,8 +212,8 @@ function QRPanel({ level, onView, className, compact = false }: QRPanelProps) {
           </div>
         </div>
 
-        <div className={`${compact ? "gap-4 p-4" : "gap-8 p-6 md:p-8"} grid md:grid-cols-[minmax(170px,230px)_1fr]`}>
-          <div className={`${compact ? "min-h-[180px] rounded-2xl p-3" : "min-h-[300px] rounded-3xl p-5"} flex items-center justify-center border border-ink-900/8 bg-paper-warm/50`}>
+        <div className={`${compact ? "gap-3 p-3" : "gap-8 p-6 md:p-8"} grid md:grid-cols-[minmax(145px,190px)_1fr]`}>
+          <div className={`${compact ? "min-h-[150px] rounded-2xl p-2" : "min-h-[300px] rounded-3xl p-5"} flex items-center justify-center border border-ink-900/8 bg-paper-warm/50`}>
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
@@ -221,10 +221,10 @@ function QRPanel({ level, onView, className, compact = false }: QRPanelProps) {
                 width={290}
                 height={290}
                 decoding="async"
-                className={`${compact ? "max-w-[170px] p-2" : "max-w-[290px] p-3"} h-auto w-full rounded-xl bg-white shadow-sm`}
+                className={`${compact ? "max-w-[132px] p-1.5" : "max-w-[290px] p-3"} h-auto w-full rounded-xl bg-white shadow-sm`}
               />
             ) : (
-              <div className={`${compact ? "size-[150px]" : "size-[250px]"} grid place-items-center rounded-xl bg-white text-center text-xs font-bold text-ink-400`}>جارٍ إنشاء رمز QR…</div>
+              <div className={`${compact ? "size-[112px]" : "size-[250px]"} grid place-items-center rounded-xl bg-white text-center text-xs font-bold text-ink-400`}>جارٍ إنشاء رمز QR…</div>
             )}
           </div>
 
