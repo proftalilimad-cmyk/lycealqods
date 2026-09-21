@@ -208,7 +208,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="font-display text-2xl font-black text-ink-900">نتائج التقويم التشخيصي</h2>
-              <p className="mt-2 text-sm text-ink-500">الأقسام والمواعيد — التاريخ والجغرافيا · النقطة /20</p>
+              <p className="mt-2 text-sm text-ink-500">الأقسام والنتائج — التاريخ والجغرافيا · النقطة /20</p>
             </div>
             <div className="flex flex-wrap items-center gap-2.5">
               <label className="inline-flex items-center gap-2 rounded-xl border border-gold-200 bg-gold-50 px-3.5 py-2.5 text-xs font-extrabold text-gold-800">
@@ -278,9 +278,10 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
         </Reveal>
 
 
-        <Reveal delay={120}>
-          <div className="mt-7 rounded-3xl border border-brand-200/70 bg-brand-50/50 p-4 sm:p-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-6 grid items-start gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)]">
+          <Reveal delay={120}>
+            <div className="rounded-2xl border border-brand-200/70 bg-brand-50/50 p-3 sm:p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="font-display text-base font-extrabold text-ink-900">رمز الدخول المباشر للتقويم</p>
                 <p className="mt-1 text-[11px] leading-relaxed text-ink-500">اختر المستوى ثم اطبع أو شارك الرمز مع التلاميذ. هذه البطاقة خاصة بلوحة الأستاذ.</p>
@@ -294,12 +295,12 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                 </select>
               </label>
             </div>
-            <DiagnosticQRPanel level={qrLevelInfo} onView={() => go({ view: "diagnostic", level: qrLevelInfo.id })} />
-          </div>
-        </Reveal>
+              <DiagnosticQRPanel compact level={qrLevelInfo} onView={() => go({ view: "diagnostic", level: qrLevelInfo.id })} />
+            </div>
+          </Reveal>
 
-        <Reveal delay={150}>
-          <div className="mt-7 rounded-3xl border border-gold-200/80 bg-gold-50/45 p-5 sm:p-6">
+          <Reveal delay={150}>
+            <div className="rounded-2xl border border-gold-200/80 bg-gold-50/45 p-4 sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-display text-base font-extrabold text-ink-900">أقسام التقويم التشخيصي</p>
@@ -309,29 +310,29 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
               </div>
               <span className="rounded-full bg-white px-3 py-1.5 text-[10px] font-extrabold text-gold-700">{visibleSessions.length} أقسام مهيأة</span>
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-3 grid gap-2 md:grid-cols-2">
               {visibleSessions.map((session) => {
                 const sessionResults = visibleSubs.filter((submission) => submission.className === session.className && (!submission.bankId || submission.bankId === session.bankId));
                 const support = sessionResults.length > 0 ? sessionResults.filter((submission) => submission.percent < 50).length : null;
                 const qrLevel = DIAGNOSTIC_LEVELS.find((item) => item.defaultBank === session.bankId) ?? DIAGNOSTIC_LEVELS[0];
                 return (
-                  <div key={session.id} className="rounded-2xl border border-white bg-white p-4">
+                  <div key={session.id} className="rounded-2xl border border-white bg-white p-3">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="font-display text-sm font-extrabold text-ink-900">{session.displayClass}</p>
+                      <p className="font-display text-[13px] font-extrabold text-ink-900">{session.displayClass}</p>
                       <span className="rounded-full bg-brand-50 px-2 py-1 text-[10px] font-bold text-brand-700">{sessionResults.length} نتائج محفوظة</span>
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10.5px] font-semibold text-ink-500">
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold text-ink-500">
                       {session.reportedParticipants !== undefined && <span>المشاركون حسب المعطى: {session.reportedParticipants}</span>}
                       <span>{support === null ? "نسبة الدعم: لا توجد نتائج فعلية" : `نسبة الدعم: ${Math.round((support / sessionResults.length) * 100)}٪ (${support}/${sessionResults.length})`}</span>
                     </div>
-                    <div className="mt-3">
+                    <div className="mt-2">
                       <DiagnosticQRButton
                         level={qrLevel}
                         className={session.className}
                         onView={() => go({ view: "diagnostic", level: qrLevel.id, className: session.className })}
                       />
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2 border-t border-ink-900/6 pt-3">
+                    <div className="mt-2 flex flex-wrap gap-1.5 border-t border-ink-900/6 pt-2">
                       <button
                         type="button"
                         onClick={() => {
@@ -340,7 +341,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                           setClassFilter(session.className);
                           setSelected([]);
                         }}
-                        className="rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-extrabold text-brand-700"
+                        className="rounded-lg border border-brand-200 bg-brand-50 px-2 py-1 text-[9px] font-extrabold text-brand-700"
                       >
                         عرض القسم
                       </button>
@@ -350,7 +351,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                           classReportFile(sessionResults, scopeOf(sessionResults, session.className));
                           setNotice(`نزّل تقرير ${session.displayClass} — يتضمن النتائج المحفوظة فقط.`);
                         }}
-                        className="rounded-lg border border-ink-900/10 bg-white px-2.5 py-1.5 text-[10px] font-extrabold text-ink-700"
+                        className="rounded-lg border border-ink-900/10 bg-white px-2 py-1 text-[9px] font-extrabold text-ink-700"
                       >
                         تقرير القسم HTML
                       </button>
@@ -360,7 +361,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
                           void classReportPdf(sessionResults, scopeOf(sessionResults, session.className));
                           setNotice(`فتحت نافذة طباعة تقرير ${session.displayClass} — لا تُعرض أسماء أو نقاط غير محفوظة.`);
                         }}
-                        className="rounded-lg border border-ink-900/10 bg-white px-2.5 py-1.5 text-[10px] font-extrabold text-ink-700"
+                        className="rounded-lg border border-ink-900/10 bg-white px-2 py-1 text-[9px] font-extrabold text-ink-700"
                       >
                         تقرير القسم PDF
                       </button>
@@ -371,6 +372,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
             </div>
           </div>
         </Reveal>
+        </div>
 
         {stats && (
           <>

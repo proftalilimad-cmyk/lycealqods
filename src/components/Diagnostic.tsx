@@ -117,9 +117,10 @@ interface QRPanelProps {
   level: DiagnosticLevelInfo;
   onView: () => void;
   className?: string;
+  compact?: boolean;
 }
 
-function QRPanel({ level, onView, className }: QRPanelProps) {
+function QRPanel({ level, onView, className, compact = false }: QRPanelProps) {
   const session = scheduleForClass(className, level.defaultBank);
   const qrLabel = session?.displayClass ?? level.label;
   const url = useMemo(() => actualDiagnosticUrl(level.id, className), [level.id, className]);
@@ -194,25 +195,25 @@ function QRPanel({ level, onView, className }: QRPanelProps) {
 
   return (
     <Reveal>
-      <section className="overflow-hidden rounded-3xl border border-brand-200/70 bg-white shadow-[0_30px_80px_-38px_rgba(4,36,26,0.45)]" aria-labelledby="qr-title">
-        <div className="border-b border-brand-100 bg-gradient-to-l from-brand-900 to-brand-700 px-6 py-6 text-white sm:px-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+      <section className={`${compact ? "rounded-2xl shadow-[0_18px_45px_-28px_rgba(4,36,26,0.45)]" : "rounded-3xl shadow-[0_30px_80px_-38px_rgba(4,36,26,0.45)]"} overflow-hidden border border-brand-200/70 bg-white`} aria-labelledby="qr-title">
+        <div className={`${compact ? "px-4 py-4" : "px-6 py-6 sm:px-8"} border-b border-brand-100 bg-gradient-to-l from-brand-900 to-brand-700 text-white`}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold text-gold-200">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-gold-200">
                 <QrCode className="size-3.5" aria-hidden="true" />
                 دخول سريع بالهاتف
               </span>
-              <h2 id="qr-title" className="mt-3 font-display text-2xl font-black sm:text-3xl">الدخول إلى التقويم التشخيصي</h2>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/70">امسح رمز QR باستعمال كاميرا الهاتف للولوج مباشرة إلى التقويم.</p>
+              <h2 id="qr-title" className={`${compact ? "mt-2 text-lg" : "mt-3 text-2xl sm:text-3xl"} font-display font-black`}>الدخول إلى التقويم التشخيصي</h2>
+              <p className={`${compact ? "mt-1 text-[11px]" : "mt-2 text-sm"} max-w-xl leading-relaxed text-white/70`}>امسح رمز QR باستعمال كاميرا الهاتف للولوج مباشرة إلى التقويم.</p>
             </div>
-            <div className="grid size-14 place-items-center rounded-2xl bg-gold-400/15 text-gold-200">
-              <ScanLine className="size-8" aria-hidden="true" />
+            <div className={`${compact ? "size-10 rounded-xl" : "size-14 rounded-2xl"} grid place-items-center bg-gold-400/15 text-gold-200`}>
+              <ScanLine className={compact ? "size-5" : "size-8"} aria-hidden="true" />
             </div>
           </div>
         </div>
 
-        <div className="grid gap-8 p-6 md:grid-cols-[minmax(230px,320px)_1fr] md:p-8">
-          <div className="flex min-h-[300px] items-center justify-center rounded-3xl border border-ink-900/8 bg-paper-warm/50 p-5">
+        <div className={`${compact ? "gap-4 p-4" : "gap-8 p-6 md:p-8"} grid md:grid-cols-[minmax(170px,230px)_1fr]`}>
+          <div className={`${compact ? "min-h-[180px] rounded-2xl p-3" : "min-h-[300px] rounded-3xl p-5"} flex items-center justify-center border border-ink-900/8 bg-paper-warm/50`}>
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
@@ -220,32 +221,32 @@ function QRPanel({ level, onView, className }: QRPanelProps) {
                 width={290}
                 height={290}
                 decoding="async"
-                className="h-auto w-full max-w-[290px] rounded-xl bg-white p-3 shadow-sm"
+                className={`${compact ? "max-w-[170px] p-2" : "max-w-[290px] p-3"} h-auto w-full rounded-xl bg-white shadow-sm`}
               />
             ) : (
-              <div className="grid size-[250px] place-items-center rounded-xl bg-white text-center text-xs font-bold text-ink-400">جارٍ إنشاء رمز QR…</div>
+              <div className={`${compact ? "size-[150px]" : "size-[250px]"} grid place-items-center rounded-xl bg-white text-center text-xs font-bold text-ink-400`}>جارٍ إنشاء رمز QR…</div>
             )}
           </div>
 
           <div className="flex flex-col justify-center">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl bg-brand-50 p-4">
-                <p className="text-[11px] font-bold text-ink-500">المستوى</p>
-                <p className="mt-1 font-display text-base font-black text-brand-800">{qrLabel}</p>
+            <div className={`${compact ? "gap-2" : "gap-3"} grid sm:grid-cols-3`}>
+              <div className={`${compact ? "rounded-xl p-3" : "rounded-2xl p-4"} bg-brand-50`}>
+                <p className="text-[10px] font-bold text-ink-500">المستوى</p>
+                <p className={`${compact ? "text-sm" : "text-base"} mt-1 font-display font-black text-brand-800`}>{qrLabel}</p>
               </div>
-              <div className="rounded-2xl bg-gold-50 p-4">
-                <p className="text-[11px] font-bold text-ink-500">المادة</p>
-                <p className="mt-1 font-display text-base font-black text-gold-800">الاجتماعيات</p>
+              <div className={`${compact ? "rounded-xl p-3" : "rounded-2xl p-4"} bg-gold-50`}>
+                <p className="text-[10px] font-bold text-ink-500">المادة</p>
+                <p className={`${compact ? "text-sm" : "text-base"} mt-1 font-display font-black text-gold-800`}>الاجتماعيات</p>
               </div>
-              <div className="rounded-2xl bg-paper-warm p-4">
-                <p className="text-[11px] font-bold text-ink-500">نوع التقويم</p>
-                <p className="mt-1 font-display text-base font-black text-ink-800">تشخيصي</p>
+              <div className={`${compact ? "rounded-xl p-3" : "rounded-2xl p-4"} bg-paper-warm`}>
+                <p className="text-[10px] font-bold text-ink-500">نوع التقويم</p>
+                <p className={`${compact ? "text-sm" : "text-base"} mt-1 font-display font-black text-ink-800`}>تشخيصي</p>
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-brand-100 bg-brand-50/50 p-5">
+            <div className={`${compact ? "mt-3 rounded-xl p-3" : "mt-5 rounded-2xl p-5"} border border-brand-100 bg-brand-50/50`}>
               <p className="flex items-center gap-2 font-display text-sm font-extrabold text-brand-900"><Info className="size-4 text-brand-600" aria-hidden="true" /> طريقة الولوج</p>
-              <ol className="mt-3 grid gap-2 text-sm leading-relaxed text-ink-700">
+              <ol className={`${compact ? "mt-2 grid-cols-2 gap-x-3 gap-y-1 text-[11px]" : "mt-3 gap-2 text-sm"} grid leading-relaxed text-ink-700`}>
                 <li><b className="text-brand-700">1.</b> افتح كاميرا هاتفك.</li>
                 <li><b className="text-brand-700">2.</b> امسح رمز QR.</li>
                 <li><b className="text-brand-700">3.</b> اضغط على الرابط الظاهر.</li>
@@ -253,25 +254,25 @@ function QRPanel({ level, onView, className }: QRPanelProps) {
               </ol>
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-2.5">
-              <button type="button" onClick={downloadQR} disabled={!qrDataUrl} className="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-lg shadow-brand-700/20 transition enabled:hover:-translate-y-0.5 disabled:opacity-40">
-                <Download className="size-4" aria-hidden="true" /> تحميل QR Code
+            <div className={`${compact ? "mt-3 gap-1.5" : "mt-5 gap-2.5"} flex flex-wrap`}>
+              <button type="button" onClick={downloadQR} disabled={!qrDataUrl} className={`${compact ? "px-2.5 py-2 text-[10px]" : "px-4 py-2.5 text-xs"} inline-flex items-center gap-1.5 rounded-xl bg-brand-700 font-extrabold text-white shadow-lg shadow-brand-700/20 transition enabled:hover:-translate-y-0.5 disabled:opacity-40`}>
+                <Download className="size-3.5" aria-hidden="true" /> تحميل QR
               </button>
-              <button type="button" onClick={printQR} disabled={!qrDataUrl} className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition enabled:hover:-translate-y-0.5 disabled:opacity-40">
-                <Printer className="size-4" aria-hidden="true" /> طباعة QR Code
+              <button type="button" onClick={printQR} disabled={!qrDataUrl} className={`${compact ? "px-2.5 py-2 text-[10px]" : "px-4 py-2.5 text-xs"} inline-flex items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50 font-extrabold text-brand-700 transition enabled:hover:-translate-y-0.5 disabled:opacity-40`}>
+                <Printer className="size-3.5" aria-hidden="true" /> طباعة
               </button>
-              <button type="button" onClick={copyLink} className="inline-flex items-center gap-2 rounded-xl border border-ink-900/10 bg-white px-4 py-2.5 text-xs font-extrabold text-ink-700 transition hover:-translate-y-0.5 hover:border-brand-300">
-                <Copy className="size-4 text-brand-600" aria-hidden="true" /> نسخ رابط التقويم
+              <button type="button" onClick={copyLink} className={`${compact ? "px-2.5 py-2 text-[10px]" : "px-4 py-2.5 text-xs"} inline-flex items-center gap-1.5 rounded-xl border border-ink-900/10 bg-white font-extrabold text-ink-700 transition hover:-translate-y-0.5 hover:border-brand-300`}>
+                <Copy className="size-3.5 text-brand-600" aria-hidden="true" /> نسخ الرابط
               </button>
-              <button type="button" onClick={onView} className="inline-flex items-center gap-2 rounded-xl border border-gold-300 bg-gold-50 px-4 py-2.5 text-xs font-extrabold text-gold-800 transition hover:-translate-y-0.5">
-                <ExternalLink className="size-4" aria-hidden="true" /> عرض التقويم
+              <button type="button" onClick={onView} className={`${compact ? "px-2.5 py-2 text-[10px]" : "px-4 py-2.5 text-xs"} inline-flex items-center gap-1.5 rounded-xl border border-gold-300 bg-gold-50 font-extrabold text-gold-800 transition hover:-translate-y-0.5`}>
+                <ExternalLink className="size-3.5" aria-hidden="true" /> عرض التقويم
               </button>
-              <button type="button" onClick={printCard} disabled={!qrDataUrl} className="inline-flex items-center gap-2 rounded-xl border border-ink-900/10 bg-white px-4 py-2.5 text-xs font-extrabold text-ink-700 transition enabled:hover:-translate-y-0.5 disabled:opacity-40">
-                <Share2 className="size-4 text-brand-600" aria-hidden="true" /> طباعة بطاقة التقويم
+              <button type="button" onClick={printCard} disabled={!qrDataUrl} className={`${compact ? "px-2.5 py-2 text-[10px]" : "px-4 py-2.5 text-xs"} inline-flex items-center gap-1.5 rounded-xl border border-ink-900/10 bg-white font-extrabold text-ink-700 transition enabled:hover:-translate-y-0.5 disabled:opacity-40`}>
+                <Share2 className="size-3.5 text-brand-600" aria-hidden="true" /> طباعة البطاقة
               </button>
             </div>
             {notice && <p role="status" className="mt-3 text-xs font-bold text-brand-700">{notice}</p>}
-            <p className="mt-4 break-all rounded-xl bg-paper-warm/60 px-3 py-2 text-[10px] text-ink-500" dir="ltr">{url}</p>
+            <p className={`${compact ? "mt-2" : "mt-4"} break-all rounded-xl bg-paper-warm/60 px-3 py-2 text-[10px] text-ink-500`} dir="ltr">{url}</p>
           </div>
         </div>
       </section>
@@ -280,8 +281,8 @@ function QRPanel({ level, onView, className }: QRPanelProps) {
 }
 
 /** بطاقة QR تُستعمل داخل لوحة الأستاذ فقط لتوزيع رابط المستوى على التلاميذ. */
-export function DiagnosticQRPanel({ level, onView, className }: QRPanelProps) {
-  return <QRPanel level={level} onView={onView} className={className} />;
+export function DiagnosticQRPanel({ level, onView, className, compact }: QRPanelProps) {
+  return <QRPanel level={level} onView={onView} className={className} compact={compact} />;
 }
 
 /** QR صغير خاص بقسم واحد؛ الرابط يحمل المستوى والقسم معًا. */
