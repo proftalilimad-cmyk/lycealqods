@@ -65,14 +65,14 @@ const DEMO_CLASSES: DemoClassConfig[] = [
     bankId: "bac2-hum",
     sessionId: "bac2-hum-1-2026-09-21",
     count: 8,
-    firstStudentNo: 31,
+    firstStudentNo: 1,
   },
   {
     className: "الثانية بكالوريا علوم إنسانية خ ف 2",
     bankId: "bac2-hum",
     sessionId: "bac2-hum-2-2026-09-21",
     count: 2,
-    firstStudentNo: 39,
+    firstStudentNo: 9,
     female: true,
   },
 ];
