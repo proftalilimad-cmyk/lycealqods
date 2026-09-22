@@ -80,8 +80,8 @@
    ```
 
    استعمل **anon public key** فقط. لا تضع `service_role` في Vite أو GitHub.
-   إذا أنشأ تكامل Supabase في Netlify أسماءً عامة مثل `SUPABASE_URL` و
-   `SUPABASE_ANON_KEY`، أو أسماء إرشادات Next مثل
+   إذا أنشأ تكامل Supabase في Netlify أسماءً عامة مثل `SUPABASE_URL` أو
+   `SUPABASE_DATABASE_URL` و`SUPABASE_ANON_KEY`، أو أسماء إرشادات Next مثل
    `NEXT_PUBLIC_SUPABASE_URL` و`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`،
    يدعمها إعداد البناء الحالي تلقائيًا. أضف أيضًا مفتاح التطبيق المنفصل
    `SUPABASE_PUBLIC_SITE_KEY` أو الاسم الموصى به `VITE_PUBLIC_SITE_KEY`.
