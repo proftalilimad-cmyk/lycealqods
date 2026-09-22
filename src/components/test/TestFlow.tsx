@@ -513,7 +513,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
               )}
               {!isAssessmentSubmissionConfigured() && (
                 <p className="rounded-xl border border-gold-200 bg-gold-50 px-4 py-3 text-xs font-semibold leading-relaxed text-gold-800" role="status">
-                  الإرسال المركزي غير مهيأ بعد. أعد نشر الموقع بعد إضافة VITE_PUBLIC_SITE_KEY وربطه بحساب الأستاذ في Supabase؛ لا تُحفظ النتائج الحقيقية في localStorage.
+                  الإرسال المركزي غير مهيأ بعد. للنسخة المرفوعة يدويًا عدّل runtime-config.js بالقيم العامة واربط publicSiteKey بحساب الأستاذ في Supabase، أو أضف متغيرات Vite ثم أعد البناء؛ لا تُحفظ النتائج الحقيقية في localStorage.
                 </p>
               )}
 
