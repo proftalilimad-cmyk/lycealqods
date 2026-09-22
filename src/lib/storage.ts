@@ -10,7 +10,7 @@ import {
 } from "../data/diagnosticSchedule";
 import { gradeAutoQuestion, gradeWriting, levelOf } from "./grading";
 import { deleteAllCloudSubmissions, loadCloudSubmissions, saveCloudSubmission, type SubmissionSaveResult } from "./cloudStorage";
-import { isAssessmentSubmissionConfigured, isCloudConfigured } from "./supabase";
+import { cloudConfigHint, isAssessmentSubmissionConfigured, isCloudConfigured } from "./supabase";
 
 const KEY = "talil_platform_submissions_v1";
 /** تغيير الإصدار يعيد إنشاء Demo فقط؛ النتائج الحقيقية مصدرها Supabase. */
@@ -405,7 +405,7 @@ export async function addSubmission(sub: Submission): Promise<SubmissionSaveResu
       localSaved: false,
       cloudConfigured: isCloudConfigured(),
       cloudSaved: false,
-      error: "التخزين المركزي غير مهيأ. أضف VITE_PUBLIC_SITE_KEY واربطه بقاعدة Supabase.",
+      error: cloudConfigHint(),
     };
   }
   try {
