@@ -10,7 +10,7 @@ const CSS = `
 `;
 
 function htmlDocument(body: string, title: string): string {
-  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${CSS}</style></head><body><main class="document">${body}</main><div class="print-footer">تقرير التقويم الشخصي للمفتش — <span class="number"></span></div></body></html>`;
+  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${CSS}</style></head><body><main class="document">${body}</main><div class="print-footer">${esc(title)} — <span class="number"></span></div></body></html>`;
 }
 
 function dateLabel(value: string): string {
@@ -73,7 +73,7 @@ export function inspectorReportHtml(report: InspectorReport, analysis: Inspector
   const average = analysis.average === null ? "—" : `${analysis.average}/${analysis.maxScoreScale}`;
   const averagePercent = analysis.averagePercent === null ? "—" : `${analysis.averagePercent}٪`;
   const sourceLabel = analysis.dataSource === "demo" ? "بيانات Demo" : "النتائج المركزية";
-  const title = "تقرير التقويم الشخصي للمفتش";
+  const title = report.assessmentType === "diagnostic" ? "تقرير التقويم التشخيصي للمفتش" : "تقرير التقويم الشخصي للمفتش";
   return htmlDocument(`
 <section class="cover">
   <header class="masthead"><div class="seal">المملكة<br>المغربية</div><div class="head-lines"><p class="ministry">المملكة المغربية</p><p class="ministry">وزارة التربية الوطنية والتعليم الأولي والرياضة</p><p class="school">${esc(report.academy)}</p><p class="subhead">${esc(report.directorate)} · ${esc(report.institution)}</p><p class="subhead">السنة الدراسية: ${esc(report.schoolYear)}</p></div></header>
