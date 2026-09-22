@@ -31,6 +31,13 @@
   SUPABASE_PUBLIC_SITE_KEY
   SUPABASE_TEACHER_EMAIL
 
+ويدعم كذلك أسماء الإرشادات الشائعة:
+  NEXT_PUBLIC_SUPABASE_URL
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  NEXT_PUBLIC_SITE_KEY
+
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` لا يعوّض `publicSiteKey`؛ يجب إنشاء
+مفتاح الإرسال المنفصل وربطه بحساب الأستاذ في `teacher_public_keys`.
 لا تضع SUPABASE_SERVICE_ROLE_KEY في الواجهة أو المستودع.
 ثم أعد Deploy للموقع. يجب أن يكون VITE_PUBLIC_SITE_KEY
 في جدول teacher_public_keys. عندها تُرسل نتائج التقويم مباشرة بعد الإنهاء إلى

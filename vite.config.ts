@@ -49,15 +49,16 @@ export default defineConfig(({ mode }) => {
   const siteUrl = (configuredValue(env, "SITE_URL") || "https://courstalil.netlify.app").replace(/\/+$/, "");
 
   /*
-   * Netlify/Supabase integrations قد تنشئ أسماء SUPABASE_* بدل VITE_*.
+   * Netlify/Supabase integrations أو إرشادات Next قد تنشئ أسماء
+   * SUPABASE_* أو NEXT_PUBLIC_SUPABASE_* بدل VITE_*.
    * نسمح بهذه الأسماء العامة فقط، ولا نقرأ أو نعرّف service_role مطلقًا.
    * تبقى runtime-config.js بديلًا للنسخ الثابتة المرفوعة يدويًا.
    */
   const publicBuildConfig = {
-    url: configuredValue(env, "VITE_SUPABASE_URL", "SUPABASE_URL"),
-    anonKey: configuredValue(env, "VITE_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY"),
-    siteKey: configuredValue(env, "VITE_PUBLIC_SITE_KEY", "SUPABASE_PUBLIC_SITE_KEY", "SUPABASE_SITE_KEY"),
-    teacherEmail: configuredValue(env, "VITE_SUPABASE_TEACHER_EMAIL", "SUPABASE_TEACHER_EMAIL"),
+    url: configuredValue(env, "VITE_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"),
+    anonKey: configuredValue(env, "VITE_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY"),
+    siteKey: configuredValue(env, "VITE_PUBLIC_SITE_KEY", "NEXT_PUBLIC_SITE_KEY", "SUPABASE_PUBLIC_SITE_KEY", "SUPABASE_SITE_KEY"),
+    teacherEmail: configuredValue(env, "VITE_SUPABASE_TEACHER_EMAIL", "NEXT_PUBLIC_SUPABASE_TEACHER_EMAIL", "SUPABASE_TEACHER_EMAIL"),
   };
 
   return {
