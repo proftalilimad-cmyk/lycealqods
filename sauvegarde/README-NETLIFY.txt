@@ -24,7 +24,15 @@
   VITE_SUPABASE_ANON_KEY
   VITE_PUBLIC_SITE_KEY
   VITE_SUPABASE_TEACHER_EMAIL
-ثم أعد Deploy للموقع. يجب أن يكون VITE_PUBLIC_SITE_KEY مربوطًا بUUID الأستاذ
+
+إذا أنشأ تكامل Supabase أسماءً بديلة، يدعم البناء الحالي أيضًا:
+  SUPABASE_URL
+  SUPABASE_ANON_KEY
+  SUPABASE_PUBLIC_SITE_KEY
+  SUPABASE_TEACHER_EMAIL
+
+لا تضع SUPABASE_SERVICE_ROLE_KEY في الواجهة أو المستودع.
+ثم أعد Deploy للموقع. يجب أن يكون VITE_PUBLIC_SITE_KEY
 في جدول teacher_public_keys. عندها تُرسل نتائج التقويم مباشرة بعد الإنهاء إلى
 قاعدة البيانات وتظهر في لوحة الأستاذ من أي جهاز، ويحفظ تبويب «تقارير المفتش»
 نسخة التقرير ونتائجها المرتبطة مع RLS. توجد كل خطوات الإعداد في

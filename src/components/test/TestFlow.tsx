@@ -19,7 +19,7 @@ import { TEST_DURATION_SECONDS } from "../../data/questions";
 import { scheduleForClass } from "../../data/diagnosticSchedule";
 import type { Submission } from "../../types";
 import { addSubmission } from "../../lib/storage";
-import { isAssessmentSubmissionConfigured } from "../../lib/supabase";
+import { cloudConfigHint, isAssessmentSubmissionConfigured } from "../../lib/supabase";
 import Reveal from "../Reveal";
 import TestRunner, { type TestReport } from "./TestRunner";
 import TestResult from "./TestResult";
@@ -513,7 +513,7 @@ export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevel
               )}
               {!isAssessmentSubmissionConfigured() && (
                 <p className="rounded-xl border border-gold-200 bg-gold-50 px-4 py-3 text-xs font-semibold leading-relaxed text-gold-800" role="status">
-                  الإرسال المركزي غير مهيأ بعد. للنسخة المرفوعة يدويًا عدّل runtime-config.js بالقيم العامة واربط publicSiteKey بحساب الأستاذ في Supabase، أو أضف متغيرات Vite ثم أعد البناء؛ لا تُحفظ النتائج الحقيقية في localStorage.
+                  الإرسال المركزي غير مهيأ بعد. {cloudConfigHint()} لا تُحفظ النتائج الحقيقية في localStorage.
                 </p>
               )}
 

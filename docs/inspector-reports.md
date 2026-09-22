@@ -80,6 +80,12 @@
    ```
 
    استعمل **anon public key** فقط. لا تضع `service_role` في Vite أو GitHub.
+   إذا أنشأ تكامل Supabase في Netlify أسماءً عامة مثل `SUPABASE_URL` و
+   `SUPABASE_ANON_KEY`، يدعمها إعداد البناء الحالي تلقائيًا. أضف أيضًا
+   `SUPABASE_PUBLIC_SITE_KEY` أو الاسم الموصى به `VITE_PUBLIC_SITE_KEY`.
+
+   تنبيه: تثبيت إضافة Supabase لا ينفّذ جداول المشروع أو يربط مفتاح الإرسال
+   تلقائيًا؛ يجب تشغيل ملف SQL وإنشاء صف `teacher_public_keys` مرة واحدة.
 
 7. عند رفع `site-talil-imad.zip` أو مجلد `dist` يدويًا إلى Hostinger، افتح الملف:
 

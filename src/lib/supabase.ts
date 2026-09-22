@@ -53,6 +53,6 @@ export function getSupabase(): SupabaseClient | null {
 }
 
 export function cloudConfigHint(): string {
-  if (!url || !anonKey) return "أضف إعدادات Supabase إلى runtime-config.js في النسخة المرفوعة أو إلى متغيرات Netlify ثم أعد تحميل الموقع.";
-  return "أضف VITE_PUBLIC_SITE_KEY أو publicSiteKey واربطه بحساب الأستاذ في جدول teacher_public_keys ثم أعد تحميل الموقع.";
+  if (!url || !anonKey) return "أضف VITE_SUPABASE_URL وVITE_SUPABASE_ANON_KEY في Netlify (أو SUPABASE_URL وSUPABASE_ANON_KEY إذا أنشأهما التكامل) ثم أعد Deploy؛ وللرفع اليدوي عدّل runtime-config.js.";
+  return "أضف VITE_PUBLIC_SITE_KEY في Netlify (أو SUPABASE_PUBLIC_SITE_KEY) واربطه بحساب الأستاذ في جدول teacher_public_keys ثم أعد Deploy.";
 }
