@@ -19,6 +19,7 @@ import {
   PieChart,
   ShieldAlert,
   RotateCcw,
+  Settings2,
   Trash2,
   TrendingUp,
   Users,
@@ -42,6 +43,7 @@ import type { DiagnosticLevel, Route } from "../routes";
 import Reveal from "./Reveal";
 import TeacherLogin from "./TeacherLogin";
 import TeacherSecurity from "./TeacherSecurity";
+import SupabaseSettings from "./SupabaseSettings";
 import Jadadat from "./Jadadat";
 import InspectorReports from "./InspectorReports";
 import InspectorDiagnosticDemo from "./InspectorDiagnosticDemo";
@@ -922,7 +924,8 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
      reports  → تقرير التقويم التشخيصي للمفتش وحفظه المركزي
      inspector-demo → نموذج تشخيصي تجريبي معزول لفضاء المفتش
      jadadat  → الجذاذات
-     security → تغيير بيانات الدخول + حدود الحماية
+     security  → تغيير بيانات الدخول + حدود الحماية
+     settings  → إعداد وربط Supabase واختبار الاتصال
 
    لا يُعرض أي محتوى (نتائج، تصدير، مسح) قبل التحقّق من الدخول؛
    وعند تسجيل الخروج تُقفل الجلسة وتُحجب اللوحة من جديد.
@@ -934,6 +937,7 @@ const TABS = [
   { id: "inspector-demo", label: "التقويم التشخيصي التجريبي", hint: "DEMO / TEST — عرض ومحاكاة معزولة", icon: FlaskConical },
   { id: "jadadat", label: "الجذاذات", hint: "إعداد الدروس والأنشطة والتقويم", icon: FileText },
   { id: "security", label: "الدخول والأمان", hint: "حماية الفضاء وإدارة الجلسة", icon: KeyRound },
+  { id: "settings", label: "الإعدادات", hint: "إعداد وربط قاعدة البيانات", icon: Settings2 },
 ] as const;
 
 export type DashboardTab = (typeof TABS)[number]["id"];
@@ -1016,7 +1020,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
 
         {/* التبويبات */}
         <nav className="mt-5 rounded-3xl border border-ink-900/8 bg-white/80 p-2 shadow-[0_18px_45px_-32px_rgba(4,36,26,0.3)]" role="tablist" aria-label="أقسام لوحة الأستاذ">
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
           {TABS.map((t) => {
             const on = active === t.id;
             return (
@@ -1052,6 +1056,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
           {active === "inspector-demo" && <InspectorDiagnosticDemo />}
           {active === "jadadat" && <Jadadat go={go} embedded />}
           {active === "security" && <TeacherSecurity />}
+          {active === "settings" && <SupabaseSettings />}
         </div>
       </div>
     </section>

@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly VITE_PUBLIC_SITE_KEY?: string;
   readonly VITE_SUPABASE_TEACHER_EMAIL?: string;
+  readonly VITE_TEACHER_EMAIL?: string;
 }
 
 interface ImportMeta {

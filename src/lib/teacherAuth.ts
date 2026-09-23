@@ -26,7 +26,7 @@
      اسم المستعمل: imad
      كلمة المرور : qods2026
    ============================================================ */
-import { isSupabaseClientConfigured, teacherEmail } from "./supabase";
+import { getTeacherEmail, isSupabaseClientConfigured } from "./supabase";
 import { signInTeacher, signOutTeacher, updateTeacherCredentials } from "./cloudStorage";
 
 export type HashAlgo = "sha256" | "fnv";
@@ -172,7 +172,7 @@ export async function activeCreds(): Promise<StoredCreds> {
   if (stored) return stored;
   if (isSupabaseClientConfigured()) {
     return {
-      user: teacherEmail || "الأستاذ عبر Supabase",
+      user: getTeacherEmail() || "الأستاذ عبر Supabase",
       hash: "",
       algo: "sha256",
       custom: true,
@@ -192,7 +192,7 @@ const sameUser = (a: string, b: string) => a.trim().toLowerCase() === b.trim().t
 /** التحقّق من اسم المستعمل وكلمة المرور */
 export async function verifyLogin(user: string, password: string): Promise<boolean> {
   if (isSupabaseClientConfigured()) {
-    const configuredEmail = teacherEmail;
+    const configuredEmail = getTeacherEmail();
     const email = user.includes("@") ? user.trim() : configuredEmail;
     if (!email) return false;
     const result = await signInTeacher(email, password);

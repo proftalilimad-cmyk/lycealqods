@@ -38,7 +38,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/test                   التقويم التشخيصي
      #/test/<bank>            تقويم بنك معيّن (tc / bac1 / bac2)
      #/dashboard              لوحة الأستاذ (محمية باسم مستعمل وكلمة مرور)
-     #/dashboard/<tab>        تبويب اللوحة (results / jadadat / security)
+     #/dashboard/<tab>        تبويب اللوحة (results / reports / jadadat / security / settings)
      #/lessons                الدروس
      #/lessons/<level>        دروس مستوى (tc / bac1 / bac2)
      #/jadadat                فهرس الجذاذات

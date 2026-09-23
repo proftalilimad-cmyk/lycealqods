@@ -1,5 +1,5 @@
 import type { InspectorReport, Submission } from "../types";
-import { cloudConfigHint, getSupabase, isCloudConfigured, publicSiteKey } from "./supabase";
+import { cloudConfigHint, getPublicSiteKey, getSupabase, isCloudConfigured } from "./supabase";
 
 export interface SubmissionSaveResult {
   localSaved: boolean;
@@ -40,12 +40,13 @@ function normalizedSubmission(submission: Submission): Submission {
  */
 export async function saveCloudSubmission(submission: Submission): Promise<void> {
   const client = getSupabase();
-  if (!client || !publicSiteKey) throw new Error(cloudConfigHint());
+  const siteKey = getPublicSiteKey();
+  if (!client || !siteKey) throw new Error(cloudConfigHint());
   const value = normalizedSubmission(submission);
   // Anonymous students call a SECURITY DEFINER RPC. They never receive a
   // table INSERT/SELECT path and the RPC resolves the teacher from the key.
   const { error } = await client.rpc("submit_assessment_result", {
-    p_site_key: publicSiteKey,
+    p_site_key: siteKey,
     p_submission: value,
   });
   if (error) throw new Error(readableError(error));
