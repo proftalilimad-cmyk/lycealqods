@@ -71,7 +71,7 @@ function saveProgress(id: string, data: { done: number[]; slide: number }) {
 /* ------------------------------------------------------------ */
 /* عارض صفحة الكتاب مع تكبير/تصغير وسحب                          */
 /* ------------------------------------------------------------ */
-function PageViewer({ page, pages, onOpenPage }: { page: number; pages: number[]; onOpenPage: (p: number) => void }) {
+function PageViewer({ page, pages, pageBase, onOpenPage }: { page: number; pages: number[]; pageBase?: string; onOpenPage: (p: number) => void }) {
   const [zoom, setZoom] = useState(1);
   const [loaded, setLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -147,7 +147,7 @@ function PageViewer({ page, pages, onOpenPage }: { page: number; pages: number[]
         )}
         <div style={{ width: `${zoom * 100}%` }} className="mx-auto max-w-none transition-[width] duration-200">
           <img
-            src={pageUrl(page)}
+            src={pageUrl(page, pageBase)}
             alt={`صفحة ${page} من الكتاب المدرسي`}
             decoding="async"
             draggable={false}
@@ -209,14 +209,14 @@ export default function DeckPlayer({ deck, onBack, go, initialSlide }: DeckPlaye
       const p = all[i];
       if (p) {
         const img = new Image();
-        img.src = pageUrl(p);
+        img.src = pageUrl(p, deck.pageBase);
       }
     });
   }, [page, deck]);
 
   const next = useCallback(() => {
     if (idx < total - 1) setIdx(idx + 1);
-    else {
+    else if (deck.quiz.length > 0) {
       setShowQuiz(true);
       window.setTimeout(() => document.getElementById("deck-quiz")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     }
@@ -304,7 +304,7 @@ export default function DeckPlayer({ deck, onBack, go, initialSlide }: DeckPlaye
             </div>
             <div className="relative">
               <nav aria-label="مسار التنقل" className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-white/60">
-                <span>الأولى باكالوريا علوم</span>
+                <span>{deck.bookLevel ?? "الأولى باكالوريا علوم"}</span>
                 <ChevronLeft className="size-3" aria-hidden="true" />
                 <span>{deck.subject}</span>
                 <ChevronLeft className="size-3" aria-hidden="true" />
@@ -382,7 +382,7 @@ export default function DeckPlayer({ deck, onBack, go, initialSlide }: DeckPlaye
                 <ChevronRight className="size-4.5" />
               </button>
               <button type="button" onClick={next} className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-4 py-2 text-xs font-extrabold text-white shadow-md shadow-brand-700/25 transition hover:-translate-x-0.5">
-                {idx === total - 1 ? "الاختبار الختامي" : "التالي"}
+                {idx === total - 1 ? (deck.quiz.length > 0 ? "الاختبار الختامي" : "إنهاء العرض") : "التالي"}
                 <ChevronLeft className="size-4" />
               </button>
               <button type="button" onClick={() => setFocusMode((v) => !v)} className="grid size-9 place-items-center rounded-xl border border-ink-900/10 bg-white text-ink-700 transition hover:border-brand-300 hover:text-brand-700" aria-label={focusMode ? "الخروج من وضع العرض" : "وضع العرض الكامل"} title="F">
@@ -427,7 +427,7 @@ export default function DeckPlayer({ deck, onBack, go, initialSlide }: DeckPlaye
         <div className={cn("mt-4 grid gap-4", focusMode ? "lg:grid-cols-[1.15fr_1fr]" : "lg:grid-cols-[1.05fr_1fr]")}>
           {/* الصفحة */}
           <div className={cn("overflow-hidden rounded-3xl border border-ink-900/6 bg-white shadow-[0_30px_70px_-30px_rgba(4,36,26,0.25)] lg:sticky lg:self-start", focusMode ? "h-[calc(100vh-7rem)] lg:top-[5.25rem]" : "h-[70vh] min-h-[520px] lg:top-[9.25rem] lg:h-[calc(100vh-10.25rem)] lg:max-h-[900px]")}>
-            <PageViewer page={page} pages={slidePages} onOpenPage={setPage} />
+            <PageViewer page={page} pages={slidePages} pageBase={deck.pageBase} onOpenPage={setPage} />
           </div>
 
           {/* لوحة العمل */}
@@ -525,14 +525,14 @@ export default function DeckPlayer({ deck, onBack, go, initialSlide }: DeckPlaye
               </p>
               <button type="button" onClick={markDone} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-gold-500 to-gold-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-md shadow-gold-600/25 transition hover:-translate-y-0.5">
                 <CheckCircle2 className="size-4" />
-                {idx === total - 1 ? "إنهاء والانتقال للاختبار" : "تم — الشريحة التالية"}
+                {idx === total - 1 ? (deck.quiz.length > 0 ? "إنهاء والانتقال للاختبار" : "إنهاء العرض") : "تم — الشريحة التالية"}
               </button>
             </div>
           </div>
         </div>
 
         {/* الاختبار الختامي */}
-        {(showQuiz || done.size === total) && (
+        {deck.quiz.length > 0 && (showQuiz || done.size === total) && (
           <div id="deck-quiz" className="mt-6 scroll-mt-28 rounded-3xl border border-ink-900/6 bg-white p-6 sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="flex items-center gap-2.5 font-display text-xl font-extrabold text-ink-900">
@@ -623,7 +623,7 @@ export default function DeckPlayer({ deck, onBack, go, initialSlide }: DeckPlaye
 
         {!focusMode && (
           <p className="mt-6 text-center text-[11px] leading-relaxed text-ink-400">
-            صفحات الكتاب المدرسي «مورد التاريخ والجغرافيا» معروضة لأغراض تربوية داخل القسم وللمراجعة الذاتية للتلاميذ. المهام وعناصر الإجابة من إعداد الأستاذ.
+            صفحات الكتاب المدرسي «{deck.bookTitle ?? "مورد التاريخ والجغرافيا"}» معروضة لأغراض تربوية داخل القسم وللمراجعة الذاتية للتلاميذ. المهام وعناصر الإجابة من إعداد الأستاذ.
           </p>
         )}
       </div>

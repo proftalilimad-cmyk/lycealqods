@@ -1,24 +1,40 @@
 import type { Deck } from "./types";
 import { HISTORY_DECKS } from "./historyDecks";
 import { GEOGRAPHY_DECKS } from "./geographyDecks";
+import { MINAR_DECK } from "./minarDeck";
 
 export type { Deck, DeckSlide, DeckTask, DeckQuiz, DeckSlideKind } from "./types";
 
-/** مجلد صور صفحات الكتاب المدرسي (public/decks/bac1-sci/pNNN.webp) */
+/** مجلد صور صفحات الكتاب المدرسي «مورد» */
 export const DECK_PAGE_BASE = "/decks/bac1-sci";
+/** مجلد صور صفحات كتاب «منار» للجذع المشترك العلمي */
+export const MINAR_PAGE_BASE = "/decks/tc-sci-minar";
 
 export const DECK_BOOK = {
+  id: "bac1-sci",
   title: "مورد التاريخ والجغرافيا",
   level: "السنة الأولى من سلك الباكالوريا — المسالك العلمية والتقنية",
   levelId: "bac1",
   branchIds: ["bac1-sci", "bac1-exp"],
+  pageBase: DECK_PAGE_BASE,
   note: "طبعة جديدة ومنقحة — كتاب التلميذ والتلميذة (مصادق عليه من طرف وزارة التربية الوطنية).",
 };
 
-export const DECKS: Deck[] = [...HISTORY_DECKS, ...GEOGRAPHY_DECKS];
+export const MINAR_BOOK = {
+  id: "tc-sci-minar",
+  title: "منار التاريخ والجغرافيا",
+  level: "الجذع المشترك العلمي والتكنولوجي",
+  pageBase: MINAR_PAGE_BASE,
+  pageCount: 240,
+  note: "كتاب التلميذ والتلميذة للجذع المشترك للتعليم التأهيلي؛ صفحات مصوّرة للقراءة والتكبير والتنقل التفاعلي.",
+};
 
-export function pageUrl(page: number): string {
-  return `${DECK_PAGE_BASE}/p${String(page).padStart(3, "0")}.webp`;
+export const DECK_BOOKS = [DECK_BOOK, MINAR_BOOK] as const;
+
+export const DECKS: Deck[] = [...HISTORY_DECKS, ...GEOGRAPHY_DECKS, MINAR_DECK];
+
+export function pageUrl(page: number, base = DECK_PAGE_BASE): string {
+  return `${base}/p${String(page).padStart(3, "0")}.webp`;
 }
 
 export function getDeck(id: string): Deck | undefined {

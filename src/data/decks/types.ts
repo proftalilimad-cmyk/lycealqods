@@ -40,9 +40,19 @@ export interface DeckQuiz {
 
 export interface Deck {
   id: string;
+  /** معرّف الكتاب المدرسي الذي تنتمي إليه الشرائح */
+  bookId?: string;
+  /** اسم الكتاب الظاهر في ترويسة العرض */
+  bookTitle?: string;
+  /** المستوى المرتبط بالكتاب */
+  bookLevel?: string;
+  /** مجلد صور الصفحات، مع استعمال مجلد مورد كقيمة افتراضية */
+  pageBase?: string;
+  /** عرض قراءة كتاب كامل بدل عرض درس منفرد */
+  isBook?: boolean;
   /** مفتاح الدرس في المنصة (bac1-sci.history.1.0 …) إن كان له مقابل */
   lessonKey?: string;
-  subject: "التاريخ" | "الجغرافيا";
+  subject: "التاريخ" | "الجغرافيا" | "التاريخ والجغرافيا";
   /** رقم الوحدة في الكتاب المدرسي */
   unitNo: number;
   /** المجزوءة في الكتاب */

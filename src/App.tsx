@@ -81,7 +81,7 @@ export default function App() {
             }
           : undefined,
         deck: resolvedDeck
-          ? { title: resolvedDeck.title, subject: resolvedDeck.subject, level: "الأولى باكالوريا" }
+          ? { title: resolvedDeck.title, subject: resolvedDeck.subject, level: resolvedDeck.bookLevel ?? "الأولى باكالوريا" }
           : undefined,
         jadada: jadadaDetail
           ? {

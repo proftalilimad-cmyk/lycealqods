@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { BookOpen, CheckCircle2, ChevronLeft, FileText, Globe2, History, Layers, MonitorPlay, Presentation, Sparkles } from "lucide-react";
-import { DECKS, DECK_BOOK, deckTaskCount, pageUrl, type Deck } from "../../data/decks";
+import { DECKS, DECK_BOOK, MINAR_BOOK, MINAR_PAGE_BASE, deckTaskCount, pageUrl, type Deck } from "../../data/decks";
 import Reveal from "../Reveal";
 import type { Route } from "../../routes";
 import { cn } from "../../utils/cn";
@@ -26,17 +26,18 @@ function progressOf(deck: Deck): number {
 function DeckCard({ deck, onOpen }: { deck: Deck; onOpen: () => void }) {
   const progress = useMemo(() => progressOf(deck), [deck]);
   const tasks = deckTaskCount(deck);
-  const isFile = deck.unitNo === 0;
+  const isBook = Boolean(deck.isBook);
+  const isFile = deck.unitNo === 0 && !isBook;
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-ink-900/6 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-200 hover:shadow-[0_25px_55px_-22px_rgba(12,124,91,0.3)]">
       <button type="button" onClick={onOpen} className="relative block aspect-[16/10] overflow-hidden bg-cream text-start">
-        <img src={pageUrl(deck.slides[0].page)} alt={`${deck.title} — صفحة ${deck.slides[0].page} من الكتاب المدرسي`} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105" />
+        <img src={pageUrl(deck.slides[0].page, deck.pageBase)} alt={`${deck.title} — صفحة ${deck.slides[0].page} من الكتاب المدرسي`} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink-950/85 via-ink-950/20 to-transparent" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
           <div>
             <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold", isFile ? "bg-gold-400 text-ink-900" : "bg-white/15 text-white ring-1 ring-white/20 backdrop-blur")}>
-              {isFile ? <FileText className="size-3" /> : <Layers className="size-3" />}
-              {isFile ? "ملف موضوعاتي" : `الوحدة ${deck.unitNo}`}
+              {isBook ? <BookOpen className="size-3" /> : isFile ? <FileText className="size-3" /> : <Layers className="size-3" />}
+              {isBook ? "قراءة الكتاب" : isFile ? "ملف موضوعاتي" : `الوحدة ${deck.unitNo}`}
             </span>
             <p className="mt-1.5 text-[11px] font-bold text-white/80">الكتاب ص {deck.pages[0]}–{deck.pages[1]}</p>
           </div>
@@ -86,14 +87,19 @@ function DeckCard({ deck, onOpen }: { deck: Deck; onOpen: () => void }) {
 export default function Decks({ go, initialSubject }: DecksProps) {
   const [subject, setSubject] = useState<"all" | "التاريخ" | "الجغرافيا">(initialSubject === "التاريخ" || initialSubject === "الجغرافيا" ? initialSubject : "all");
   const list = DECKS.filter((d) => subject === "all" || d.subject === subject);
-  const totalTasks = DECKS.reduce((n, d) => n + deckTaskCount(d), 0);
-  const totalSlides = DECKS.reduce((n, d) => n + d.slides.length, 0);
+  const primaryDecks = DECKS.filter((d) => (d.bookId ?? "bac1-sci") === DECK_BOOK.id);
+  const minarDeck = DECKS.find((d) => d.bookId === MINAR_BOOK.id);
+  const primaryTasks = primaryDecks.reduce((n, d) => n + deckTaskCount(d), 0);
+  const primarySlides = primaryDecks.reduce((n, d) => n + d.slides.length, 0);
+  const primaryQuizzes = primaryDecks.reduce((n, d) => n + d.quiz.length, 0);
   const history = list.filter((d) => d.subject === "التاريخ");
   const geography = list.filter((d) => d.subject === "الجغرافيا");
+  const mixed = list.filter((d) => d.subject === "التاريخ والجغرافيا");
 
-  const groups: { label: string; icon: typeof History; items: Deck[] }[] = [
+  const groups: { label: string; icon: typeof History | typeof BookOpen; items: Deck[] }[] = [
     { label: "التاريخ", icon: History, items: history },
     { label: "الجغرافيا", icon: Globe2, items: geography },
+    { label: "التاريخ والجغرافيا", icon: BookOpen, items: mixed },
   ].filter((g) => g.items.length > 0);
 
   return (
@@ -105,9 +111,9 @@ export default function Decks({ go, initialSubject }: DecksProps) {
               <Presentation className="size-3.5" aria-hidden="true" />
               عروض تفاعلية
             </span>
-            <h1 className="mt-5 font-display text-3xl font-black text-ink-900 sm:text-4xl">العروض التفاعلية — الأولى باكالوريا علوم</h1>
+            <h1 className="mt-5 font-display text-3xl font-black text-ink-900 sm:text-4xl">العروض التفاعلية — كتب التاريخ والجغرافيا</h1>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-ink-500 sm:text-base">
-              كل درس في شكل عرض مبني على صفحات الكتاب المدرسي: تُعرض الوثيقة (نص، خريطة، جدول، مبيان، صورة) ومعها مهام الاشتغال عليها وعناصر الإجابة، ثم اختبار ختامي.
+              دروس وقراءة تفاعلية مبنية على صفحات الكتب المدرسية: عرض الصفحة، التكبير، التنقل وحفظ التقدم، مع مهام الاشتغال والاختبار حين تكون متاحة.
             </p>
           </div>
         </Reveal>
@@ -127,10 +133,10 @@ export default function Decks({ go, initialSubject }: DecksProps) {
                 <p className="mt-1 text-sm text-white/75">{DECK_BOOK.level}</p>
                 <p className="mt-2 text-[12px] leading-relaxed text-white/60">{DECK_BOOK.note}</p>
                 <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold">
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{DECKS.length} عرضًا</span>
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{totalSlides} شريحة</span>
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{totalTasks} مهمة على الوثائق</span>
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{DECKS.reduce((n, d) => n + d.quiz.length, 0)} سؤال اختبار</span>
+                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{primaryDecks.length} عرضًا</span>
+                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{primarySlides} شريحة</span>
+                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{primaryTasks} مهمة على الوثائق</span>
+                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{primaryQuizzes} سؤال اختبار</span>
                 </div>
               </div>
               <div className="grid gap-2 text-[12px]">
@@ -147,6 +153,35 @@ export default function Decks({ go, initialSubject }: DecksProps) {
             </div>
           </div>
         </Reveal>
+
+        {minarDeck && (
+          <Reveal delay={130}>
+            <div className="noise relative mt-5 overflow-hidden rounded-3xl bg-gradient-to-l from-gold-600 via-brand-800 to-brand-950 p-6 text-white sm:p-8">
+              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+                <div className="absolute inset-0 pattern-zellige-light opacity-25" />
+                <div className="absolute -top-20 start-1/4 size-72 rounded-full bg-gold-300/20 blur-[100px]" />
+              </div>
+              <div className="relative grid items-center gap-6 md:grid-cols-[auto_1fr_auto]">
+                <img src={pageUrl(1, MINAR_PAGE_BASE)} alt="غلاف كتاب منار التاريخ والجغرافيا" decoding="async" className="mx-auto h-40 w-auto rounded-xl shadow-2xl ring-2 ring-white/20 md:h-44" />
+                <div>
+                  <p className="text-xs font-bold text-gold-200">مرجع الجذع المشترك العلمي</p>
+                  <h2 className="mt-1 font-display text-2xl font-black">{MINAR_BOOK.title}</h2>
+                  <p className="mt-1 text-sm text-white/75">{MINAR_BOOK.level}</p>
+                  <p className="mt-2 text-[12px] leading-relaxed text-white/60">{MINAR_BOOK.note}</p>
+                  <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold">
+                    <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{MINAR_BOOK.pageCount} صفحة</span>
+                    <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">قراءة وتكبير تفاعلي</span>
+                    <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">حفظ التقدم</span>
+                  </div>
+                </div>
+                <button type="button" onClick={() => go({ view: "decks", id: minarDeck.id })} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-extrabold text-brand-800 shadow-lg transition hover:-translate-y-0.5">
+                  <MonitorPlay className="size-4" />
+                  فتح العرض التفاعلي
+                </button>
+              </div>
+            </div>
+          </Reveal>
+        )}
 
         {/* فلتر المادة */}
         <Reveal delay={160}>
