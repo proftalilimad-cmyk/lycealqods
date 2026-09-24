@@ -1,5 +1,8 @@
 نشر النسخة الكاملة على Netlify
 
+مرجع الإعداد الكامل لـ Netlify وSupabase محفوظ في:
+  sauvegarde/CONFIG-NETLIFY-SUPABASE.txt
+
 الملف:
   sauvegarde/site-talil-imad.zip
 

@@ -1,0 +1,145 @@
+ملف حفظ إعداد Netlify وSupabase — فضاء الاجتماعيات
+التاريخ: 24/09/2026
+الموقع الحالي: https://courstalil.netlify.app
+
+هذا الملف يحفظ طريقة إعداد الموقع الحالي فقط. لا يحتوي على أي كلمة مرور أو
+مفتاح فعلي. لا تنشئ Netlify Site أو Supabase Project جديدًا؛ استعمل الموقع
+والمشروع الحاليين.
+
+============================================================
+1) إعداد الموقع الحالي في Netlify
+============================================================
+
+من Netlify → الموقع الحالي → Site configuration → Environment variables
+أضف المتغيرات العامة التالية:
+
+  VITE_SUPABASE_URL=https://PROJECT.supabase.co
+  VITE_SUPABASE_ANON_KEY=PUBLIC_ANON_KEY
+  VITE_PUBLIC_SITE_KEY=RANDOM_PUBLIC_SITE_KEY
+  VITE_TEACHER_EMAIL=teacher@example.com
+
+يمكن استعمال الاسم القديم للبريد بدلًا من الاسم السابق:
+  VITE_SUPABASE_TEACHER_EMAIL=teacher@example.com
+
+أسماء التكامل البديلة المدعومة أيضًا:
+  SUPABASE_URL أو SUPABASE_DATABASE_URL
+  SUPABASE_ANON_KEY
+  SUPABASE_PUBLIC_SITE_KEY
+  SUPABASE_TEACHER_EMAIL
+
+أسماء Supabase/Next العامة المدعومة:
+  NEXT_PUBLIC_SUPABASE_URL
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  NEXT_PUBLIC_SITE_KEY
+
+مهم:
+- استعمل anon/public key فقط.
+- لا تضف SUPABASE_SERVICE_ROLE_KEY أو SUPABASE_SECRET_KEY.
+- لا تضع أي مفتاح سري في Git أو في ملفات الواجهة.
+- بعد تعديل المتغيرات اختر Deploys → Trigger deploy → Deploy site.
+- استعمل Build command: npm run build وPublish directory: dist عند الربط
+  بالمستودع.
+
+============================================================
+2) إعداد Supabase الحالي
+============================================================
+
+أ) افتح SQL Editor في المشروع الحالي وشغّل الملف كاملًا:
+
+  supabase/migrations/001_inspector_reports.sql
+
+ب) من Authentication → Users أنشئ/تحقق من حساب الأستاذ، ثم انسخ UUID.
+
+ج) أنشئ قيمة عشوائية طويلة لـ VITE_PUBLIC_SITE_KEY، ثم اربطها بالحساب:
+
+  insert into public.teacher_public_keys(site_key, teacher_id)
+  values ('RANDOM_PUBLIC_SITE_KEY', 'TEACHER-UUID');
+
+استعمل نفس القيمة حرفيًا في Netlify وفي runtime-config.js.
+
+الجداول التي تستعملها الوحدة:
+  public.teacher_public_keys
+  public.student_submissions
+  public.inspector_reports
+
+لا تُعطّل RLS. نتائج التلاميذ تُرسل عبر RPC:
+  public.submit_assessment_result
+
+قراءة النتائج متاحة للأستاذ المصادق عليه فقط حسب teacher_id = auth.uid().
+
+============================================================
+3) الإعداد من داخل فضاء الأستاذ
+============================================================
+
+بعد تسجيل الدخول افتح:
+
+  https://courstalil.netlify.app/#/dashboard/settings
+
+أو اختر:
+  فضاء الأستاذ → الإعدادات
+
+أدخل:
+  - رابط مشروع Supabase
+  - المفتاح العمومي
+  - مفتاح الموقع publicSiteKey
+  - بريد الأستاذ
+
+ثم نفّذ بالترتيب:
+  1. اختبار الاتصال بـ Supabase
+  2. حفظ الإعدادات
+
+يقرأ التطبيق الإعدادات بهذا الترتيب:
+  1. متغيرات Vite/Netlify
+  2. runtime-config.js
+  3. إعداد محلي عام محفوظ في المتصفح
+
+لا يحفظ التطبيق نتائج التلاميذ الحقيقية في localStorage. التخزين المحلي
+مسموح للإعدادات العامة فقط ولـ Demo المعزول.
+
+============================================================
+4) الرفع اليدوي من نسخة sauvegarde
+============================================================
+
+بعد فك أرشيف الموقع، يجب أن يكون الملفان في الجذر نفسه:
+
+  index.html
+  runtime-config.js
+
+عدّل runtime-config.js بالقيم العامة فقط:
+
+  window.__LYCEUM_RUNTIME_CONFIG__ = {
+    supabaseUrl: "https://PROJECT.supabase.co",
+    supabaseAnonKey: "PUBLIC_ANON_KEY",
+    publicSiteKey: "RANDOM_PUBLIC_SITE_KEY",
+    teacherEmail: "teacher@example.com"
+  };
+
+لا تضع service_role أو secret key في هذا الملف. لا تحتاج إلى إعادة البناء
+بعد تعديل runtime-config.js؛ أعد تحميل الموقع فقط.
+
+============================================================
+5) اختبار القبول بعد Deploy
+============================================================
+
+- افتح /#/dashboard/settings.
+- يجب أن تظهر «Supabase غير مهيأ» إذا لم تدخل الإعدادات.
+- أدخل URL غير صحيح واضغط الاختبار: يجب أن تظهر «تعذر الاتصال».
+- أدخل المفتاح الصحيح واختبر: يجب أن تظهر «Supabase متصل» بعد رد حقيقي.
+- راجع Database وRLS في تشخيص الاتصال.
+- افتح رابط التقويم التشخيصي.
+- لا يظهر زر بدء التقويم الحقيقي إلا بعد ضبط URL وanon key وpublicSiteKey.
+- بعد الإنهاء يجب أن يصل السجل إلى student_submissions.
+- عند فشل Supabase لا تظهر عبارة «تم الحفظ» ولا يُحفظ السجل الحقيقي محليًا.
+
+============================================================
+6) ملفات المرجع داخل المصدر
+============================================================
+
+  public/runtime-config.js
+  .env.example
+  supabase/migrations/001_inspector_reports.sql
+  docs/inspector-reports.md
+  sauvegarde/README-NETLIFY.txt
+
+نسخة المصدر المحفوظة:
+  sauvegarde/site-talil-imad-source.zip
