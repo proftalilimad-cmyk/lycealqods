@@ -46,7 +46,6 @@ const QUICK_ACTIONS: QuickAction[] = [
   { label: "المنهجيات", desc: "تحليل الوثائق والكتابة", icon: PenLine, route: { view: "methods" } },
   { label: "العروض التفاعلية", desc: "دروس 1 باك علوم من الكتاب المدرسي", icon: MonitorPlay, route: { view: "decks" } },
   { label: "الخرائط والخطاطات", desc: "خرائط تخطيطية وخطاطات تفاعلية", icon: Globe2, route: { view: "resources", type: "map" } },
-  { label: "التقويم الذاتي", desc: "8 تقويمات تفاعلية حسب المستوى", icon: Target, route: { view: "diagnostic" } },
 ];
 
 const OBJECTIVES = [
