@@ -41,12 +41,20 @@ export function getDeck(id: string): Deck | undefined {
   return DECKS.find((d) => d.id === id);
 }
 
-/** العرض المرتبط بدرس معيّن (يشمل المسالك المكافئة: bac1-exp ↔ bac1-sci) */
+/**
+ * العرض المرتبط بدرس معيّن.
+ *
+ * عروض «مورد» مرتبطة مباشرة بمفاتيح دروس الأولى باكالوريا، بينما كتاب
+ * «منار» عرض قراءة شامل للجذع المشترك؛ لذلك يُربط بكل درس منشور في
+ * الجذع المشترك العلمي حتى يظهر زر العرض التفاعلي داخل قائمة الدروس وداخل
+ * صفحة الدرس، مع بقاء الكتاب الواحد مصدر القراءة والتنقل وحفظ التقدم.
+ */
 export function getDeckForLesson(lessonKey: string): Deck | undefined {
   const direct = DECKS.find((d) => d.lessonKey === lessonKey);
   if (direct) return direct;
   const [branch, ...rest] = lessonKey.split(".");
   if (branch === "bac1-exp") return DECKS.find((d) => d.lessonKey === ["bac1-sci", ...rest].join("."));
+  if (branch === "tc-sci") return MINAR_DECK;
   return undefined;
 }
 
