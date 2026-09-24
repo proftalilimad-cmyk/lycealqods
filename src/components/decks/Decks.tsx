@@ -179,6 +179,17 @@ export default function Decks({ go, initialSubject }: DecksProps) {
                   فتح العرض التفاعلي
                 </button>
               </div>
+              <div className="relative mt-5 grid gap-2 text-[12px] sm:grid-cols-3">
+                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5">
+                  <BookOpen className="size-4 shrink-0 text-gold-200" /> صفحة الكتاب مكبَّرة وقابلة للتكبير
+                </div>
+                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5">
+                  <FileText className="size-4 shrink-0 text-gold-200" /> مهام + عناصر إجابة قابلة للإظهار
+                </div>
+                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5">
+                  <Sparkles className="size-4 shrink-0 text-gold-200" /> أفكار مفتاحية + اختبار + حفظ التقدم
+                </div>
+              </div>
             </div>
           </Reveal>
         )}
