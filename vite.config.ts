@@ -2,17 +2,27 @@ import path from "path";
 import { fileURLToPath } from "url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
+import { viteSingleFile } from "vite-plugin-singlefile";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function configuredValue(env: Record<string, string | undefined>, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = process.env[key] ?? env[key];
+    if (value?.trim()) return value.trim();
+  }
+  return "";
+}
 
 /**
- * نطاق النشر الدائم (اختياري).
+ * نطاق النشر الدائم (يمكن تغييره عند النشر على نطاق مخصص).
  * مثال: SITE_URL=https://lycealqods.example.org npm run build
- * يحوّل og:image إلى رابط مطلق ويضيف og:url، وهما مطلوبان لمنصات
+ * يحوّل og:image إلى رابط مطلق ويثبت og:url، وهما مطلوبان لمنصات
  * المشاركة (واتساب، فيسبوك، تويتر) التي لا تقبل روابط نسبية.
  */
-const SITE_URL = (process.env.SITE_URL ?? "").replace(/\/+$/, "");
-
-function ogAbsoluteUrls(): Plugin {
+function ogAbsoluteUrls(siteUrl: string): Plugin {
   return {
     name: "og-absolute-urls",
     transformIndexHtml: {
@@ -20,38 +30,62 @@ function ogAbsoluteUrls(): Plugin {
       // فنعيد كتابة وسم og:image إلى رابط مطلق يفهمه واتساب وفيسبوك وتويتر.
       order: "post",
       handler(html) {
-        if (!SITE_URL) return html;
-        return html
-          .replace('content="./og-cover.png"', `content="${SITE_URL}/og-cover.png"`)
-          .replace('content="/og-cover.png"', `content="${SITE_URL}/og-cover.png"`)
-          .replace("</head>", `    <meta property="og:url" content="${SITE_URL}/" />\n  </head>`);
+        if (!siteUrl) return html;
+        const withAbsoluteImage = html
+          .replace('content="./og-cover.png"', `content="${siteUrl}/og-cover.png"`)
+          .replace('content="/og-cover.png"', `content="${siteUrl}/og-cover.png"`);
+        const ogUrl = `<meta property="og:url" content="${siteUrl}/" />`;
+        return withAbsoluteImage.includes('property="og:url"')
+          ? withAbsoluteImage.replace(/<meta property="og:url"[^>]*\/>/, ogUrl)
+          : withAbsoluteImage.replace("</head>", `    ${ogUrl}\n  </head>`);
       },
     },
   };
 }
-import { viteSingleFile } from "vite-plugin-singlefile";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), tailwindcss(), viteSingleFile(), ogAbsoluteUrls()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const siteUrl = (configuredValue(env, "SITE_URL") || "https://courstalil.netlify.app").replace(/\/+$/, "");
+
+  /*
+   * Netlify/Supabase integrations أو إرشادات Next قد تنشئ أسماء
+   * SUPABASE_* أو NEXT_PUBLIC_SUPABASE_* بدل VITE_*، بما في ذلك
+   * SUPABASE_DATABASE_URL الذي ينشئه تكامل Netlify في بعض المشاريع.
+   * نسمح بهذه الأسماء العامة فقط، ولا نقرأ أو نعرّف service_role مطلقًا.
+   * تبقى runtime-config.js بديلًا للنسخ الثابتة المرفوعة يدويًا.
+   */
+  const publicBuildConfig = {
+    url: configuredValue(env, "VITE_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL", "SUPABASE_DATABASE_URL"),
+    anonKey: configuredValue(env, "VITE_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY"),
+    siteKey: configuredValue(env, "VITE_PUBLIC_SITE_KEY", "NEXT_PUBLIC_SITE_KEY", "SUPABASE_PUBLIC_SITE_KEY", "SUPABASE_SITE_KEY"),
+    teacherEmail: configuredValue(env, "VITE_SUPABASE_TEACHER_EMAIL", "VITE_TEACHER_EMAIL", "NEXT_PUBLIC_SUPABASE_TEACHER_EMAIL", "SUPABASE_TEACHER_EMAIL"),
+  };
+
+  return {
+    plugins: [react(), tailwindcss(), viteSingleFile(), ogAbsoluteUrls(siteUrl)],
+    define: {
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(publicBuildConfig.url),
+      "import.meta.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(publicBuildConfig.anonKey),
+      "import.meta.env.VITE_PUBLIC_SITE_KEY": JSON.stringify(publicBuildConfig.siteKey),
+      "import.meta.env.VITE_SUPABASE_TEACHER_EMAIL": JSON.stringify(publicBuildConfig.teacherEmail),
     },
-  },
-  server: {
-    host: "0.0.0.0",
-    port: 5173,
-    strictPort: true,
-    allowedHosts: true,
-  },
-  preview: {
-    host: "0.0.0.0",
-    port: 5173,
-    strictPort: true,
-    allowedHosts: true,
-  },
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "src"),
+      },
+    },
+    server: {
+      host: "0.0.0.0",
+      port: 5173,
+      strictPort: true,
+      allowedHosts: true,
+    },
+    preview: {
+      host: "0.0.0.0",
+      port: 5173,
+      strictPort: true,
+      allowedHosts: true,
+    },
+  };
 });

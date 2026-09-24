@@ -1,10 +1,13 @@
+export type DiagnosticLevel = "jad3-moshtarak" | "1bac" | "2bac";
+
 export type Route =
   | { view: "home" }
   | { view: "about" }
+  | { view: "diagnostic"; level?: DiagnosticLevel; className?: string }
   | { view: "test"; bank?: string }
-  | { view: "battle"; bank?: string }
-  | { view: "dashboard" }
+  | { view: "dashboard"; tab?: string }
   | { view: "lessons"; level?: string }
+  | { view: "jadadat"; id?: string; level?: string }
   | { view: "methods"; id?: string }
   | { view: "apps"; id?: string; level?: string }
   | { view: "lesson"; id: string }
@@ -14,13 +17,13 @@ export type Route =
 export const NAV_LINKS: { label: string; route: Route }[] = [
   { label: "الرئيسية", route: { view: "home" } },
   { label: "نبذة عن الأستاذ", route: { view: "about" } },
-  { label: "التقويم التشخيصي", route: { view: "test" } },
-  { label: "المبارزة", route: { view: "battle" } },
+  { label: "التقويم التشخيصي", route: { view: "diagnostic" } },
   { label: "الدروس", route: { view: "lessons" } },
   { label: "التطبيقات", route: { view: "apps" } },
   { label: "العروض", route: { view: "decks" } },
   { label: "المنهجيات", route: { view: "methods" } },
   { label: "الموارد", route: { view: "resources" } },
+  { label: "لوحة الأستاذ", route: { view: "dashboard" } },
 ];
 
 /* ============================================================
@@ -34,11 +37,12 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/about                  نبذة عن الأستاذ
      #/test                   التقويم التشخيصي
      #/test/<bank>            تقويم بنك معيّن (tc / bac1 / bac2)
-     #/battle                 وضع المبارزة
-     #/battle/<bank>          مبارزة ببنك معيّن
-     #/dashboard              لوحة التتبع
+     #/dashboard              لوحة الأستاذ (محمية باسم مستعمل وكلمة مرور)
+     #/dashboard/<tab>        تبويب اللوحة (results / reports / jadadat / security / settings)
      #/lessons                الدروس
      #/lessons/<level>        دروس مستوى (tc / bac1 / bac2)
+     #/jadadat                فهرس الجذاذات
+     #/jadadat/<id>           جذاذة درس كاملة
      #/lesson/<id>            درس معيّن (bac1-sci.geography.0.0 …)
      #/methods                المنهجيات
      #/methods/<id>           منهجية معيّنة
@@ -60,10 +64,11 @@ export const BASE_TITLE_FULL = "فضاء الاجتماعيات — الأستا
 export const VIEW_LABELS: Record<Route["view"], string> = {
   home: "الرئيسية",
   about: "نبذة عن الأستاذ",
+  diagnostic: "التقويم التشخيصي",
   test: "التقويم التشخيصي",
-  battle: "المبارزة",
-  dashboard: "لوحة التتبع",
+  dashboard: "لوحة الأستاذ",
   lessons: "الدروس",
+  jadadat: "الجذاذات",
   lesson: "الدرس",
   methods: "المنهجيات",
   apps: "التطبيقات",
@@ -75,10 +80,11 @@ const SEGMENTS: Record<string, Route["view"]> = {
   "": "home",
   home: "home",
   about: "about",
+  diagnostic: "diagnostic",
   test: "test",
-  battle: "battle",
   dashboard: "dashboard",
   lessons: "lessons",
+  jadadat: "jadadat",
   lesson: "lesson",
   methods: "methods",
   apps: "apps",
@@ -105,14 +111,19 @@ export function routeToPath(route: Route): string {
       return "/";
     case "about":
       return "/about";
+    case "diagnostic": {
+      const base = route.level ? `/diagnostic/${encodeSegment(route.level)}` : "/diagnostic";
+      return route.className ? `${base}?class=${encodeSegment(route.className)}` : base;
+    }
     case "dashboard":
-      return "/dashboard";
+      return route.tab ? `/dashboard/${encodeSegment(route.tab)}` : "/dashboard";
     case "test":
       return route.bank ? `/test/${encodeSegment(route.bank)}` : "/test";
-    case "battle":
-      return route.bank ? `/battle/${encodeSegment(route.bank)}` : "/battle";
     case "lessons":
       return route.level ? `/lessons/${encodeSegment(route.level)}` : "/lessons";
+    case "jadadat":
+      if (route.id) return `/jadadat/${encodeSegment(route.id)}`;
+      return route.level ? `/jadadat?level=${encodeSegment(route.level)}` : "/jadadat";
     case "lesson":
       return `/lesson/${encodeSegment(route.id)}`;
     case "methods":
@@ -143,14 +154,25 @@ export function routeFromPath(rawPath: string): Route {
   switch (view) {
     case "home":
     case "about":
-    case "dashboard":
       return { view };
+    case "diagnostic": {
+      const level = parts[1];
+      const className = query.get("class") ?? undefined;
+      return level === "jad3-moshtarak" || level === "1bac" || level === "2bac"
+        ? { view: "diagnostic", level, className }
+        : { view: "diagnostic" };
+    }
+    case "dashboard":
+      return parts[1] ? { view: "dashboard", tab: parts[1] } : { view: "dashboard" };
     case "test":
       return parts[1] ? { view: "test", bank: parts[1] } : { view: "test" };
-    case "battle":
-      return parts[1] ? { view: "battle", bank: parts[1] } : { view: "battle" };
     case "lessons":
       return parts[1] ? { view: "lessons", level: parts[1] } : { view: "lessons" };
+    case "jadadat": {
+      if (parts[1]) return { view: "jadadat", id: parts[1] };
+      const level = query.get("level");
+      return level ? { view: "jadadat", level } : { view: "jadadat" };
+    }
     case "lesson":
       return parts[1] ? { view: "lesson", id: parts[1] } : { view: "lessons" };
     case "methods":
@@ -180,6 +202,11 @@ export function routeToHash(route: Route): string {
 export function hashToRoute(hash: string): Route {
   const path = hash.replace(/^#/, "");
   return routeFromPath(path || "/");
+}
+
+/** قراءة رابط hash الحالي أو مسار نظيف أعادته الاستضافة إلى index.html. */
+export function locationToRoute(location: { hash: string; pathname: string; search: string }): Route {
+  return location.hash.startsWith("#/") ? hashToRoute(location.hash) : routeFromPath(`${location.pathname}${location.search}`);
 }
 
 /** هل المساران يمثلان الشاشة نفسها؟ (لتفادي تكرار الإدخال في التاريخ) */

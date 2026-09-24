@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BadgeCheck, BookOpen, BookOpenCheck, ExternalLink, FileText, FlaskConical, Globe2, History, Hourglass, Landmark, MonitorPlay, Scale, Sparkles, Wrench } from "lucide-react";
+import { BadgeCheck, BookOpen, BookOpenCheck, FileText, FlaskConical, Globe2, History, Hourglass, Landmark, MonitorPlay, Scale, Sparkles, Wrench } from "lucide-react";
 import { LEVELS } from "../data/curriculum";
 import { hasLessonContent, lessonKey } from "../data/lessonContent";
 import { getDeckForLesson } from "../data/decks";
@@ -236,15 +236,6 @@ export default function Lessons({ go, initialLevel }: LessonsProps) {
                 );
               })}
 
-              {branch.program && (
-                <p className="rounded-2xl border border-dashed border-gold-400/70 bg-gold-50 p-4 text-[10px] font-semibold leading-relaxed text-gold-700">
-                  <span className="mb-1 flex items-center gap-1.5 font-extrabold">
-                    <ExternalLink className="size-3" aria-hidden="true" />
-                    مصدر قائمة الدروس
-                  </span>
-                  {branch.programNote ?? <>مقرر «{branch.program}» — وفق التنظيم المنشور على منصة قرايتي (9rayti.com).</>}
-                </p>
-              )}
             </div>
           </Reveal>
 

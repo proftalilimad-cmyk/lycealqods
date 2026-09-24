@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import type { LessonBlock, LessonContent } from "../types";
 import Reveal from "./Reveal";
+import SmartText, { AutoTableView } from "./SmartText";
+import { isYear } from "../lib/tableDetect";
 import CopyLinkButton from "./CopyLinkButton";
 import type { Route } from "../routes";
 import { getDeckForLesson } from "../data/decks";
@@ -36,7 +38,8 @@ import { getDeckForLesson } from "../data/decks";
 /* ---------- عارض الكتل ---------- */
 function BlockRenderer({ block }: { block: LessonBlock }) {
   if (block.type === "p") {
-    return <p className="text-[15px] leading-loose text-ink-700">{block.text}</p>;
+    /* البيانات المنظمة داخل الفقرة تتحول تلقائيًا إلى جدول حقيقي (النظام الموحد) */
+    return <SmartText text={block.text} className="text-[15px] leading-loose text-ink-700" />;
   }
   if (block.type === "ul") {
     return (
@@ -54,29 +57,15 @@ function BlockRenderer({ block }: { block: LessonBlock }) {
     );
   }
   if (block.type === "table") {
+    /* تصميم موحّد لكل جداول الدروس (كتل + وثائق + تقويمات): نفس النظام والمكوّن */
     return (
-      <div className="overflow-x-auto rounded-2xl border border-ink-900/6">
-        <table className="w-full min-w-[560px] text-sm">
-          <thead>
-            <tr className="bg-brand-800 text-white">
-              {block.head.map((h) => (
-                <th key={h} className="px-4 py-3 text-start font-display text-xs font-extrabold">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {block.rows.map((row, i) => (
-              <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-paper-warm/40"}>
-                {row.map((cell, j) => (
-                  <td key={j} className={`px-4 py-3 align-top leading-relaxed ${j === 0 ? "font-bold text-ink-900" : "text-ink-700"}`}>
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <AutoTableView
+        t={{
+          head: block.head,
+          rows: block.rows,
+          timeSeries: block.rows.length > 1 && block.rows.every((r) => isYear(r[0] ?? "")),
+        }}
+      />
     );
   }
   const tones = {
@@ -337,6 +326,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
                       src={lesson.bookPage.src}
                       alt={`${lesson.bookPage.book} — الصفحة ${lesson.bookPage.page}`}
                       loading="lazy"
+                      decoding="async"
                       className="mx-auto w-full max-w-3xl rounded-xl border border-ink-900/10 bg-white shadow-md"
                     />
                   </a>
@@ -388,7 +378,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
                         <div key={di} className="overflow-hidden rounded-2xl border border-ink-900/8">
                           <div className="border-b border-ink-900/8 bg-gold-50/70 p-5">
                             <p className="text-[11px] font-extrabold text-gold-700">{doc.label}</p>
-                            <p className="mt-2.5 whitespace-pre-line text-sm leading-loose text-ink-700">{doc.text}</p>
+                            <div className="mt-2.5"><SmartText text={doc.text} className="text-sm leading-loose text-ink-700" /></div>
                           </div>
                           <ol className="divide-y divide-ink-900/5 px-5 py-2 sm:px-6">
                             {doc.questions.map((qa, qi) => (

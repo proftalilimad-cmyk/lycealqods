@@ -30,7 +30,7 @@ function DeckCard({ deck, onOpen }: { deck: Deck; onOpen: () => void }) {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-ink-900/6 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-200 hover:shadow-[0_25px_55px_-22px_rgba(12,124,91,0.3)]">
       <button type="button" onClick={onOpen} className="relative block aspect-[16/10] overflow-hidden bg-cream text-start">
-        <img src={pageUrl(deck.slides[0].page)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105" />
+        <img src={pageUrl(deck.slides[0].page)} alt={`${deck.title} — صفحة ${deck.slides[0].page} من الكتاب المدرسي`} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink-950/85 via-ink-950/20 to-transparent" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
           <div>
@@ -120,7 +120,7 @@ export default function Decks({ go, initialSubject }: DecksProps) {
               <div className="absolute -top-20 end-1/4 size-72 rounded-full bg-gold-500/15 blur-[100px]" />
             </div>
             <div className="relative grid items-center gap-6 md:grid-cols-[auto_1fr_auto]">
-              <img src={pageUrl(1)} alt="غلاف الكتاب المدرسي" className="mx-auto h-40 w-auto rounded-xl shadow-2xl ring-2 ring-white/20 md:h-44" />
+              <img src={pageUrl(1)} alt="غلاف الكتاب المدرسي" decoding="async" className="mx-auto h-40 w-auto rounded-xl shadow-2xl ring-2 ring-white/20 md:h-44" />
               <div>
                 <p className="text-xs font-bold text-gold-300">المرجع المعتمد</p>
                 <h2 className="mt-1 font-display text-2xl font-black">{DECK_BOOK.title}</h2>

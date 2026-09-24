@@ -26,10 +26,12 @@ interface SearchOverlayProps {
 }
 
 const STATIC_PAGES: SearchResult[] = [
-  { id: "p-test", group: "صفحات", title: "التقويم التشخيصي في الاجتماعيات — الجذع المشترك", hint: "20 سؤالًا · 60 دقيقة · /20", action: { view: "test" } },
+  { id: "p-test", group: "صفحات", title: "التقويم التشخيصي في الاجتماعيات — الجذع المشترك", hint: "20 سؤالًا · 60 دقيقة · /20", action: { view: "diagnostic" } },
   { id: "p-about", group: "صفحات", title: "نبذة عن الأستاذ عماد طليل", hint: "أستاذ الاجتماعيات — ثانوية القدس القنيطرة", action: { view: "about" } },
-  { id: "p-dash", group: "صفحات", title: "لوحة نتائج الأستاذ", hint: "إحصاءات وجداول نتائج التلاميذ", action: { view: "dashboard" } },
+  { id: "p-dash", group: "صفحات", title: "لوحة الأستاذ (دخول محمي)", hint: "نتائج التقويم التشخيصي — باسم مستعمل وكلمة مرور", action: { view: "dashboard", tab: "results" } },
+  { id: "p-dash-sec", group: "صفحات", title: "الدخول والأمان — لوحة الأستاذ", hint: "تغيير اسم المستعمل وكلمة المرور", action: { view: "dashboard", tab: "security" } },
   { id: "p-res", group: "صفحات", title: "الموارد التعليمية", hint: "ملفات وخرائط وجداول ومبيانات", action: { view: "resources" } },
+  { id: "p-jadadat", group: "صفحات", title: "الجذاذات — جذاذات الاجتماعيات", hint: "161 جذاذة مبنية على الدروس المنشورة · إعداد وإنجاز الأستاذ عماد طليل", action: { view: "jadadat" } },
   { id: "p-decks", group: "صفحات", title: "العروض التفاعلية — الأولى باكالوريا علوم", hint: "دروس من الكتاب المدرسي مع الاشتغال على الوثائق", action: { view: "decks" } },
 ];
 
@@ -200,7 +202,7 @@ export default function SearchOverlay({ open, onClose, go }: SearchOverlayProps)
           group: "أسئلة التقويم",
           title: q.title,
           hint: `سؤال ${q.id} من التقويم التشخيصي · ${q.skill}`,
-          action: { view: "test" },
+          action: { view: "diagnostic" },
         });
       }
     });

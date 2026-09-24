@@ -9,11 +9,9 @@ import {
   Globe2,
   GraduationCap,
   History,
-  Library,
   MonitorPlay,
   PenLine,
   Search,
-  Swords,
   Target,
   Timer,
   User,
@@ -39,17 +37,16 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
+  { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, search: true },
   { label: "الدروس", desc: "منظمة حسب المستوى والدورتين", icon: BookOpenCheck, route: { view: "lessons" } },
+  { label: "الجذاذات", desc: "تخطيط الحصص مبني على الدروس", icon: FileText, route: { view: "jadadat" } },
   { label: "التمارين", desc: "تطبيقات بتصحيح نموذجي", icon: FlaskConical, route: { view: "apps" } },
   { label: "الفروض", desc: "تقويمات محروسة ونماذج فروض", icon: ClipboardList, route: { view: "resources", type: "exam" } },
   { label: "الامتحانات الجهوية", desc: "مواضيع رسمية مع عناصر الإجابة", icon: FileText, route: { view: "resources", type: "regional" } },
   { label: "المنهجيات", desc: "تحليل الوثائق والكتابة", icon: PenLine, route: { view: "methods" } },
   { label: "العروض التفاعلية", desc: "دروس 1 باك علوم من الكتاب المدرسي", icon: MonitorPlay, route: { view: "decks" } },
-  { label: "المصطلحات", desc: "معجم مفاهيم دروس المادة", icon: Library, search: true },
   { label: "الخرائط والخطاطات", desc: "خرائط تخطيطية وخطاطات تفاعلية", icon: Globe2, route: { view: "resources", type: "map" } },
-  { label: "التقويم الذاتي", desc: "8 تقويمات تفاعلية حسب المستوى", icon: Target, route: { view: "test" } },
-  { label: "وضع المبارزة", desc: "تحدَّ زميلك أو البطل الآلي", icon: Swords, route: { view: "battle" } },
-  { label: "البحث", desc: "درس، مفهوم، شخصية، حدث، تمرين...", icon: Search, search: true },
+  { label: "التقويم الذاتي", desc: "8 تقويمات تفاعلية حسب المستوى", icon: Target, route: { view: "diagnostic" } },
 ];
 
 const OBJECTIVES = [
@@ -101,30 +98,35 @@ export default function Home({ go, onSearch }: HomeProps) {
           </Reveal>
 
           <Reveal delay={340}>
-            <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-5 lg:max-w-5xl">
-              {QUICK_ACTIONS.map((a) => (
-                <button
-                  key={a.label}
-                  type="button"
-                  onClick={() => (a.search ? onSearch() : a.route && go(a.route))}
-                  className={`group relative rounded-2xl border p-4 text-center backdrop-blur transition-all duration-300 ${
-                    a.soon
-                      ? "border-white/8 bg-white/[0.03] hover:border-white/20"
-                      : "border-white/12 bg-white/[0.05] hover:-translate-y-1.5 hover:border-gold-300/40 hover:bg-white/[0.09]"
-                  }`}
-                >
-                  {a.soon && (
-                    <span className="absolute end-2 top-2 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-extrabold text-white/50">
-                      قريبًا
+            <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:max-w-5xl lg:grid-cols-5">
+              {QUICK_ACTIONS.map((a) => {
+                const cardClass = `quick-card-3d group relative flex min-h-[7.5rem] flex-col justify-center overflow-hidden rounded-[1.35rem] border p-4 text-center backdrop-blur transition-all duration-300 ${
+                  a.soon
+                    ? "border-white/8 bg-white/[0.03]"
+                    : "border-white/12 bg-gradient-to-br from-white/[0.08] to-white/[0.03] shadow-[0_14px_35px_-28px_rgba(230,180,87,0.85)] hover:-translate-y-1.5 hover:border-gold-300/40 hover:bg-white/[0.12] hover:shadow-[0_18px_40px_-26px_rgba(230,180,87,0.8)]"
+                }`;
+                const cardContent = (
+                  <>
+                    {a.soon && (
+                      <span className="absolute end-2 top-2 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-extrabold text-white/50">
+                        قريبًا
+                      </span>
+                    )}
+                    <span className={`quick-card-icon-3d mx-auto grid size-12 place-items-center rounded-2xl transition-all duration-300 ${a.soon ? "bg-white/10 text-white/40" : "bg-gradient-to-br from-white/10 to-brand-900/25 text-gold-300 ring-1 ring-white/10 group-hover:scale-110 group-hover:bg-gold-400/20"}`}>
+                      <a.icon className="size-5.5" strokeWidth={2.2} />
                     </span>
-                  )}
-                  <span className={`mx-auto grid size-10 place-items-center rounded-xl transition-all duration-300 ${a.soon ? "bg-white/10 text-white/40" : "bg-white/10 text-gold-300 group-hover:scale-110 group-hover:bg-gold-400/20"}`}>
-                    <a.icon className="size-5" strokeWidth={2.2} />
-                  </span>
-                  <span className={`mt-3 block font-display text-[13px] font-extrabold ${a.soon ? "text-white/55" : "text-white"}`}>{a.label}</span>
-                  <span className="mt-1 hidden text-[10px] leading-snug text-white/45 lg:block">{a.desc}</span>
-                </button>
-              ))}
+                    <span className={`quick-card-title-3d mt-3 block font-display text-sm font-extrabold ${a.soon ? "text-white/55" : "text-white"}`}>
+                      {a.label}
+                    </span>
+                  </>
+                );
+
+                return (
+                  <button key={a.label} type="button" onClick={() => (a.search ? onSearch() : a.route && go(a.route))} className={cardClass}>
+                    {cardContent}
+                  </button>
+                );
+              })}
             </div>
           </Reveal>
 
@@ -132,19 +134,11 @@ export default function Home({ go, onSearch }: HomeProps) {
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <button
                 type="button"
-                onClick={() => go({ view: "test" })}
+                onClick={() => go({ view: "diagnostic" })}
                 className="btn-shine group inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-l from-gold-400 to-gold-500 px-8 py-4 text-base font-extrabold text-ink-950 shadow-xl shadow-gold-600/25 transition-all duration-300 hover:-translate-y-1 sm:w-auto"
               >
                 <Target className="size-5" aria-hidden="true" />
                 ابدأ التقويم التشخيصي
-              </button>
-              <button
-                type="button"
-                onClick={() => go({ view: "battle" })}
-                className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-gold-400/40 bg-gold-400/10 px-8 py-4 text-base font-semibold text-gold-200 transition-all duration-300 hover:border-gold-300/60 hover:bg-gold-400/20 sm:w-auto"
-              >
-                <Swords className="size-5" aria-hidden="true" />
-                وضع المبارزة
               </button>
               <button
                 type="button"
@@ -296,7 +290,7 @@ export default function Home({ go, onSearch }: HomeProps) {
                 </p>
                 <button
                   type="button"
-                  onClick={() => go({ view: "test" })}
+                  onClick={() => go({ view: "diagnostic" })}
                   className="btn-shine group mt-8 inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-l from-gold-400 to-gold-500 px-9 py-4 text-base font-extrabold text-ink-950 shadow-xl shadow-gold-600/25 transition-all duration-300 hover:-translate-y-1"
                 >
                   <BarChart3 className="size-5" aria-hidden="true" />
