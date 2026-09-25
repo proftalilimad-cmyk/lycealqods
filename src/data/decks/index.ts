@@ -3,9 +3,10 @@ import { HISTORY_DECKS } from "./historyDecks";
 import { GEOGRAPHY_DECKS } from "./geographyDecks";
 import { MINAR_DECK } from "./minarDeck";
 import { MINAR_LESSON_DECKS } from "./minarLessonDecks";
+import { BAC2_LESSON_DECKS, BAC2_GEOGRAPHY_LESSON_DECKS, BAC2_HISTORY_LESSON_DECKS } from "./bac2LessonDecks";
 
 export type { Deck, DeckSlide, DeckTask, DeckQuiz, DeckSlideKind } from "./types";
-export { MINAR_LESSON_DECKS };
+export { MINAR_LESSON_DECKS, BAC2_LESSON_DECKS, BAC2_GEOGRAPHY_LESSON_DECKS, BAC2_HISTORY_LESSON_DECKS };
 
 /** مجلد صور صفحات الكتاب المدرسي «مورد» */
 export const DECK_PAGE_BASE = "/decks/bac1-sci";
@@ -33,7 +34,7 @@ export const MINAR_BOOK = {
 
 export const DECK_BOOKS = [DECK_BOOK, MINAR_BOOK] as const;
 
-export const DECKS: Deck[] = [...HISTORY_DECKS, ...GEOGRAPHY_DECKS, MINAR_DECK, ...MINAR_LESSON_DECKS];
+export const DECKS: Deck[] = [...HISTORY_DECKS, ...GEOGRAPHY_DECKS, MINAR_DECK, ...MINAR_LESSON_DECKS, ...BAC2_LESSON_DECKS];
 
 export function pageUrl(page: number, base = DECK_PAGE_BASE): string {
   return `${base}/p${String(page).padStart(3, "0")}.webp`;
@@ -46,10 +47,9 @@ export function getDeck(id: string): Deck | undefined {
 /**
  * العرض المرتبط بدرس معيّن.
  *
- * عروض «مورد» مرتبطة مباشرة بمفاتيح دروس الأولى باكالوريا، بينما كتاب
- * «منار» عرض قراءة شامل للجذع المشترك؛ لذلك يُربط بكل درس منشور في
- * الجذع المشترك العلمي حتى يظهر زر العرض التفاعلي داخل قائمة الدروس وداخل
- * صفحة الدرس، مع بقاء الكتاب الواحد مصدر القراءة والتنقل وحفظ التقدم.
+ * عروض «مورد» وكتب الثانية باكالوريا و«منار» مرتبطة مباشرة بمفاتيح الدروس
+ * المنشورة؛ لذلك يظهر زر العرض التفاعلي داخل قائمة الدروس وداخل صفحة الدرس،
+ * مع بقاء كل كتاب مصدر القراءة والتنقل وحفظ التقدم.
  */
 export function getDeckForLesson(lessonKey: string): Deck | undefined {
   const direct = DECKS.find((d) => d.lessonKey === lessonKey);

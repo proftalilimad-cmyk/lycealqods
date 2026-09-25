@@ -89,7 +89,7 @@ type LevelId = "tc" | "bac1" | "bac2";
 const LEVEL_SECTIONS: { id: LevelId; label: string; description: string }[] = [
   { id: "tc", label: "الجذع المشترك", description: "عروض كتاب «منار التاريخ والجغرافيا» ودروس الجذع المشترك العلمي." },
   { id: "bac1", label: "الأولى باكالوريا", description: "عروض كتاب «مورد التاريخ والجغرافيا» للمسالك العلمية والتقنية." },
-  { id: "bac2", label: "الثانية باكالوريا", description: "العروض التفاعلية الخاصة بالثانية باكالوريا عند توفرها." },
+  { id: "bac2", label: "الثانية باكالوريا", description: "عروض «منار الجغرافيا» و«في رحاب التاريخ» بصفحات الكتاب والمهام والاختبار." },
 ];
 
 const SUBJECT_SECTIONS: { id: "التاريخ" | "الجغرافيا"; icon: typeof History; label: string }[] = [
@@ -127,6 +127,8 @@ export default function Decks({ go, initialSubject }: DecksProps) {
   const primarySlides = primaryDecks.reduce((n, d) => n + d.slides.length, 0);
   const primaryQuizzes = primaryDecks.reduce((n, d) => n + d.quiz.length, 0);
   const minarLessonDecks = DECKS.filter((d) => d.bookId === MINAR_BOOK.id && !d.isBook);
+  const bac2GeographyDecks = DECKS.filter((d) => d.bookId === "bac2-minar-geography");
+  const bac2HistoryDecks = DECKS.filter((d) => d.bookId === "bac2-rihab-history");
   const levelGroups = LEVEL_SECTIONS.map((level) => ({
     ...level,
     subjects: SUBJECT_SECTIONS.map((entry) => ({
@@ -163,8 +165,8 @@ export default function Decks({ go, initialSubject }: DecksProps) {
       subjectLabel: "الجغرافيا",
       cover: "/decks/bac2-geography/cover.jpg",
       description: "كتاب التلميذ في مادة الجغرافيا للسنة الثانية من سلك البكالوريا.",
-      stats: ["233 صفحة", "ملف PDF", "كتاب مدرسي"],
-      action: "pdf",
+      stats: ["233 صفحة", `${bac2GeographyDecks.length} عروض دروس`, "مهام + اختبار"],
+      action: "catalog",
       sourceUrl: "https://drive.google.com/file/d/1qorNOgBE_etJ7Brx2LXs-JRpI0eTbHpH/view?usp=sharing",
     },
     {
@@ -174,8 +176,8 @@ export default function Decks({ go, initialSubject }: DecksProps) {
       subjectLabel: "التاريخ",
       cover: "/decks/bac2-history/cover.jpg",
       description: "كتاب التلميذ في مادة التاريخ للسنة الثانية من سلك البكالوريا، مسلك الآداب.",
-      stats: ["224 صفحة", "ملف PDF", "كتاب مدرسي"],
-      action: "pdf",
+      stats: ["224 صفحة", `${bac2HistoryDecks.length} عروض دروس`, "مهام + اختبار"],
+      action: "catalog",
       sourceUrl: "https://drive.google.com/file/d/13Z_QtxEJF2cvZ2Dzu1AxVGC_5vQUEszU/view?usp=sharing",
     },
   ];
