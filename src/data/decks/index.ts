@@ -2,8 +2,10 @@ import type { Deck } from "./types";
 import { HISTORY_DECKS } from "./historyDecks";
 import { GEOGRAPHY_DECKS } from "./geographyDecks";
 import { MINAR_DECK } from "./minarDeck";
+import { MINAR_LESSON_DECKS } from "./minarLessonDecks";
 
 export type { Deck, DeckSlide, DeckTask, DeckQuiz, DeckSlideKind } from "./types";
+export { MINAR_LESSON_DECKS };
 
 /** مجلد صور صفحات الكتاب المدرسي «مورد» */
 export const DECK_PAGE_BASE = "/decks/bac1-sci";
@@ -31,7 +33,7 @@ export const MINAR_BOOK = {
 
 export const DECK_BOOKS = [DECK_BOOK, MINAR_BOOK] as const;
 
-export const DECKS: Deck[] = [...HISTORY_DECKS, ...GEOGRAPHY_DECKS, MINAR_DECK];
+export const DECKS: Deck[] = [...HISTORY_DECKS, ...GEOGRAPHY_DECKS, MINAR_DECK, ...MINAR_LESSON_DECKS];
 
 export function pageUrl(page: number, base = DECK_PAGE_BASE): string {
   return `${base}/p${String(page).padStart(3, "0")}.webp`;
