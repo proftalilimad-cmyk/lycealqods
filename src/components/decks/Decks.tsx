@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { BookOpen, CheckCircle2, ChevronLeft, FileText, Globe2, GraduationCap, History, Layers, Library, MonitorPlay, Presentation, Sparkles } from "lucide-react";
-import { DECKS, DECK_BOOK, DECK_BOOKS, MINAR_BOOK, MINAR_PAGE_BASE, deckTaskCount, pageUrl, type Deck } from "../../data/decks";
+import { BookOpen, CheckCircle2, ChevronLeft, ExternalLink, FileText, Globe2, GraduationCap, History, Layers, Library, MonitorPlay, Presentation, Sparkles } from "lucide-react";
+import { DECKS, DECK_BOOK, MINAR_BOOK, MINAR_PAGE_BASE, deckTaskCount, pageUrl, type Deck } from "../../data/decks";
 import Reveal from "../Reveal";
 import type { Route } from "../../routes";
 import { cn } from "../../utils/cn";
@@ -103,6 +103,21 @@ function deckLevel(deck: Deck): LevelId {
   return "bac1";
 }
 
+type LibraryAction = "catalog" | "deck" | "pdf";
+
+interface LibraryBook {
+  id: string;
+  title: string;
+  levelLabel: string;
+  subjectLabel: string;
+  cover: string;
+  description: string;
+  stats: string[];
+  action: LibraryAction;
+  deckId?: string;
+  sourceUrl?: string;
+}
+
 export default function Decks({ go, initialSubject }: DecksProps) {
   const [subject, setSubject] = useState<"all" | "التاريخ" | "الجغرافيا">(initialSubject === "التاريخ" || initialSubject === "الجغرافيا" ? initialSubject : "all");
   const list = DECKS.filter((d) => (subject === "all" || d.subject === subject) && (d.subject === "التاريخ" || d.subject === "الجغرافيا"));
@@ -119,6 +134,62 @@ export default function Decks({ go, initialSubject }: DecksProps) {
       items: list.filter((deck) => deckLevel(deck) === level.id && deck.subject === entry.id),
     })),
   }));
+  const libraryBooks: LibraryBook[] = [
+    {
+      id: DECK_BOOK.id,
+      title: DECK_BOOK.title,
+      levelLabel: "الأولى باكالوريا",
+      subjectLabel: "التاريخ والجغرافيا",
+      cover: pageUrl(1, DECK_BOOK.pageBase),
+      description: DECK_BOOK.note,
+      stats: [`${primaryDecks.length} عروض`, `${primarySlides} شريحة`, `${primaryTasks} مهمة`, `${primaryQuizzes} أسئلة`],
+      action: "catalog",
+    },
+    {
+      id: MINAR_BOOK.id,
+      title: MINAR_BOOK.title,
+      levelLabel: "الجذع المشترك",
+      subjectLabel: "التاريخ والجغرافيا",
+      cover: pageUrl(1, MINAR_PAGE_BASE),
+      description: MINAR_BOOK.note,
+      stats: [`${MINAR_BOOK.pageCount} صفحة`, `${minarLessonDecks.length} عروض دروس`, "قراءة وتكبير"],
+      action: "deck",
+      deckId: minarDeck?.id,
+    },
+    {
+      id: "bac2-geography-minar",
+      title: "منار الجغرافيا — السنة الثانية باك",
+      levelLabel: "الثانية باكالوريا",
+      subjectLabel: "الجغرافيا",
+      cover: "/decks/bac2-geography/cover.jpg",
+      description: "كتاب التلميذ في مادة الجغرافيا للسنة الثانية من سلك البكالوريا.",
+      stats: ["233 صفحة", "ملف PDF", "كتاب مدرسي"],
+      action: "pdf",
+      sourceUrl: "https://drive.google.com/file/d/1qorNOgBE_etJ7Brx2LXs-JRpI0eTbHpH/view?usp=sharing",
+    },
+    {
+      id: "bac2-history-rihab",
+      title: "في رحاب التاريخ — 2 باك آداب",
+      levelLabel: "الثانية باكالوريا",
+      subjectLabel: "التاريخ",
+      cover: "/decks/bac2-history/cover.jpg",
+      description: "كتاب التلميذ في مادة التاريخ للسنة الثانية من سلك البكالوريا، مسلك الآداب.",
+      stats: ["224 صفحة", "ملف PDF", "كتاب مدرسي"],
+      action: "pdf",
+      sourceUrl: "https://drive.google.com/file/d/13Z_QtxEJF2cvZ2Dzu1AxVGC_5vQUEszU/view?usp=sharing",
+    },
+  ];
+  const openLibraryBook = (book: LibraryBook) => {
+    if (book.action === "deck" && book.deckId) {
+      go({ view: "decks", id: book.deckId });
+      return;
+    }
+    if (book.action === "pdf" && book.sourceUrl) {
+      window.open(book.sourceUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    document.getElementById("deck-catalog")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <section className="pt-32 pb-20 md:pt-36">
@@ -148,52 +219,36 @@ export default function Decks({ go, initialSubject }: DecksProps) {
                 <h2 id="deck-library-heading" className="mt-4 font-display text-2xl font-black text-ink-900 sm:text-3xl">اختر الكتاب أولا</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-500">تصفح أغلفة الكتب المعتمدة، ثم انتقل إلى عروض الدروس المصنفة حسب المستوى والمادة.</p>
               </div>
-              <span className="rounded-full bg-cream px-3 py-1.5 text-[11px] font-bold text-ink-500 ring-1 ring-ink-900/8">{DECK_BOOKS.length} كتب في المكتبة</span>
+              <span className="rounded-full bg-cream px-3 py-1.5 text-[11px] font-bold text-ink-500 ring-1 ring-ink-900/8">{libraryBooks.length} كتب في المكتبة</span>
             </div>
 
-            <div className="mt-6 grid gap-5 md:grid-cols-2">
-              <article className="group overflow-hidden rounded-[2rem] border border-ink-900/8 bg-white shadow-[0_20px_55px_-35px_rgba(4,36,26,0.5)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-[0_28px_65px_-30px_rgba(12,124,91,0.3)]">
-                <button type="button" onClick={() => document.getElementById("deck-catalog")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="relative block w-full overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-ink-950 text-start">
-                  <div className="relative flex h-72 items-center justify-center overflow-hidden p-5 sm:h-80">
-                    <img src={pageUrl(1, DECK_BOOK.pageBase)} alt={`غلاف ${DECK_BOOK.title}`} decoding="async" className="h-full w-auto max-w-[78%] rounded-lg object-contain object-top shadow-2xl ring-1 ring-white/20 transition duration-700 group-hover:scale-[1.03]" />
-                    <span className="absolute start-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-gold-400 px-3 py-1.5 text-[10px] font-black text-ink-950 shadow-lg">الأولى باكالوريا</span>
-                    <span className="absolute bottom-4 end-4 grid size-10 place-items-center rounded-xl bg-white text-brand-700 shadow-lg"><MonitorPlay className="size-4.5" /></span>
-                  </div>
-                </button>
-                <div className="p-5">
-                  <h3 className="font-display text-lg font-black text-ink-900">{DECK_BOOK.title}</h3>
-                  <p className="mt-1 text-[11px] font-bold text-brand-600">{DECK_BOOK.level}</p>
-                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-500">{DECK_BOOK.note}</p>
-                  <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold text-ink-500">
-                    <span className="rounded-full bg-cream px-2.5 py-1.5">{primaryDecks.length} عروض</span>
-                    <span className="rounded-full bg-cream px-2.5 py-1.5">{primarySlides} شريحة</span>
-                    <span className="rounded-full bg-cream px-2.5 py-1.5">{primaryTasks} مهمة</span>
-                    <span className="rounded-full bg-cream px-2.5 py-1.5">{primaryQuizzes} أسئلة</span>
-                  </div>
-                </div>
-              </article>
-
-              {minarDeck && (
-                <article className="group overflow-hidden rounded-[2rem] border border-ink-900/8 bg-white shadow-[0_20px_55px_-35px_rgba(4,36,26,0.5)] transition-all duration-300 hover:-translate-y-1 hover:border-gold-300 hover:shadow-[0_28px_65px_-30px_rgba(173,116,20,0.28)]">
-                  <button type="button" onClick={() => go({ view: "decks", id: minarDeck.id })} className="relative block w-full overflow-hidden bg-gradient-to-br from-gold-700 via-brand-900 to-ink-950 text-start">
+            <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              {libraryBooks.map((book) => (
+                <article key={book.id} className="group flex h-full flex-col overflow-hidden rounded-[2rem] border border-ink-900/8 bg-white shadow-[0_20px_55px_-35px_rgba(4,36,26,0.5)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-[0_28px_65px_-30px_rgba(12,124,91,0.3)]">
+                  <button type="button" onClick={() => openLibraryBook(book)} aria-label={`${book.action === "pdf" ? "فتح ملف" : "فتح"} ${book.title}`} className="relative block w-full overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-ink-950 text-start">
                     <div className="relative flex h-72 items-center justify-center overflow-hidden p-5 sm:h-80">
-                      <img src={pageUrl(1, MINAR_PAGE_BASE)} alt={`غلاف ${MINAR_BOOK.title}`} decoding="async" className="h-full w-auto max-w-[78%] rounded-lg object-contain object-top shadow-2xl ring-1 ring-white/20 transition duration-700 group-hover:scale-[1.03]" />
-                      <span className="absolute start-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-gold-400 px-3 py-1.5 text-[10px] font-black text-ink-950 shadow-lg">الجذع المشترك</span>
-                      <span className="absolute bottom-4 end-4 grid size-10 place-items-center rounded-xl bg-white text-brand-700 shadow-lg"><MonitorPlay className="size-4.5" /></span>
+                      <img src={book.cover} alt={`غلاف ${book.title}`} loading="lazy" decoding="async" className="h-full w-auto max-w-[78%] rounded-lg object-contain object-top shadow-2xl ring-1 ring-white/20 transition duration-700 group-hover:scale-[1.03]" />
+                      <span className="absolute start-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-gold-400 px-3 py-1.5 text-[10px] font-black text-ink-950 shadow-lg">{book.levelLabel}</span>
+                      <span className="absolute bottom-4 end-4 grid size-10 place-items-center rounded-xl bg-white text-brand-700 shadow-lg">
+                        {book.action === "pdf" ? <ExternalLink className="size-4.5" /> : <MonitorPlay className="size-4.5" />}
+                      </span>
                     </div>
                   </button>
-                  <div className="p-5">
-                    <h3 className="font-display text-lg font-black text-ink-900">{MINAR_BOOK.title}</h3>
-                    <p className="mt-1 text-[11px] font-bold text-brand-600">{MINAR_BOOK.level}</p>
-                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-500">{MINAR_BOOK.note}</p>
-                    <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold text-ink-500">
-                      <span className="rounded-full bg-cream px-2.5 py-1.5">{MINAR_BOOK.pageCount} صفحة</span>
-                      <span className="rounded-full bg-cream px-2.5 py-1.5">{minarLessonDecks.length} عروض دروس</span>
-                      <span className="rounded-full bg-cream px-2.5 py-1.5">قراءة وتكبير</span>
+                  <div className="flex flex-1 flex-col p-5">
+                    <h3 className="font-display text-lg font-black leading-relaxed text-ink-900">{book.title}</h3>
+                    <p className="mt-1 text-[11px] font-bold text-brand-600">{book.subjectLabel}</p>
+                    <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-ink-500">{book.description}</p>
+                    <div className="mt-auto flex flex-wrap gap-2 pt-4 text-[10px] font-bold text-ink-500">
+                      {book.stats.map((stat) => <span key={stat} className="rounded-full bg-cream px-2.5 py-1.5">{stat}</span>)}
                     </div>
+                    {book.sourceUrl && (
+                      <a href={book.sourceUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-extrabold text-brand-700 hover:text-brand-900">
+                        فتح ملف الكتاب الأصلي <ExternalLink className="size-3.5" />
+                      </a>
+                    )}
                   </div>
                 </article>
-              )}
+              ))}
             </div>
           </section>
         </Reveal>
@@ -270,6 +325,18 @@ export default function Decks({ go, initialSubject }: DecksProps) {
                             <DeckCard deck={deck} onOpen={() => go({ view: "decks", id: deck.id })} />
                           </Reveal>
                         ))}
+                      </div>
+                    ) : libraryBooks.some((book) => book.levelLabel === level.label && book.subjectLabel === section.label) ? (
+                      <div className="mt-4 rounded-2xl border border-gold-300/50 bg-gold-50/70 p-4">
+                        <p className="text-xs font-extrabold text-gold-800">الكتاب متاح في المكتبة، والعروض التفصيلية قيد الإضافة:</p>
+                        <div className="mt-3 grid gap-2">
+                          {libraryBooks.filter((book) => book.levelLabel === level.label && book.subjectLabel === section.label).map((book) => (
+                            <button key={book.id} type="button" onClick={() => document.getElementById("deck-library-heading")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3.5 py-3 text-start text-[11px] font-bold text-ink-700 ring-1 ring-gold-300/40 transition hover:-translate-y-0.5 hover:text-brand-700">
+                              <span className="line-clamp-2">{book.title}</span>
+                              <Library className="size-4 shrink-0 text-gold-600" />
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     ) : (
                       <div className="mt-4 rounded-2xl border border-dashed border-ink-900/12 bg-cream/60 px-5 py-8 text-center text-xs font-semibold leading-relaxed text-ink-400">
