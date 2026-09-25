@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BookOpen, CheckCircle2, ChevronLeft, FileText, Globe2, History, Layers, MonitorPlay, Presentation, Sparkles } from "lucide-react";
+import { BookOpen, CheckCircle2, ChevronLeft, FileText, Globe2, GraduationCap, History, Layers, MonitorPlay, Presentation, Sparkles } from "lucide-react";
 import { DECKS, DECK_BOOK, MINAR_BOOK, MINAR_PAGE_BASE, deckTaskCount, pageUrl, type Deck } from "../../data/decks";
 import Reveal from "../Reveal";
 import type { Route } from "../../routes";
@@ -84,23 +84,40 @@ function DeckCard({ deck, onOpen }: { deck: Deck; onOpen: () => void }) {
   );
 }
 
+type LevelId = "tc" | "bac1" | "bac2";
+
+const LEVEL_SECTIONS: { id: LevelId; label: string; description: string }[] = [
+  { id: "tc", label: "الجذع المشترك", description: "عروض كتاب «منار التاريخ والجغرافيا» ودروس الجذع المشترك العلمي." },
+  { id: "bac1", label: "الأولى باكالوريا", description: "عروض كتاب «مورد التاريخ والجغرافيا» للمسالك العلمية والتقنية." },
+  { id: "bac2", label: "الثانية باكالوريا", description: "العروض التفاعلية الخاصة بالثانية باكالوريا عند توفرها." },
+];
+
+const SUBJECT_SECTIONS: { id: "التاريخ" | "الجغرافيا"; icon: typeof History; label: string }[] = [
+  { id: "التاريخ", label: "التاريخ", icon: History },
+  { id: "الجغرافيا", label: "الجغرافيا", icon: Globe2 },
+];
+
+function deckLevel(deck: Deck): LevelId {
+  if (deck.bookId === MINAR_BOOK.id || deck.bookLevel?.includes("الجذع")) return "tc";
+  if (deck.bookId?.startsWith("bac2") || deck.bookLevel?.includes("الثانية")) return "bac2";
+  return "bac1";
+}
+
 export default function Decks({ go, initialSubject }: DecksProps) {
   const [subject, setSubject] = useState<"all" | "التاريخ" | "الجغرافيا">(initialSubject === "التاريخ" || initialSubject === "الجغرافيا" ? initialSubject : "all");
-  const list = DECKS.filter((d) => subject === "all" || d.subject === subject);
+  const list = DECKS.filter((d) => (subject === "all" || d.subject === subject) && (d.subject === "التاريخ" || d.subject === "الجغرافيا"));
   const primaryDecks = DECKS.filter((d) => (d.bookId ?? "bac1-sci") === DECK_BOOK.id);
-  const minarDeck = DECKS.find((d) => d.bookId === MINAR_BOOK.id);
+  const minarDeck = DECKS.find((d) => d.isBook && d.bookId === MINAR_BOOK.id);
   const primaryTasks = primaryDecks.reduce((n, d) => n + deckTaskCount(d), 0);
   const primarySlides = primaryDecks.reduce((n, d) => n + d.slides.length, 0);
   const primaryQuizzes = primaryDecks.reduce((n, d) => n + d.quiz.length, 0);
-  const history = list.filter((d) => d.subject === "التاريخ");
-  const geography = list.filter((d) => d.subject === "الجغرافيا");
-  const mixed = list.filter((d) => d.subject === "التاريخ والجغرافيا");
-
-  const groups: { label: string; icon: typeof History | typeof BookOpen; items: Deck[] }[] = [
-    { label: "التاريخ", icon: History, items: history },
-    { label: "الجغرافيا", icon: Globe2, items: geography },
-    { label: "التاريخ والجغرافيا", icon: BookOpen, items: mixed },
-  ].filter((g) => g.items.length > 0);
+  const levelGroups = LEVEL_SECTIONS.map((level) => ({
+    ...level,
+    subjects: SUBJECT_SECTIONS.map((entry) => ({
+      ...entry,
+      items: list.filter((deck) => deckLevel(deck) === level.id && deck.subject === entry.id),
+    })),
+  }));
 
   return (
     <section className="pt-32 pb-20 md:pt-36">
@@ -209,33 +226,58 @@ export default function Decks({ go, initialSubject }: DecksProps) {
               >
                 {s === "all" ? "كل العروض" : s}
                 <span className={cn("ms-2 rounded-full px-2 py-0.5 text-[10px]", subject === s ? "bg-white/20" : "bg-cream text-ink-500")}>
-                  {s === "all" ? DECKS.length : DECKS.filter((d) => d.subject === s).length}
+                  {s === "all" ? DECKS.filter((d) => d.subject === "التاريخ" || d.subject === "الجغرافيا").length : DECKS.filter((d) => d.subject === s).length}
                 </span>
               </button>
             ))}
           </div>
         </Reveal>
 
-        {groups.map((g, gi) => (
-          <div key={g.label} className="mt-10">
-            <Reveal delay={80 + gi * 60}>
-              <div className="flex items-center gap-3">
-                <span className="grid size-10 place-items-center rounded-xl bg-brand-50 text-brand-600">
-                  <g.icon className="size-5" />
-                </span>
-                <h2 className="font-display text-xl font-black text-ink-900">عروض {g.label}</h2>
-                <span className="rounded-full bg-cream px-3 py-1 text-[10px] font-bold text-ink-500 ring-1 ring-ink-900/8">{g.items.length} عروض</span>
+        <div className="mt-10 space-y-10">
+          {levelGroups.map((level, levelIndex) => (
+            <section key={level.id} className="rounded-[2rem] border border-ink-900/6 bg-white/70 p-5 shadow-[0_20px_55px_-40px_rgba(4,36,26,0.35)] sm:p-7">
+              <Reveal delay={80 + levelIndex * 70}>
+                <div className="flex flex-wrap items-center gap-3 border-b border-ink-900/6 pb-5">
+                  <span className="grid size-11 place-items-center rounded-2xl bg-brand-50 text-brand-700">
+                    <GraduationCap className="size-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h2 className="font-display text-2xl font-black text-ink-900">{level.label}</h2>
+                    <p className="mt-1 text-xs leading-relaxed text-ink-500">{level.description}</p>
+                  </div>
+                </div>
+              </Reveal>
+              <div className="mt-6 grid gap-8 lg:grid-cols-2">
+                {level.subjects.map((section, subjectIndex) => (
+                  <div key={section.id}>
+                    <Reveal delay={120 + levelIndex * 70 + subjectIndex * 40}>
+                      <div className="flex items-center gap-3">
+                        <span className="grid size-9 place-items-center rounded-xl bg-cream text-brand-700 ring-1 ring-ink-900/8">
+                          <section.icon className="size-4.5" aria-hidden="true" />
+                        </span>
+                        <h3 className="font-display text-lg font-black text-ink-900">{section.label}</h3>
+                        <span className="rounded-full bg-cream px-2.5 py-1 text-[10px] font-bold text-ink-500 ring-1 ring-ink-900/8">{section.items.length} عروض</span>
+                      </div>
+                    </Reveal>
+                    {section.items.length > 0 ? (
+                      <div className="mt-4 grid gap-5 sm:grid-cols-2">
+                        {section.items.map((deck, index) => (
+                          <Reveal key={deck.id} delay={160 + (index % 2) * 50} className="h-full">
+                            <DeckCard deck={deck} onOpen={() => go({ view: "decks", id: deck.id })} />
+                          </Reveal>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-4 rounded-2xl border border-dashed border-ink-900/12 bg-cream/60 px-5 py-8 text-center text-xs font-semibold leading-relaxed text-ink-400">
+                        لا توجد عروض منشورة لهذا المستوى والمادة بعد.
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            </Reveal>
-            <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {g.items.map((d, i) => (
-                <Reveal key={d.id} delay={60 + (i % 3) * 60} className="h-full">
-                  <DeckCard deck={d} onOpen={() => go({ view: "decks", id: d.id })} />
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        ))}
+            </section>
+          ))}
+        </div>
 
         <Reveal delay={120}>
           <div className="mt-12 rounded-3xl border border-ink-900/6 bg-cream p-6">
