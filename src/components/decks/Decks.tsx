@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { BookOpen, CheckCircle2, ChevronLeft, FileText, Globe2, GraduationCap, History, Layers, MonitorPlay, Presentation, Sparkles } from "lucide-react";
-import { DECKS, DECK_BOOK, MINAR_BOOK, MINAR_PAGE_BASE, deckTaskCount, pageUrl, type Deck } from "../../data/decks";
+import { BookOpen, CheckCircle2, ChevronLeft, FileText, Globe2, GraduationCap, History, Layers, Library, MonitorPlay, Presentation, Sparkles } from "lucide-react";
+import { DECKS, DECK_BOOK, DECK_BOOKS, MINAR_BOOK, MINAR_PAGE_BASE, deckTaskCount, pageUrl, type Deck } from "../../data/decks";
 import Reveal from "../Reveal";
 import type { Route } from "../../routes";
 import { cn } from "../../utils/cn";
@@ -111,6 +111,7 @@ export default function Decks({ go, initialSubject }: DecksProps) {
   const primaryTasks = primaryDecks.reduce((n, d) => n + deckTaskCount(d), 0);
   const primarySlides = primaryDecks.reduce((n, d) => n + d.slides.length, 0);
   const primaryQuizzes = primaryDecks.reduce((n, d) => n + d.quiz.length, 0);
+  const minarLessonDecks = DECKS.filter((d) => d.bookId === MINAR_BOOK.id && !d.isBook);
   const levelGroups = LEVEL_SECTIONS.map((level) => ({
     ...level,
     subjects: SUBJECT_SECTIONS.map((entry) => ({
@@ -135,81 +136,84 @@ export default function Decks({ go, initialSubject }: DecksProps) {
           </div>
         </Reveal>
 
-        {/* بطاقة الكتاب */}
+        {/* مكتبة الكتب */}
         <Reveal delay={100}>
-          <div className="noise relative mt-10 overflow-hidden rounded-3xl bg-gradient-to-l from-brand-700 via-brand-800 to-brand-950 p-6 text-white sm:p-8">
-            <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-              <div className="absolute inset-0 pattern-zellige-light opacity-30" />
-              <div className="absolute -top-20 end-1/4 size-72 rounded-full bg-gold-500/15 blur-[100px]" />
-            </div>
-            <div className="relative grid items-center gap-6 md:grid-cols-[auto_1fr_auto]">
-              <img src={pageUrl(1)} alt="غلاف الكتاب المدرسي" decoding="async" className="mx-auto h-40 w-auto rounded-xl shadow-2xl ring-2 ring-white/20 md:h-44" />
+          <section aria-labelledby="deck-library-heading" className="mt-10">
+            <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <p className="text-xs font-bold text-gold-300">المرجع المعتمد</p>
-                <h2 className="mt-1 font-display text-2xl font-black">{DECK_BOOK.title}</h2>
-                <p className="mt-1 text-sm text-white/75">{DECK_BOOK.level}</p>
-                <p className="mt-2 text-[12px] leading-relaxed text-white/60">{DECK_BOOK.note}</p>
-                <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold">
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{primaryDecks.length} عرضًا</span>
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{primarySlides} شريحة</span>
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{primaryTasks} مهمة على الوثائق</span>
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{primaryQuizzes} سؤال اختبار</span>
-                </div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-gold-300/70 bg-gold-50 px-4 py-1.5 text-xs font-semibold text-gold-700">
+                  <Library className="size-3.5" aria-hidden="true" />
+                  مكتبة الكتب المدرسية
+                </span>
+                <h2 id="deck-library-heading" className="mt-4 font-display text-2xl font-black text-ink-900 sm:text-3xl">اختر الكتاب أولا</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-500">تصفح أغلفة الكتب المعتمدة، ثم انتقل إلى عروض الدروس المصنفة حسب المستوى والمادة.</p>
               </div>
-              <div className="grid gap-2 text-[12px]">
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5">
-                  <BookOpen className="size-4 text-gold-300" /> صفحة الكتاب مكبَّرة وقابلة للتكبير
+              <span className="rounded-full bg-cream px-3 py-1.5 text-[11px] font-bold text-ink-500 ring-1 ring-ink-900/8">{DECK_BOOKS.length} كتب في المكتبة</span>
+            </div>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <article className="group overflow-hidden rounded-[2rem] border border-ink-900/8 bg-white shadow-[0_20px_55px_-35px_rgba(4,36,26,0.5)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-[0_28px_65px_-30px_rgba(12,124,91,0.3)]">
+                <button type="button" onClick={() => document.getElementById("deck-catalog")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="relative block w-full overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-ink-950 text-start">
+                  <div className="relative flex h-72 items-center justify-center overflow-hidden p-5 sm:h-80">
+                    <img src={pageUrl(1, DECK_BOOK.pageBase)} alt={`غلاف ${DECK_BOOK.title}`} decoding="async" className="h-full w-auto max-w-[78%] rounded-lg object-contain object-top shadow-2xl ring-1 ring-white/20 transition duration-700 group-hover:scale-[1.03]" />
+                    <span className="absolute start-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-gold-400 px-3 py-1.5 text-[10px] font-black text-ink-950 shadow-lg">الأولى باكالوريا</span>
+                    <span className="absolute bottom-4 end-4 grid size-10 place-items-center rounded-xl bg-white text-brand-700 shadow-lg"><MonitorPlay className="size-4.5" /></span>
+                  </div>
+                </button>
+                <div className="p-5">
+                  <h3 className="font-display text-lg font-black text-ink-900">{DECK_BOOK.title}</h3>
+                  <p className="mt-1 text-[11px] font-bold text-brand-600">{DECK_BOOK.level}</p>
+                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-500">{DECK_BOOK.note}</p>
+                  <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold text-ink-500">
+                    <span className="rounded-full bg-cream px-2.5 py-1.5">{primaryDecks.length} عروض</span>
+                    <span className="rounded-full bg-cream px-2.5 py-1.5">{primarySlides} شريحة</span>
+                    <span className="rounded-full bg-cream px-2.5 py-1.5">{primaryTasks} مهمة</span>
+                    <span className="rounded-full bg-cream px-2.5 py-1.5">{primaryQuizzes} أسئلة</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5">
-                  <FileText className="size-4 text-gold-300" /> مهام + عناصر إجابة قابلة للإظهار
-                </div>
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5">
-                  <Sparkles className="size-4 text-gold-300" /> أفكار مفتاحية + اختبار + حفظ التقدم
-                </div>
+              </article>
+
+              {minarDeck && (
+                <article className="group overflow-hidden rounded-[2rem] border border-ink-900/8 bg-white shadow-[0_20px_55px_-35px_rgba(4,36,26,0.5)] transition-all duration-300 hover:-translate-y-1 hover:border-gold-300 hover:shadow-[0_28px_65px_-30px_rgba(173,116,20,0.28)]">
+                  <button type="button" onClick={() => go({ view: "decks", id: minarDeck.id })} className="relative block w-full overflow-hidden bg-gradient-to-br from-gold-700 via-brand-900 to-ink-950 text-start">
+                    <div className="relative flex h-72 items-center justify-center overflow-hidden p-5 sm:h-80">
+                      <img src={pageUrl(1, MINAR_PAGE_BASE)} alt={`غلاف ${MINAR_BOOK.title}`} decoding="async" className="h-full w-auto max-w-[78%] rounded-lg object-contain object-top shadow-2xl ring-1 ring-white/20 transition duration-700 group-hover:scale-[1.03]" />
+                      <span className="absolute start-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-gold-400 px-3 py-1.5 text-[10px] font-black text-ink-950 shadow-lg">الجذع المشترك</span>
+                      <span className="absolute bottom-4 end-4 grid size-10 place-items-center rounded-xl bg-white text-brand-700 shadow-lg"><MonitorPlay className="size-4.5" /></span>
+                    </div>
+                  </button>
+                  <div className="p-5">
+                    <h3 className="font-display text-lg font-black text-ink-900">{MINAR_BOOK.title}</h3>
+                    <p className="mt-1 text-[11px] font-bold text-brand-600">{MINAR_BOOK.level}</p>
+                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-500">{MINAR_BOOK.note}</p>
+                    <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold text-ink-500">
+                      <span className="rounded-full bg-cream px-2.5 py-1.5">{MINAR_BOOK.pageCount} صفحة</span>
+                      <span className="rounded-full bg-cream px-2.5 py-1.5">{minarLessonDecks.length} عروض دروس</span>
+                      <span className="rounded-full bg-cream px-2.5 py-1.5">قراءة وتكبير</span>
+                    </div>
+                  </div>
+                </article>
+              )}
+            </div>
+          </section>
+        </Reveal>
+
+        {/* تصنيف العروض */}
+        <Reveal delay={160}>
+          <div id="deck-catalog" className="mt-14 scroll-mt-28">
+            <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-900/8 pb-5">
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold text-brand-700">
+                  <GraduationCap className="size-3.5" aria-hidden="true" />
+                  تصنيف العروض
+                </span>
+                <h2 className="mt-4 font-display text-2xl font-black text-ink-900 sm:text-3xl">المستوى ثم المادة</h2>
+                <p className="mt-2 text-sm leading-relaxed text-ink-500">اختر المادة، ثم افتح العرض المناسب من المستوى الدراسي المطلوب.</p>
               </div>
+              <span className="text-[11px] font-bold text-ink-400">العروض مرتبة حسب المقرر</span>
             </div>
           </div>
         </Reveal>
-
-        {minarDeck && (
-          <Reveal delay={130}>
-            <div className="noise relative mt-5 overflow-hidden rounded-3xl bg-gradient-to-l from-gold-600 via-brand-800 to-brand-950 p-6 text-white sm:p-8">
-              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-                <div className="absolute inset-0 pattern-zellige-light opacity-25" />
-                <div className="absolute -top-20 start-1/4 size-72 rounded-full bg-gold-300/20 blur-[100px]" />
-              </div>
-              <div className="relative grid items-center gap-6 md:grid-cols-[auto_1fr_auto]">
-                <img src={pageUrl(1, MINAR_PAGE_BASE)} alt="غلاف كتاب منار التاريخ والجغرافيا" decoding="async" className="mx-auto h-40 w-auto rounded-xl shadow-2xl ring-2 ring-white/20 md:h-44" />
-                <div>
-                  <p className="text-xs font-bold text-gold-200">مرجع الجذع المشترك العلمي</p>
-                  <h2 className="mt-1 font-display text-2xl font-black">{MINAR_BOOK.title}</h2>
-                  <p className="mt-1 text-sm text-white/75">{MINAR_BOOK.level}</p>
-                  <p className="mt-2 text-[12px] leading-relaxed text-white/60">{MINAR_BOOK.note}</p>
-                  <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold">
-                    <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">{MINAR_BOOK.pageCount} صفحة</span>
-                    <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">قراءة وتكبير تفاعلي</span>
-                    <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">حفظ التقدم</span>
-                  </div>
-                </div>
-                <button type="button" onClick={() => go({ view: "decks", id: minarDeck.id })} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-extrabold text-brand-800 shadow-lg transition hover:-translate-y-0.5">
-                  <MonitorPlay className="size-4" />
-                  فتح العرض التفاعلي
-                </button>
-              </div>
-              <div className="relative mt-5 grid gap-2 text-[12px] sm:grid-cols-3">
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5">
-                  <BookOpen className="size-4 shrink-0 text-gold-200" /> صفحة الكتاب مكبَّرة وقابلة للتكبير
-                </div>
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5">
-                  <FileText className="size-4 shrink-0 text-gold-200" /> مهام + عناصر إجابة قابلة للإظهار
-                </div>
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5">
-                  <Sparkles className="size-4 shrink-0 text-gold-200" /> أفكار مفتاحية + اختبار + حفظ التقدم
-                </div>
-              </div>
-            </div>
-          </Reveal>
-        )}
 
         {/* فلتر المادة */}
         <Reveal delay={160}>
