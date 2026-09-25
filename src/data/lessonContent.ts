@@ -10,6 +10,7 @@ import { BAC2_SCI_HISTORY } from "./lessons/bac2SciHistory";
 import { BAC2_SCI_GEO } from "./lessons/bac2SciGeo";
 import { BAC2_BOOK_HISTORY } from "./lessons/bac2BookHistory";
 import { BAC2_BOOK_GEO } from "./lessons/bac2BookGeo";
+import { BAC2_ARTS_ADDITIONS } from "./lessons/bac2ArtsAdditions";
 
 /**
  * مكتبة محتوى الدروس.
@@ -250,7 +251,7 @@ export const LESSON_CONTENT: Record<string, LessonContent> = {
 };
 
 // دمج سجلات المحتوى المفصلة لكل المستويات والمسالك
-Object.assign(LESSON_CONTENT, TC_SCI_HISTORY, TC_SCI_GEO, TC_ARTS, BAC1_SCI_HISTORY, BAC1_SCI_GEO, BAC_ARTS_HISTORY, BAC2_SCI_HISTORY, BAC2_SCI_GEO, BAC2_BOOK_HISTORY, BAC2_BOOK_GEO);
+Object.assign(LESSON_CONTENT, TC_SCI_HISTORY, TC_SCI_GEO, TC_ARTS, BAC1_SCI_HISTORY, BAC1_SCI_GEO, BAC_ARTS_HISTORY, BAC2_SCI_HISTORY, BAC2_SCI_GEO, BAC2_BOOK_HISTORY, BAC2_BOOK_GEO, BAC2_ARTS_ADDITIONS);
 
 /**
  * ربط المحتوى المشترك بين المسالك:
