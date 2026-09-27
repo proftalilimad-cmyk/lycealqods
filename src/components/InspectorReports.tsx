@@ -121,7 +121,7 @@ export default function InspectorReports() {
   }, [dataMode, submissions]);
 
   const levels = useMemo(() => {
-    if (dataMode === "demo") return DEMO_LEVEL_REPORTS.map((scope) => scope.level);
+    if (dataMode === "demo") return Array.from(new Set(DEMO_LEVEL_REPORTS.map((scope) => scope.level)));
     return Array.from(new Set([
       "جميع المستويات",
       ...DIAGNOSTIC_SESSIONS.map((session) => session.bankLevel),
@@ -161,7 +161,7 @@ export default function InspectorReports() {
     demoAutoPreviewShown.current = true;
     setDraft({ ...updated, htmlSnapshot: html });
     setPreview({ report: updated, html });
-    setNotice({ kind: "warn", text: `تم إنشاء وعرض ${inspectorReportTitle(draft.assessmentType)} لمستوى ${draft.level} من ${analysis.participants} نتيجة Demo؛ هذه نسخة مستقلة تطويرية لا تُحفظ مركزيًا.` });
+    setNotice({ kind: "warn", text: `تم إنشاء وعرض ${inspectorReportTitle(draft.assessmentType)} للقسم المحدد من ${analysis.participants} نتيجة Demo؛ هذه نسخة مستقلة تطويرية لا تُحفظ مركزيًا.` });
   }, [analysis, dataMode, demoSubmissions, draft.className]);
 
   const chooseDataMode = (mode: ReportDataMode) => {
@@ -199,7 +199,7 @@ export default function InspectorReports() {
       submissionIds: [],
       updatedAt: new Date().toISOString(),
     }));
-    setNotice({ kind: "warn", text: `تم اختيار تقرير مستقل لمستوى ${scope.level}.` });
+    setNotice({ kind: "warn", text: `تم اختيار تقرير مستقل للقسم ${scope.label}.` });
   };
 
   const setField = <K extends keyof InspectorReport>(key: K, value: InspectorReport[K]) => {
@@ -336,7 +336,7 @@ export default function InspectorReports() {
                 <button type="button" onClick={() => chooseDataMode("central")} className={`rounded-xl border px-3 py-2.5 text-start text-[11px] font-extrabold transition ${dataMode === "central" ? "border-brand-300 bg-brand-50 text-brand-800" : "border-ink-900/10 bg-white text-ink-600 hover:border-brand-200"}`}>النتائج المركزية<span className="mt-0.5 block text-[10px] font-semibold opacity-75">المصدر الرسمي المرتبط بالأستاذ والقسم</span></button>
               </div>
             </div>
-            {dataMode === "demo" && <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-3"><p className="text-[11px] font-extrabold text-amber-900">اختر التقرير المستقل للمستوى</p><div className="mt-2 grid gap-2 sm:grid-cols-2">{DEMO_LEVEL_REPORTS.map((scope) => <button key={scope.className} type="button" onClick={() => chooseDemoLevel(scope.className)} className={`rounded-xl border px-3 py-2.5 text-start text-[11px] font-extrabold transition ${draft.className === scope.className ? "border-amber-400 bg-white text-amber-950 shadow-sm" : "border-white bg-white/70 text-ink-700 hover:border-amber-300"}`}>{scope.label}<span className="mt-0.5 block text-[10px] font-semibold text-ink-500">نسبة الحضور تُحسب لهذا المستوى فقط</span></button>)}</div></div>}
+            {dataMode === "demo" && <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-3"><p className="text-[11px] font-extrabold text-amber-900">اختر التقرير المستقل للقسم</p><div className="mt-2 grid gap-2 sm:grid-cols-2">{DEMO_LEVEL_REPORTS.map((scope) => <button key={scope.className} type="button" onClick={() => chooseDemoLevel(scope.className)} className={`rounded-xl border px-3 py-2.5 text-start text-[11px] font-extrabold transition ${draft.className === scope.className ? "border-amber-400 bg-white text-amber-950 shadow-sm" : "border-white bg-white/70 text-ink-700 hover:border-amber-300"}`}>{scope.label}<span className="mt-0.5 block text-[10px] font-semibold text-ink-500">نسبة الحضور تُحسب لهذا القسم فقط</span></button>)}</div></div>}
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Field label="المستوى الدراسي"><select value={draft.level} onChange={(event) => { setField("level", event.target.value); setField("className", ""); }} className="field"><option value="">{dataMode === "demo" ? "اختر المستوى" : "كل المستويات"}</option>{levels.map((level) => <option key={level} value={level}>{level}</option>)}</select></Field>
               <Field label="المادة الدراسية"><select value={draft.subject} onChange={(event) => setField("subject", event.target.value)} className="field"><option value="الاجتماعيات">الاجتماعيات</option><option value="التاريخ">التاريخ</option><option value="الجغرافيا">الجغرافيا</option></select></Field>
