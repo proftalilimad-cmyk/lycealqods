@@ -86,10 +86,10 @@ function DeckCard({ deck, onOpen }: { deck: Deck; onOpen: () => void }) {
 
 type LevelId = "tc" | "bac1" | "bac2";
 
-const LEVEL_SECTIONS: { id: LevelId; label: string; description: string }[] = [
-  { id: "tc", label: "الجذع المشترك", description: "عروض كتاب «منار التاريخ والجغرافيا» ودروس الجذع المشترك العلمي." },
-  { id: "bac1", label: "الأولى باكالوريا", description: "عروض كتاب «مورد التاريخ والجغرافيا» للمسالك العلمية والتقنية." },
-  { id: "bac2", label: "الثانية باكالوريا", description: "عروض «منار الجغرافيا» و«في رحاب التاريخ» بصفحات الكتاب والمهام والاختبار." },
+const LEVEL_SECTIONS: { id: LevelId; label: string; shortLabel: string; description: string }[] = [
+  { id: "tc", label: "الجذع المشترك", shortLabel: "الجذع المشترك", description: "عروض كتاب «منار التاريخ والجغرافيا» ودروس الجذع المشترك العلمي." },
+  { id: "bac1", label: "الأولى باكالوريا", shortLabel: "الأولى باك", description: "عروض كتاب «مورد التاريخ والجغرافيا» للمسالك العلمية والتقنية." },
+  { id: "bac2", label: "الثانية باكالوريا", shortLabel: "الثانية باك", description: "عروض «منار الجغرافيا» و«في رحاب التاريخ» بصفحات الكتاب والمهام والاختبار." },
 ];
 
 const SUBJECT_SECTIONS: { id: "التاريخ" | "الجغرافيا"; icon: typeof History; label: string }[] = [
@@ -283,7 +283,7 @@ export default function Decks({ go, initialSubject }: DecksProps) {
                       <GraduationCap className="size-5" aria-hidden="true" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-display text-sm font-black text-ink-900">{level.label}</span>
+                      <span className="block font-display text-sm font-black text-ink-900">{level.shortLabel}</span>
                       <span className="mt-1 block line-clamp-2 text-[10px] leading-relaxed text-ink-500">{level.description}</span>
                     </span>
                     <span className={cn("shrink-0 rounded-full px-2 py-1 text-[10px] font-black", active ? "bg-brand-700 text-white" : "bg-cream text-ink-500")}>{count}</span>
