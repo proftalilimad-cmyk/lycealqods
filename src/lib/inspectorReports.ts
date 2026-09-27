@@ -2,7 +2,7 @@ import type { InspectorReport, Submission } from "../types";
 import { ROSTER_CLASSES, ROSTER_YEAR, type RosterStudent } from "../data/rosters";
 import { displayClassName, scheduleForClass } from "../data/diagnosticSchedule";
 import { analyse, recommendationsFor, skillState } from "./reportDoc";
-import { DIAGNOSTIC_DEMO_CLASS_LABELS, isDemoSubmission } from "./storage";
+import { isDemoSubmission } from "./storage";
 
 export interface InspectorSkillAnalysis {
   skill: string;
@@ -47,9 +47,25 @@ export interface InspectorLevelBreakdown {
   participationPercent: number;
 }
 
-/** خيار Demo خاص يجمع الأقسام المطلوبة في تقرير واحد. */
-export const ALL_DEMO_LEVELS_CLASS = "جميع المستويات — التقويم التشخيصي التجريبي";
-const DEMO_REPORT_ROSTER_SET = new Set<string>(DIAGNOSTIC_DEMO_CLASS_LABELS);
+/** نطاقات Demo المستقلة: تقرير منفصل لكل مستوى، لا تقرير إجمالي مشترك. */
+export const DEMO_LEVEL_REPORTS = [
+  {
+    className: "الجذع المشترك العلمي — تقرير مستقل",
+    level: "الجذع المشترك",
+    label: "الجذع المشترك العلمي — الأقسام 1 و2 و3",
+    rosterClasses: ["جذع مشترك علوم خ ف 1", "جذع مشترك علوم خ ف 2", "جذع مشترك علوم خ ف 3"],
+  },
+  {
+    className: "الثانية باكالوريا علوم إنسانية — تقرير مستقل",
+    level: "الثانية باكالوريا",
+    label: "الثانية باكالوريا علوم إنسانية — القسمان 1 و2",
+    rosterClasses: ["الثانية بكالوريا علوم إنسانية خ ف 1", "الثانية بكالوريا علوم إنسانية خ ف 2"],
+  },
+] as const;
+
+function demoReportScope(className: string) {
+  return DEMO_LEVEL_REPORTS.find((scope) => scope.className === className);
+}
 
 export interface InspectorAnalysis {
   report: InspectorReport;
@@ -132,10 +148,10 @@ export function scoreForReport(report: InspectorReport, submission: Submission):
 }
 
 function byClassAndPeriod(report: InspectorReport, submissions: Submission[], includeDemo = false): Submission[] {
-  const allLevelsDemo = report.className === ALL_DEMO_LEVELS_CLASS;
+  const scope = demoReportScope(report.className);
   return submissions
     .filter((submission) => includeDemo || !isDemoSubmission(submission))
-    .filter((submission) => allLevelsDemo || !report.className || submission.className === report.className)
+    .filter((submission) => scope ? scope.rosterClasses.some((className) => className === submission.className) : (!report.className || submission.className === report.className))
     .filter((submission) => (submission.assessmentType ?? "diagnostic") === report.assessmentType)
     .filter((submission) => reportDateWindow(report, submission));
 }
@@ -148,7 +164,8 @@ function levelForRosterClass(className: string): string {
 }
 
 function rostersForReport(report: InspectorReport): { className: string; students: RosterStudent[] }[] {
-  if (report.className === ALL_DEMO_LEVELS_CLASS) return ROSTER_CLASSES.filter((roster) => DEMO_REPORT_ROSTER_SET.has(roster.label)).map((roster) => ({ className: roster.label, students: roster.students }));
+  const scope = demoReportScope(report.className);
+  if (scope) return ROSTER_CLASSES.filter((roster) => scope.rosterClasses.some((className) => className === roster.label)).map((roster) => ({ className: roster.label, students: roster.students }));
   const roster = ROSTER_CLASSES.find((item) => item.label === report.className);
   return roster ? [{ className: roster.label, students: roster.students }] : [];
 }
@@ -173,7 +190,7 @@ function studentRows(report: InspectorReport, submissions: Submission[]): Inspec
         rosterNo: student.n,
         name: student.name,
         massar: student.massar,
-        level: report.className === ALL_DEMO_LEVELS_CLASS ? levelForRosterClass(roster.className) : report.level,
+        level: report.level || levelForRosterClass(roster.className),
         className: roster.className,
         submission,
         score: score?.score,
@@ -331,14 +348,14 @@ export function analyseInspectorReport(report: InspectorReport, allSubmissions: 
 export function defaultInspectorReport(className = ""): InspectorReport {
   const schedule = scheduleForClass(className);
   const today = new Date().toISOString().slice(0, 10);
-  const allLevelsDemo = className === ALL_DEMO_LEVELS_CLASS;
+  const demoScope = demoReportScope(className);
   return {
     id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `report-${Date.now()}`,
     teacherName: "الأستاذ عماد طليل",
     institution: "الثانوية التأهيلية القدس — القنيطرة",
     academy: "الأكاديمية الجهوية للتربية والتكوين لجهة الرباط سلا القنيطرة",
     directorate: "المديرية الإقليمية بالقنيطرة",
-    level: allLevelsDemo ? "جميع المستويات" : schedule?.bankLevel ?? "الجذع المشترك",
+    level: demoScope?.level ?? schedule?.bankLevel ?? "الجذع المشترك",
     subject: "الاجتماعيات",
     className,
     schoolYear: ROSTER_YEAR,
@@ -366,6 +383,5 @@ export function updateReportFromAnalysis(report: InspectorReport, analysis: Insp
 }
 
 export function reportClassLabel(report: InspectorReport): string {
-  if (report.className === ALL_DEMO_LEVELS_CLASS) return "جميع المستويات — نموذج تجريبي بأسماء اللائحة الرسمية";
-  return displayClassName(report.className) || report.className || "كل الأقسام";
+  return demoReportScope(report.className)?.label || displayClassName(report.className) || report.className || "كل الأقسام";
 }

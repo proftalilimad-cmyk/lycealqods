@@ -20,9 +20,9 @@ import { ROSTER_CLASSES } from "../data/rosters";
 import type { InspectorReport, Submission } from "../types";
 import { loadInspectorReports, deleteInspectorReport, saveInspectorReport } from "../lib/cloudStorage";
 import { isCloudConfigured } from "../lib/supabase";
-import { DIAGNOSTIC_DEMO_CLASS_LABELS, isDemoSubmission, loadSubmissions } from "../lib/storage";
+import { isDemoSubmission, loadSubmissions } from "../lib/storage";
 import {
-  ALL_DEMO_LEVELS_CLASS,
+  DEMO_LEVEL_REPORTS,
   analyseInspectorReport,
   defaultInspectorReport,
   reportClassLabel,
@@ -46,7 +46,8 @@ function inspectorReportTitle(assessmentType: InspectorReport["assessmentType"] 
 }
 
 function levelForClass(className: string, submissions: Submission[]): string {
-  if (className === ALL_DEMO_LEVELS_CLASS) return "جميع المستويات";
+  const scope = DEMO_LEVEL_REPORTS.find((item) => item.className === className);
+  if (scope) return scope.level;
   const known = DIAGNOSTIC_SESSIONS.find((session) => session.className === className)?.bankLevel
     ?? submissions.find((submission) => submission.className === className)?.bankLevel;
   if (known) return known;
@@ -110,22 +111,21 @@ export default function InspectorReports() {
   }, [central]);
 
   const classOptions = useMemo(() => {
-    const rosterLabels = dataMode === "demo" ? DIAGNOSTIC_DEMO_CLASS_LABELS : ROSTER_CLASSES.map((roster) => roster.label);
+    if (dataMode === "demo") return DEMO_LEVEL_REPORTS.map((scope) => scope.className);
     const names = new Set<string>([
       ...DIAGNOSTIC_SESSIONS.map((session) => session.className),
-      ...rosterLabels,
+      ...ROSTER_CLASSES.map((roster) => roster.label),
       ...submissions.map((submission) => submission.className),
     ]);
-    if (dataMode === "demo") names.add(ALL_DEMO_LEVELS_CLASS);
     return Array.from(names).sort((a, b) => displayClassName(a).localeCompare(displayClassName(b), "ar"));
   }, [dataMode, submissions]);
 
   const levels = useMemo(() => {
-    const rosterLabels = dataMode === "demo" ? DIAGNOSTIC_DEMO_CLASS_LABELS : ROSTER_CLASSES.map((roster) => roster.label);
+    if (dataMode === "demo") return DEMO_LEVEL_REPORTS.map((scope) => scope.level);
     return Array.from(new Set([
       "جميع المستويات",
       ...DIAGNOSTIC_SESSIONS.map((session) => session.bankLevel),
-      ...rosterLabels.map((className) => levelForClass(className, submissions)),
+      ...ROSTER_CLASSES.map((roster) => levelForClass(roster.label, submissions)),
       ...submissions.map((submission) => submission.bankLevel).filter(Boolean) as string[],
     ])).sort((a, b) => a === "جميع المستويات" ? -1 : b === "جميع المستويات" ? 1 : a.localeCompare(b, "ar"));
   }, [dataMode, submissions]);
@@ -143,7 +143,7 @@ export default function InspectorReports() {
 
   useEffect(() => {
     if (dataMode !== "demo" || draft.className || demoSubmissions.length === 0) return;
-    const firstClass = ALL_DEMO_LEVELS_CLASS;
+    const firstClass = DEMO_LEVEL_REPORTS[0].className;
     setDraft((previous) => ({
       ...previous,
       className: firstClass,
@@ -161,7 +161,7 @@ export default function InspectorReports() {
     demoAutoPreviewShown.current = true;
     setDraft({ ...updated, htmlSnapshot: html });
     setPreview({ report: updated, html });
-    setNotice({ kind: "warn", text: `تم إنشاء وعرض ${inspectorReportTitle(draft.assessmentType)} لجميع المستويات من ${analysis.participants} نتيجة Demo؛ هذه نسخة تطويرية لا تُحفظ مركزيًا.` });
+    setNotice({ kind: "warn", text: `تم إنشاء وعرض ${inspectorReportTitle(draft.assessmentType)} لمستوى ${draft.level} من ${analysis.participants} نتيجة Demo؛ هذه نسخة مستقلة تطويرية لا تُحفظ مركزيًا.` });
   }, [analysis, dataMode, demoSubmissions, draft.className]);
 
   const chooseDataMode = (mode: ReportDataMode) => {
@@ -169,7 +169,7 @@ export default function InspectorReports() {
     setPreview(null);
     demoAutoPreviewShown.current = false;
     if (mode === "demo" && demoSubmissions.length > 0) {
-      const firstClass = ALL_DEMO_LEVELS_CLASS;
+      const firstClass = DEMO_LEVEL_REPORTS[0].className;
       setDraft((previous) => ({
         ...previous,
         className: firstClass,
@@ -185,13 +185,30 @@ export default function InspectorReports() {
     }
   };
 
+  const chooseDemoLevel = (className: string) => {
+    const scope = DEMO_LEVEL_REPORTS.find((item) => item.className === className);
+    if (dataMode !== "demo" || !scope) return;
+    demoAutoPreviewShown.current = false;
+    setPreview(null);
+    setDraft((previous) => ({
+      ...previous,
+      className: scope.className,
+      level: scope.level,
+      periodFrom: demoDateRange.from,
+      periodTo: demoDateRange.to,
+      submissionIds: [],
+      updatedAt: new Date().toISOString(),
+    }));
+    setNotice({ kind: "warn", text: `تم اختيار تقرير مستقل لمستوى ${scope.level}.` });
+  };
+
   const setField = <K extends keyof InspectorReport>(key: K, value: InspectorReport[K]) => {
     setDraft((previous) => ({ ...previous, [key]: value, updatedAt: new Date().toISOString() }));
     setNotice(null);
   };
 
   const newReport = () => {
-    const demoClass = dataMode === "demo" ? (demoSubmissions.length > 0 ? ALL_DEMO_LEVELS_CLASS : draft.className) : draft.className;
+    const demoClass = dataMode === "demo" ? (demoSubmissions.length > 0 ? DEMO_LEVEL_REPORTS[0].className : draft.className) : draft.className;
     const next = defaultInspectorReport(demoClass);
     next.level = dataMode === "demo" && demoClass ? levelForClass(demoClass, demoSubmissions) : (draft.level || next.level);
     next.periodFrom = dataMode === "demo" ? demoDateRange.from : today();
@@ -319,8 +336,9 @@ export default function InspectorReports() {
                 <button type="button" onClick={() => chooseDataMode("central")} className={`rounded-xl border px-3 py-2.5 text-start text-[11px] font-extrabold transition ${dataMode === "central" ? "border-brand-300 bg-brand-50 text-brand-800" : "border-ink-900/10 bg-white text-ink-600 hover:border-brand-200"}`}>النتائج المركزية<span className="mt-0.5 block text-[10px] font-semibold opacity-75">المصدر الرسمي المرتبط بالأستاذ والقسم</span></button>
               </div>
             </div>
+            {dataMode === "demo" && <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-3"><p className="text-[11px] font-extrabold text-amber-900">اختر التقرير المستقل للمستوى</p><div className="mt-2 grid gap-2 sm:grid-cols-2">{DEMO_LEVEL_REPORTS.map((scope) => <button key={scope.className} type="button" onClick={() => chooseDemoLevel(scope.className)} className={`rounded-xl border px-3 py-2.5 text-start text-[11px] font-extrabold transition ${draft.className === scope.className ? "border-amber-400 bg-white text-amber-950 shadow-sm" : "border-white bg-white/70 text-ink-700 hover:border-amber-300"}`}>{scope.label}<span className="mt-0.5 block text-[10px] font-semibold text-ink-500">نسبة الحضور تُحسب لهذا المستوى فقط</span></button>)}</div></div>}
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <Field label="المستوى الدراسي"><select value={draft.level} onChange={(event) => { setField("level", event.target.value); setField("className", ""); }} className="field"><option value="">كل المستويات</option>{levels.map((level) => <option key={level} value={level}>{level}</option>)}</select></Field>
+              <Field label="المستوى الدراسي"><select value={draft.level} onChange={(event) => { setField("level", event.target.value); setField("className", ""); }} className="field"><option value="">{dataMode === "demo" ? "اختر المستوى" : "كل المستويات"}</option>{levels.map((level) => <option key={level} value={level}>{level}</option>)}</select></Field>
               <Field label="المادة الدراسية"><select value={draft.subject} onChange={(event) => setField("subject", event.target.value)} className="field"><option value="الاجتماعيات">الاجتماعيات</option><option value="التاريخ">التاريخ</option><option value="الجغرافيا">الجغرافيا</option></select></Field>
               <Field label="القسم الدراسي"><select value={draft.className} onChange={(event) => { const className = event.target.value; setField("className", className); const level = levelForClass(className, submissions); if (level !== "غير محدد") setField("level", level); }} className="field"><option value="">اختر القسم</option>{classesForLevel.map((className) => <option key={className} value={className}>{displayClassName(className)}</option>)}</select></Field>
               <Field label="نوع التقويم"><select value={draft.assessmentType} onChange={(event) => setField("assessmentType", event.target.value as InspectorReport["assessmentType"])} className="field"><option value="diagnostic">التقويم التشخيصي</option><option value="personal">التقويم الشخصي</option></select></Field>
