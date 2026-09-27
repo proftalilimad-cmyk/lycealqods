@@ -120,6 +120,7 @@ interface LibraryBook {
 
 export default function Decks({ go, initialSubject }: DecksProps) {
   const [subject, setSubject] = useState<"all" | "التاريخ" | "الجغرافيا">(initialSubject === "التاريخ" || initialSubject === "الجغرافيا" ? initialSubject : "all");
+  const [selectedLevel, setSelectedLevel] = useState<"all" | LevelId>("all");
   const list = DECKS.filter((d) => (subject === "all" || d.subject === subject) && (d.subject === "التاريخ" || d.subject === "الجغرافيا"));
   const primaryDecks = DECKS.filter((d) => (d.bookId ?? "bac1-sci") === DECK_BOOK.id);
   const minarDeck = DECKS.find((d) => d.isBook && d.bookId === MINAR_BOOK.id);
@@ -136,6 +137,7 @@ export default function Decks({ go, initialSubject }: DecksProps) {
       items: list.filter((deck) => deckLevel(deck) === level.id && deck.subject === entry.id),
     })),
   }));
+  const visibleLevelGroups = selectedLevel === "all" ? levelGroups : levelGroups.filter((level) => level.id === selectedLevel);
   const libraryBooks: LibraryBook[] = [
     {
       id: DECK_BOOK.id,
@@ -255,6 +257,43 @@ export default function Decks({ go, initialSubject }: DecksProps) {
           </section>
         </Reveal>
 
+        {/* اختيار المستوى */}
+        <Reveal delay={140}>
+          <section aria-labelledby="deck-level-heading" className="mt-10 rounded-[2rem] border border-brand-200/70 bg-brand-50/60 p-5 sm:p-7">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-4 py-1.5 text-xs font-semibold text-brand-700">
+                  <GraduationCap className="size-3.5" aria-hidden="true" />
+                  اختيار المستوى الدراسي
+                </span>
+                <h2 id="deck-level-heading" className="mt-3 font-display text-xl font-black text-ink-900 sm:text-2xl">اختر المستوى قبل تصفح المادة</h2>
+                <p className="mt-1.5 text-xs leading-relaxed text-ink-500">يظهر بعد الاختيار تصنيف التاريخ والجغرافيا الخاص بالمستوى فقط.</p>
+              </div>
+              <button type="button" onClick={() => setSelectedLevel("all")} aria-pressed={selectedLevel === "all"} className={cn("rounded-xl px-4 py-2 text-xs font-extrabold transition", selectedLevel === "all" ? "bg-brand-700 text-white shadow-md" : "bg-white text-brand-700 ring-1 ring-brand-200 hover:bg-brand-100")}>
+                كل المستويات <span className="ms-1 rounded-full bg-white/20 px-1.5 py-0.5">{list.length}</span>
+              </button>
+            </div>
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              {LEVEL_SECTIONS.map((level) => {
+                const count = list.filter((deck) => deckLevel(deck) === level.id).length;
+                const active = selectedLevel === level.id;
+                return (
+                  <button key={level.id} type="button" onClick={() => setSelectedLevel(level.id)} aria-pressed={active} className={cn("group flex items-center gap-3 rounded-2xl border-2 p-4 text-start transition-all duration-300", active ? "border-brand-600 bg-white shadow-lg shadow-brand-700/10" : "border-white bg-white/70 hover:-translate-y-0.5 hover:border-brand-300")}>
+                    <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl transition-colors", active ? "bg-brand-700 text-gold-300" : "bg-brand-100 text-brand-700 group-hover:bg-brand-200")}>
+                      <GraduationCap className="size-5" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-display text-sm font-black text-ink-900">{level.label}</span>
+                      <span className="mt-1 block line-clamp-2 text-[10px] leading-relaxed text-ink-500">{level.description}</span>
+                    </span>
+                    <span className={cn("shrink-0 rounded-full px-2 py-1 text-[10px] font-black", active ? "bg-brand-700 text-white" : "bg-cream text-ink-500")}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </Reveal>
+
         {/* تصنيف العروض */}
         <Reveal delay={160}>
           <div id="deck-catalog" className="mt-14 scroll-mt-28">
@@ -295,7 +334,7 @@ export default function Decks({ go, initialSubject }: DecksProps) {
         </Reveal>
 
         <div className="mt-10 space-y-10">
-          {levelGroups.map((level, levelIndex) => (
+          {visibleLevelGroups.map((level, levelIndex) => (
             <section key={level.id} className="rounded-[2rem] border border-ink-900/6 bg-white/70 p-5 shadow-[0_20px_55px_-40px_rgba(4,36,26,0.35)] sm:p-7">
               <Reveal delay={80 + levelIndex * 70}>
                 <div className="flex flex-wrap items-center gap-3 border-b border-ink-900/6 pb-5">
