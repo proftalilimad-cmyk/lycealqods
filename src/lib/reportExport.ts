@@ -123,7 +123,23 @@ export function printDocument(html: string, fileTitle: string): Promise<void> {
       else window.setTimeout(doPrint, 300);
     };
 
-    window.setTimeout(waitFonts, 80);
+    // انتظر الشعار والصور داخل التقرير قبل فتح الطباعة حتى لا يعيد المتصفح
+    // توزيع الصفحات بعد بدء الطباعة، وهو ما كان يترك فراغات أو صفحات شبه فارغة.
+    const waitImages = () => {
+      const images = Array.from(doc.images);
+      if (images.length === 0) {
+        waitFonts();
+        return;
+      }
+      Promise.all(images.map((image) => image.complete
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => {
+            image.addEventListener("load", () => resolve(), { once: true });
+            image.addEventListener("error", () => resolve(), { once: true });
+          }))).then(waitFonts).catch(waitFonts);
+    };
+
+    window.setTimeout(waitImages, 80);
   });
 }
 
