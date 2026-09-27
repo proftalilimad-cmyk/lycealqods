@@ -2,7 +2,7 @@ import type { InspectorReport, Submission } from "../types";
 import { ROSTER_CLASSES, ROSTER_YEAR, type RosterStudent } from "../data/rosters";
 import { displayClassName, scheduleForClass } from "../data/diagnosticSchedule";
 import { analyse, recommendationsFor, skillState } from "./reportDoc";
-import { isDemoSubmission } from "./storage";
+import { DIAGNOSTIC_DEMO_CLASS_LABELS, isDemoSubmission } from "./storage";
 
 export interface InspectorSkillAnalysis {
   skill: string;
@@ -47,8 +47,9 @@ export interface InspectorLevelBreakdown {
   participationPercent: number;
 }
 
-/** خيار Demo خاص يجمع اللوائح الرسمية للمستويات الثلاثة في تقرير واحد. */
+/** خيار Demo خاص يجمع الأقسام المطلوبة في تقرير واحد. */
 export const ALL_DEMO_LEVELS_CLASS = "جميع المستويات — التقويم التشخيصي التجريبي";
+const DEMO_REPORT_ROSTER_SET = new Set<string>(DIAGNOSTIC_DEMO_CLASS_LABELS);
 
 export interface InspectorAnalysis {
   report: InspectorReport;
@@ -147,7 +148,7 @@ function levelForRosterClass(className: string): string {
 }
 
 function rostersForReport(report: InspectorReport): { className: string; students: RosterStudent[] }[] {
-  if (report.className === ALL_DEMO_LEVELS_CLASS) return ROSTER_CLASSES.map((roster) => ({ className: roster.label, students: roster.students }));
+  if (report.className === ALL_DEMO_LEVELS_CLASS) return ROSTER_CLASSES.filter((roster) => DEMO_REPORT_ROSTER_SET.has(roster.label)).map((roster) => ({ className: roster.label, students: roster.students }));
   const roster = ROSTER_CLASSES.find((item) => item.label === report.className);
   return roster ? [{ className: roster.label, students: roster.students }] : [];
 }

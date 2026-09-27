@@ -14,8 +14,8 @@ import { cloudConfigHint, isAssessmentSubmissionConfigured, isCloudConfigured } 
 
 const KEY = "talil_platform_submissions_v1";
 /** تغيير الإصدار يعيد إنشاء Demo فقط؛ النتائج الحقيقية مصدرها Supabase. */
-const SEED_FLAG = "talil_platform_demo_seed_v6";
-export const DEMO_DATA_VERSION = "diagnostic-demo-v4-all-levels-roster";
+const SEED_FLAG = "talil_platform_demo_seed_v7";
+export const DEMO_DATA_VERSION = "diagnostic-demo-v5-selected-classes";
 
 /**
  * الأقسام التي تدخل في النموذج التجريبي. لا تُستعمل هذه القائمة لإنشاء
@@ -23,7 +23,13 @@ export const DEMO_DATA_VERSION = "diagnostic-demo-v4-all-levels-roster";
  * الأسماء مأخوذة من اللوائح الرسمية الموجودة في المشروع، بينما الحضور
  * والنقط مولّدان تجريبيًا ولا يمثلان واقعة مدرسية حقيقية.
  */
-export const DIAGNOSTIC_DEMO_CLASS_LABELS = ROSTER_CLASSES.map((roster) => roster.label);
+export const DIAGNOSTIC_DEMO_CLASS_LABELS = [
+  "جذع مشترك علوم خ ف 1",
+  "جذع مشترك علوم خ ف 2",
+  "جذع مشترك علوم خ ف 3",
+  "الثانية بكالوريا علوم إنسانية خ ف 1",
+  "الثانية بكالوريا علوم إنسانية خ ف 2",
+] as const;
 
 const DIAGNOSTIC_DEMO_CLASS_SET = new Set<string>(DIAGNOSTIC_DEMO_CLASS_LABELS);
 
@@ -54,17 +60,19 @@ function demoRateForClass(className: string): number {
 }
 
 /**
- * عينة واحدة من كل قسم في اللائحة: 35٪ للجذع المشترك، 34٪ للأولى،
- * و32٪ للثانية. بذلك يظهر التقرير الشامل فروقًا واقعية الشكل بين المستويات
+ * الأقسام المطلوبة في التقويم التجريبي: الجذع المشترك العلمي 1 و2 و3،
+ * والثانية باكالوريا علوم إنسانية 1 و2. نسب الحضور بين 30٪ و40٪،
  * من دون تحويل الغياب إلى نقطة صفرية أو ادعاء أن النتائج حقيقية.
  */
-const DEMO_CLASSES: DemoClassConfig[] = ROSTER_CLASSES.map((roster, index) => ({
-  className: roster.label,
-  bankId: demoBankForClass(roster.label),
-  sessionId: DIAGNOSTIC_SESSIONS.find((session) => session.className === roster.label)?.id ?? `demo-all-levels-${index + 1}`,
-  count: Math.max(1, Math.round(roster.students.length * demoRateForClass(roster.label))),
-  firstStudentNo: 1,
-}));
+const DEMO_CLASSES: DemoClassConfig[] = ROSTER_CLASSES
+  .filter((roster) => DIAGNOSTIC_DEMO_CLASS_SET.has(roster.label))
+  .map((roster, index) => ({
+    className: roster.label,
+    bankId: demoBankForClass(roster.label),
+    sessionId: DIAGNOSTIC_SESSIONS.find((session) => session.className === roster.label)?.id ?? `demo-selected-classes-${index + 1}`,
+    count: Math.max(1, Math.round(roster.students.length * demoRateForClass(roster.label))),
+    firstStudentNo: 1,
+  }));
 
 export interface DiagnosticStudentAttendance {
   student: RosterStudent;

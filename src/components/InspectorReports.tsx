@@ -20,7 +20,7 @@ import { ROSTER_CLASSES } from "../data/rosters";
 import type { InspectorReport, Submission } from "../types";
 import { loadInspectorReports, deleteInspectorReport, saveInspectorReport } from "../lib/cloudStorage";
 import { isCloudConfigured } from "../lib/supabase";
-import { isDemoSubmission, loadSubmissions } from "../lib/storage";
+import { DIAGNOSTIC_DEMO_CLASS_LABELS, isDemoSubmission, loadSubmissions } from "../lib/storage";
 import {
   ALL_DEMO_LEVELS_CLASS,
   analyseInspectorReport,
@@ -110,21 +110,25 @@ export default function InspectorReports() {
   }, [central]);
 
   const classOptions = useMemo(() => {
+    const rosterLabels = dataMode === "demo" ? DIAGNOSTIC_DEMO_CLASS_LABELS : ROSTER_CLASSES.map((roster) => roster.label);
     const names = new Set<string>([
       ...DIAGNOSTIC_SESSIONS.map((session) => session.className),
-      ...ROSTER_CLASSES.map((roster) => roster.label),
+      ...rosterLabels,
       ...submissions.map((submission) => submission.className),
     ]);
     if (dataMode === "demo") names.add(ALL_DEMO_LEVELS_CLASS);
     return Array.from(names).sort((a, b) => displayClassName(a).localeCompare(displayClassName(b), "ar"));
   }, [dataMode, submissions]);
 
-  const levels = useMemo(() => Array.from(new Set([
-    "جميع المستويات",
-    ...DIAGNOSTIC_SESSIONS.map((session) => session.bankLevel),
-    ...ROSTER_CLASSES.map((roster) => levelForClass(roster.label, submissions)),
-    ...submissions.map((submission) => submission.bankLevel).filter(Boolean) as string[],
-  ])).sort((a, b) => a === "جميع المستويات" ? -1 : b === "جميع المستويات" ? 1 : a.localeCompare(b, "ar")), [submissions]);
+  const levels = useMemo(() => {
+    const rosterLabels = dataMode === "demo" ? DIAGNOSTIC_DEMO_CLASS_LABELS : ROSTER_CLASSES.map((roster) => roster.label);
+    return Array.from(new Set([
+      "جميع المستويات",
+      ...DIAGNOSTIC_SESSIONS.map((session) => session.bankLevel),
+      ...rosterLabels.map((className) => levelForClass(className, submissions)),
+      ...submissions.map((submission) => submission.bankLevel).filter(Boolean) as string[],
+    ])).sort((a, b) => a === "جميع المستويات" ? -1 : b === "جميع المستويات" ? 1 : a.localeCompare(b, "ar"));
+  }, [dataMode, submissions]);
 
   const classesForLevel = useMemo(() => classOptions.filter((className) => draft.level === "غير محدد" || !draft.level || levelForClass(className, submissions) === draft.level), [classOptions, draft.level, submissions]);
   const analysis = useMemo(() => analyseInspectorReport(draft, reportSubmissions, includeDemo), [draft, reportSubmissions, includeDemo]);
