@@ -78,7 +78,7 @@ export function inspectorReportHtml(report: InspectorReport, analysis: Inspector
   const average = analysis.average === null ? "—" : `${analysis.average}/${analysis.maxScoreScale}`;
   const averagePercent = analysis.averagePercent === null ? "—" : `${analysis.averagePercent}٪`;
   const sourceLabel = analysis.dataSource === "demo" ? "بيانات Demo" : "النتائج المركزية";
-  const title = report.assessmentType === "diagnostic" ? "تقرير التقويم التشخيصي للمفتش" : "تقرير التقويم الشخصي للمفتش";
+  const title = report.assessmentType === "diagnostic" ? "تقرير التقويم التشخيصي الموجه للمفتش" : "تقرير التقويم الشخصي الموجه للمفتش";
   return htmlDocument(`
 <section class="cover">
   <header class="masthead"><div class="official-wordmark" dir="rtl"><div class="kingdom">المملكة المغربية</div><div class="ministry-name">وزارة التربية الوطنية<br>والتعليم الأولي والرياضة</div></div><img class="official-coat" src="/report/morocco-coat.png" alt="شعار المملكة المغربية" /></header><div class="head-lines" style="text-align:center;margin-top:6px"><p class="school">${esc(report.academy)}</p><p class="subhead">${esc(report.directorate)} · ${esc(report.institution)} · السنة الدراسية: ${esc(report.schoolYear)}</p></div>

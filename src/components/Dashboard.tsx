@@ -921,7 +921,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
    ============================================================
    تبويبات:
      results  → نتائج التقويم التشخيصي
-     reports  → تقرير التقويم التشخيصي للمفتش وحفظه المركزي
+     reports  → تقرير التقويم التشخيصي الموجه للمفتش وحفظه المركزي
      inspector-demo → نموذج تشخيصي تجريبي معزول لفضاء المفتش
      jadadat  → الجذاذات
      security  → تغيير بيانات الدخول + حدود الحماية
@@ -933,7 +933,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
 
 const TABS = [
   { id: "results", label: "نتائج التقويم التشخيصي", hint: "الحضور، النتائج، التقارير والتصدير", icon: ChartColumn },
-  { id: "reports", label: "تقارير المفتش", hint: "تحليل رسمي، معاينة، PDF وحفظ مركزي", icon: FileBarChart },
+  { id: "reports", label: "تقارير موجهة للمفتش", hint: "تحليل رسمي موجه للمفتش، معاينة، PDF وحفظ مركزي", icon: FileBarChart },
   { id: "inspector-demo", label: "التقويم التشخيصي التجريبي", hint: "DEMO / TEST — عرض ومحاكاة معزولة", icon: FlaskConical },
   { id: "jadadat", label: "الجذاذات", hint: "إعداد الدروس والأنشطة والتقويم", icon: FileText },
   { id: "security", label: "الدخول والأمان", hint: "حماية الفضاء وإدارة الجلسة", icon: KeyRound },

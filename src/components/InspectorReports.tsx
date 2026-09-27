@@ -42,7 +42,7 @@ function statusLabel(status: InspectorReport["status"]): string {
 }
 
 function inspectorReportTitle(assessmentType: InspectorReport["assessmentType"] = "diagnostic"): string {
-  return assessmentType === "personal" ? "تقرير التقويم الشخصي للمفتش" : "تقرير التقويم التشخيصي للمفتش";
+  return assessmentType === "personal" ? "تقرير التقويم الشخصي الموجه للمفتش" : "تقرير التقويم التشخيصي الموجه للمفتش";
 }
 
 function levelForClass(className: string, submissions: Submission[]): string {
@@ -308,7 +308,7 @@ export default function InspectorReports() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1.5 text-xs font-extrabold text-brand-700"><FileBarChart className="size-4" aria-hidden="true" /> تقارير المفتش</span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1.5 text-xs font-extrabold text-brand-700"><FileBarChart className="size-4" aria-hidden="true" /> تقارير موجهة للمفتش</span>
                 <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold ${central ? "bg-emerald-50 text-emerald-700" : "bg-gold-50 text-gold-800"}`}><Database className="size-3.5" aria-hidden="true" />{central ? "قاعدة مركزية مفعّلة" : "المعاينة فقط — قاعدة البيانات غير مفعّلة"}</span>
                 <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold ${dataMode === "demo" ? "bg-amber-100 text-amber-800" : "bg-brand-50 text-brand-700"}`}>{dataMode === "demo" ? "مصدر Demo معزول" : "مصدر النتائج المركزية"}</span>
               </div>
