@@ -14,68 +14,57 @@ import { cloudConfigHint, isAssessmentSubmissionConfigured, isCloudConfigured } 
 
 const KEY = "talil_platform_submissions_v1";
 /** تغيير الإصدار يعيد إنشاء Demo فقط؛ النتائج الحقيقية مصدرها Supabase. */
-const SEED_FLAG = "talil_platform_demo_seed_v5";
-export const DEMO_DATA_VERSION = "diagnostic-demo-v3-roster-names";
+const SEED_FLAG = "talil_platform_demo_seed_v6";
+export const DEMO_DATA_VERSION = "diagnostic-demo-v4-all-levels-roster";
 
 /**
  * الأقسام التي تدخل في النموذج التجريبي. لا تُستعمل هذه القائمة لإنشاء
- * أي نتيجة حقيقية أو اسم حقيقي؛ كل سجل ناتج عنها يحمل demo=true.
+ * أي نتيجة حقيقية؛ كل سجل ناتج عنها يحمل demo=true وتبقى المعاينة معزولة.
+ * الأسماء مأخوذة من اللوائح الرسمية الموجودة في المشروع، بينما الحضور
+ * والنقط مولّدان تجريبيًا ولا يمثلان واقعة مدرسية حقيقية.
  */
-export const DIAGNOSTIC_DEMO_CLASS_LABELS = [
-  "جذع مشترك علوم خ ف 1",
-  "جذع مشترك علوم خ ف 2",
-  "جذع مشترك علوم خ ف 3",
-  "الثانية بكالوريا علوم إنسانية خ ف 1",
-  "الثانية بكالوريا علوم إنسانية خ ف 2",
-] as const;
+export const DIAGNOSTIC_DEMO_CLASS_LABELS = ROSTER_CLASSES.map((roster) => roster.label);
 
 const DIAGNOSTIC_DEMO_CLASS_SET = new Set<string>(DIAGNOSTIC_DEMO_CLASS_LABELS);
 
 interface DemoClassConfig {
   className: string;
   bankId: string;
-  sessionId: string;
+  sessionId?: string;
   count: number;
   firstStudentNo: number;
 }
 
-const DEMO_CLASSES: DemoClassConfig[] = [
-  {
-    className: "جذع مشترك علوم خ ف 1",
-    bankId: "tc-sci",
-    sessionId: "tc-sci-1-2026-09-17",
-    count: 10,
-    firstStudentNo: 1,
-  },
-  {
-    className: "جذع مشترك علوم خ ف 2",
-    bankId: "tc-sci",
-    sessionId: "tc-sci-2",
-    count: 10,
-    firstStudentNo: 11,
-  },
-  {
-    className: "جذع مشترك علوم خ ف 3",
-    bankId: "tc-sci",
-    sessionId: "tc-sci-3-2026-09-17",
-    count: 10,
-    firstStudentNo: 21,
-  },
-  {
-    className: "الثانية بكالوريا علوم إنسانية خ ف 1",
-    bankId: "bac2-hum",
-    sessionId: "bac2-hum-1-2026-09-21",
-    count: 8,
-    firstStudentNo: 1,
-  },
-  {
-    className: "الثانية بكالوريا علوم إنسانية خ ف 2",
-    bankId: "bac2-hum",
-    sessionId: "bac2-hum-2-2026-09-21",
-    count: 2,
-    firstStudentNo: 9,
-  },
-];
+function demoBankForClass(className: string): string {
+  if (className.includes("جذع مشترك آداب")) return "tc-arts";
+  if (className.includes("جذع مشترك علوم")) return "tc-sci";
+  if (className.includes("الأولى بكالوريا آداب")) return "bac1-arts";
+  if (className.includes("الأولى بكالوريا علوم تجريبية")) return "bac1-exp";
+  if (className.includes("الأولى بكالوريا علوم")) return "bac1-sci";
+  if (className.includes("الثانية بكالوريا آداب")) return "bac2-arts";
+  // لا يتوفر بنك تجريبي مستقل لكل فروع الثانية باكالوريا العلمية؛ يستعمل
+  // بنك العلوم الإنسانية المشترك في النموذج فقط، مع بقاء السجل Demo معزولًا.
+  return "bac2-hum";
+}
+
+function demoRateForClass(className: string): number {
+  if (className.includes("جذع مشترك")) return 0.35;
+  if (className.includes("الأولى بكالوريا")) return 0.34;
+  return 0.32;
+}
+
+/**
+ * عينة واحدة من كل قسم في اللائحة: 35٪ للجذع المشترك، 34٪ للأولى،
+ * و32٪ للثانية. بذلك يظهر التقرير الشامل فروقًا واقعية الشكل بين المستويات
+ * من دون تحويل الغياب إلى نقطة صفرية أو ادعاء أن النتائج حقيقية.
+ */
+const DEMO_CLASSES: DemoClassConfig[] = ROSTER_CLASSES.map((roster, index) => ({
+  className: roster.label,
+  bankId: demoBankForClass(roster.label),
+  sessionId: DIAGNOSTIC_SESSIONS.find((session) => session.className === roster.label)?.id ?? `demo-all-levels-${index + 1}`,
+  count: Math.max(1, Math.round(roster.students.length * demoRateForClass(roster.label))),
+  firstStudentNo: 1,
+}));
 
 export interface DiagnosticStudentAttendance {
   student: RosterStudent;
@@ -118,7 +107,7 @@ interface DemoProfile {
   writingStrong: boolean;
 }
 
-/** خمسة ناجحين وخمسة محتاجين للدعم في كل قسم علمي: النسبة تُستخرج من النقط. */
+/** ملفات أداء تجريبية متنوعة؛ النسبة والحضور منفصلان عن حالة الغياب. */
 const DEMO_PROFILES: DemoProfile[] = [
   { id: "excellent", targetCorrect: 19, focus: "excellent", writingStrong: true },
   { id: "very-good", targetCorrect: 17, focus: "excellent", writingStrong: true },
@@ -249,7 +238,7 @@ function demoSubmission(config: DemoClassConfig, order: number, profile: DemoPro
     bankId: config.bankId,
     bankLabel: bank?.branch,
     bankLevel: bank?.level,
-    diagnosticLevel: bank?.level === "الثانية باكالوريا" ? "2bac" : "jad3-moshtarak",
+    diagnosticLevel: bank?.level === "الثانية باكالوريا" ? "2bac" : bank?.level === "الأولى باكالوريا" ? "1bac" : "jad3-moshtarak",
     sessionId: config.sessionId,
     date: scheduledDate(session),
     history,
@@ -456,7 +445,9 @@ export function ensureSeeded(): void {
     if (local.length !== localDemo.length) localStorage.setItem(KEY, JSON.stringify(localDemo));
     return;
   }
-  localStorage.setItem(KEY, JSON.stringify([...localDemo, ...seeded()]));
+  // تغيير نسخة Demo يعيد بناء العينة من الصفر حتى لا تختلط نسب الإصدار السابق
+  // بالعينة الجديدة متعددة المستويات.
+  localStorage.setItem(KEY, JSON.stringify(seeded()));
   localStorage.setItem(SEED_FLAG, DEMO_DATA_VERSION);
 }
 

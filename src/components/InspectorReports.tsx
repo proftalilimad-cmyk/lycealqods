@@ -22,6 +22,7 @@ import { loadInspectorReports, deleteInspectorReport, saveInspectorReport } from
 import { isCloudConfigured } from "../lib/supabase";
 import { isDemoSubmission, loadSubmissions } from "../lib/storage";
 import {
+  ALL_DEMO_LEVELS_CLASS,
   analyseInspectorReport,
   defaultInspectorReport,
   reportClassLabel,
@@ -45,6 +46,7 @@ function inspectorReportTitle(assessmentType: InspectorReport["assessmentType"] 
 }
 
 function levelForClass(className: string, submissions: Submission[]): string {
+  if (className === ALL_DEMO_LEVELS_CLASS) return "جميع المستويات";
   const known = DIAGNOSTIC_SESSIONS.find((session) => session.className === className)?.bankLevel
     ?? submissions.find((submission) => submission.className === className)?.bankLevel;
   if (known) return known;
@@ -113,14 +115,16 @@ export default function InspectorReports() {
       ...ROSTER_CLASSES.map((roster) => roster.label),
       ...submissions.map((submission) => submission.className),
     ]);
+    if (dataMode === "demo") names.add(ALL_DEMO_LEVELS_CLASS);
     return Array.from(names).sort((a, b) => displayClassName(a).localeCompare(displayClassName(b), "ar"));
-  }, [submissions]);
+  }, [dataMode, submissions]);
 
   const levels = useMemo(() => Array.from(new Set([
+    "جميع المستويات",
     ...DIAGNOSTIC_SESSIONS.map((session) => session.bankLevel),
     ...ROSTER_CLASSES.map((roster) => levelForClass(roster.label, submissions)),
     ...submissions.map((submission) => submission.bankLevel).filter(Boolean) as string[],
-  ])).sort((a, b) => a.localeCompare(b, "ar")), [submissions]);
+  ])).sort((a, b) => a === "جميع المستويات" ? -1 : b === "جميع المستويات" ? 1 : a.localeCompare(b, "ar")), [submissions]);
 
   const classesForLevel = useMemo(() => classOptions.filter((className) => draft.level === "غير محدد" || !draft.level || levelForClass(className, submissions) === draft.level), [classOptions, draft.level, submissions]);
   const analysis = useMemo(() => analyseInspectorReport(draft, reportSubmissions, includeDemo), [draft, reportSubmissions, includeDemo]);
@@ -135,7 +139,7 @@ export default function InspectorReports() {
 
   useEffect(() => {
     if (dataMode !== "demo" || draft.className || demoSubmissions.length === 0) return;
-    const firstClass = demoSubmissions[0].className;
+    const firstClass = ALL_DEMO_LEVELS_CLASS;
     setDraft((previous) => ({
       ...previous,
       className: firstClass,
@@ -153,7 +157,7 @@ export default function InspectorReports() {
     demoAutoPreviewShown.current = true;
     setDraft({ ...updated, htmlSnapshot: html });
     setPreview({ report: updated, html });
-    setNotice({ kind: "warn", text: `تم إنشاء وعرض ${inspectorReportTitle(draft.assessmentType)} من ${analysis.participants} نتيجة Demo؛ هذه نسخة تطويرية لا تُحفظ مركزيًا.` });
+    setNotice({ kind: "warn", text: `تم إنشاء وعرض ${inspectorReportTitle(draft.assessmentType)} لجميع المستويات من ${analysis.participants} نتيجة Demo؛ هذه نسخة تطويرية لا تُحفظ مركزيًا.` });
   }, [analysis, dataMode, demoSubmissions, draft.className]);
 
   const chooseDataMode = (mode: ReportDataMode) => {
@@ -161,7 +165,7 @@ export default function InspectorReports() {
     setPreview(null);
     demoAutoPreviewShown.current = false;
     if (mode === "demo" && demoSubmissions.length > 0) {
-      const firstClass = demoSubmissions[0].className;
+      const firstClass = ALL_DEMO_LEVELS_CLASS;
       setDraft((previous) => ({
         ...previous,
         className: firstClass,
@@ -183,7 +187,7 @@ export default function InspectorReports() {
   };
 
   const newReport = () => {
-    const demoClass = dataMode === "demo" ? (demoSubmissions[0]?.className ?? draft.className) : draft.className;
+    const demoClass = dataMode === "demo" ? (demoSubmissions.length > 0 ? ALL_DEMO_LEVELS_CLASS : draft.className) : draft.className;
     const next = defaultInspectorReport(demoClass);
     next.level = dataMode === "demo" && demoClass ? levelForClass(demoClass, demoSubmissions) : (draft.level || next.level);
     next.periodFrom = dataMode === "demo" ? demoDateRange.from : today();
@@ -337,9 +341,10 @@ export default function InspectorReports() {
 
         <Reveal delay={130}>
           <div className="rounded-3xl border border-ink-900/6 bg-white p-5 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="flex items-center gap-2 font-display text-base font-extrabold text-ink-900"><BarChart3 className="size-5 text-brand-600" aria-hidden="true" /> ملخص التحليل الحقيقي</p><p className="mt-1 text-[11px] text-ink-500">تتغير المؤشرات عند اختيار القسم أو الفترة أو نوع التقويم.</p></div><span className="rounded-full bg-brand-50 px-3 py-1.5 text-[10px] font-extrabold text-brand-700">{analysis.participationPercent}٪ مشاركة</span></div>
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="flex items-center gap-2 font-display text-base font-extrabold text-ink-900"><BarChart3 className="size-5 text-brand-600" aria-hidden="true" /> {dataMode === "demo" ? "ملخص التحليل التجريبي" : "ملخص التحليل المركزي"}</p><p className="mt-1 text-[11px] text-ink-500">تتغير المؤشرات عند اختيار القسم أو الفترة أو نوع التقويم.</p></div><span className="rounded-full bg-brand-50 px-3 py-1.5 text-[10px] font-extrabold text-brand-700">{analysis.participationPercent}٪ مشاركة</span></div>
             <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">{[["اللائحة", analysis.totalStudents], ["المشاركون", analysis.participants], ["المعدل", analysis.average === null ? "—" : `${analysis.average}/${analysis.maxScoreScale}`], ["النجاح", analysis.successPercent === null ? "—" : `${analysis.successPercent}٪`], ["أعلى", analysis.maxScore === null ? "—" : analysis.maxScore], ["أدنى", analysis.minScore === null ? "—" : analysis.minScore], ["الدعم", analysis.supportCount], ["الغائبون", analysis.absent]].map(([label, value]) => <div key={String(label)} className="rounded-2xl border border-ink-900/6 bg-paper-warm/40 p-3 text-center"><b className="block font-display text-lg font-black text-ink-900">{value}</b><span className="text-[10px] font-bold text-ink-500">{label}</span></div>)}</div>
             <div className="mt-5 space-y-2">{analysis.skills.slice(0, 8).map((skill) => <div key={skill.skill}><div className="flex justify-between text-[11px] font-bold text-ink-700"><span>{skill.skill}</span><span>{skill.percent}٪</span></div><div className="mt-1 h-2 overflow-hidden rounded-full bg-paper-warm"><div className={`h-full rounded-full ${skill.percent >= draft.threshold ? "bg-brand-500" : "bg-rose-500"}`} style={{ width: `${skill.percent}%` }} /></div></div>)}{analysis.skills.length === 0 && <p className="rounded-xl border border-dashed border-ink-900/10 p-5 text-center text-xs font-bold text-ink-500">لا توجد كفايات قابلة للتحليل دون نتائج فعلية.</p>}</div>
+            {analysis.levelBreakdown.length > 1 && <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/60 p-3"><p className="text-[11px] font-extrabold text-amber-900">نسبة الحضور في التقرير التجريبي الشامل</p><div className="mt-2 grid gap-2 sm:grid-cols-3">{analysis.levelBreakdown.map((item) => <div key={item.level} className="rounded-xl bg-white/80 p-2.5 text-center"><b className="block font-display text-base font-black text-brand-700">{item.participationPercent}٪</b><span className="block text-[10px] font-bold text-ink-700">{item.level}</span><span className="mt-0.5 block text-[9px] text-ink-500">{item.participants} حاضر من {item.total}</span></div>)}</div><p className="mt-2 text-[10px] font-semibold leading-relaxed text-amber-900">الحضور والنقط تجريبية، والأسماء مأخوذة من اللائحة الرسمية للمعاينة فقط؛ لا تُحفظ Demo مركزيًا.</p></div>}
             <div className="mt-5 flex flex-wrap gap-2"><button type="button" disabled={!draft.className || busy !== null} onClick={() => void generate(false)} className="inline-flex items-center gap-2 rounded-xl border border-brand-200 px-3 py-2.5 text-xs font-extrabold text-brand-700 enabled:hover:bg-brand-50 disabled:opacity-40"><RefreshCw className="size-4" aria-hidden="true" /> إعادة إنشاء من البيانات الحالية</button>{preview && <button type="button" onClick={() => setPreview(preview)} className="inline-flex items-center gap-2 rounded-xl bg-gold-500 px-3 py-2.5 text-xs font-extrabold text-white hover:bg-gold-600"><Eye className="size-4" aria-hidden="true" /> فتح المعاينة</button>}</div>
           </div>
         </Reveal>

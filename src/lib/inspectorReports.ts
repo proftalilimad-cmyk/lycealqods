@@ -39,6 +39,17 @@ export interface InspectorDistribution {
   percent: number;
 }
 
+export interface InspectorLevelBreakdown {
+  level: string;
+  total: number;
+  participants: number;
+  absent: number;
+  participationPercent: number;
+}
+
+/** خيار Demo خاص يجمع اللوائح الرسمية للمستويات الثلاثة في تقرير واحد. */
+export const ALL_DEMO_LEVELS_CLASS = "جميع المستويات — التقويم التشخيصي التجريبي";
+
 export interface InspectorAnalysis {
   report: InspectorReport;
   submissions: Submission[];
@@ -58,6 +69,7 @@ export interface InspectorAnalysis {
   supportCount: number;
   supportPercent: number | null;
   distribution: InspectorDistribution[];
+  levelBreakdown: InspectorLevelBreakdown[];
   skills: InspectorSkillAnalysis[];
   masteredSkills: InspectorSkillAnalysis[];
   supportSkills: InspectorSkillAnalysis[];
@@ -119,16 +131,25 @@ export function scoreForReport(report: InspectorReport, submission: Submission):
 }
 
 function byClassAndPeriod(report: InspectorReport, submissions: Submission[], includeDemo = false): Submission[] {
+  const allLevelsDemo = report.className === ALL_DEMO_LEVELS_CLASS;
   return submissions
     .filter((submission) => includeDemo || !isDemoSubmission(submission))
-    .filter((submission) => !report.className || submission.className === report.className)
+    .filter((submission) => allLevelsDemo || !report.className || submission.className === report.className)
     .filter((submission) => (submission.assessmentType ?? "diagnostic") === report.assessmentType)
     .filter((submission) => reportDateWindow(report, submission));
 }
 
-function rosterForReport(report: InspectorReport): { students: RosterStudent[]; className: string } {
+function levelForRosterClass(className: string): string {
+  if (className.includes("جذع مشترك")) return "الجذع المشترك";
+  if (className.includes("الأولى") || className.includes("اولى")) return "الأولى باكالوريا";
+  if (className.includes("الثانية") || className.includes("ثانية")) return "الثانية باكالوريا";
+  return "غير محدد";
+}
+
+function rostersForReport(report: InspectorReport): { className: string; students: RosterStudent[] }[] {
+  if (report.className === ALL_DEMO_LEVELS_CLASS) return ROSTER_CLASSES.map((roster) => ({ className: roster.label, students: roster.students }));
   const roster = ROSTER_CLASSES.find((item) => item.label === report.className);
-  return { students: roster?.students ?? [], className: report.className };
+  return roster ? [{ className: roster.label, students: roster.students }] : [];
 }
 
 function findSubmission(student: RosterStudent, submissions: Submission[]): Submission | undefined {
@@ -136,21 +157,23 @@ function findSubmission(student: RosterStudent, submissions: Submission[]): Subm
 }
 
 function studentRows(report: InspectorReport, submissions: Submission[]): InspectorStudentRow[] {
-  const roster = rosterForReport(report);
-  if (roster.students.length > 0) {
-    return roster.students.map((student, index) => {
+  const rosterGroups = rostersForReport(report);
+  if (rosterGroups.length > 0) {
+    let rank = 0;
+    return rosterGroups.flatMap((roster) => roster.students.map((student) => {
       const submission = findSubmission(student, submissions);
       const details = submission ? analyse(submission) : undefined;
       const score = submission ? scoreForReport(report, submission) : undefined;
       const controlled = details?.skills.filter((skill) => skill.pct >= report.threshold).map((skill) => skill.skill) ?? [];
       const uncontrolled = details?.skills.filter((skill) => skill.pct < report.threshold).map((skill) => skill.skill) ?? [];
+      rank += 1;
       return {
-        rank: index + 1,
+        rank,
         rosterNo: student.n,
         name: student.name,
         massar: student.massar,
-        level: report.level,
-        className: report.className,
+        level: report.className === ALL_DEMO_LEVELS_CLASS ? levelForRosterClass(roster.className) : report.level,
+        className: roster.className,
         submission,
         score: score?.score,
         maxScore: score?.max ?? (usesHistory(report) || usesGeography(report) ? 10 : 20),
@@ -162,7 +185,7 @@ function studentRows(report: InspectorReport, submissions: Submission[]): Inspec
         attendance: submission ? "حاضر" : "غائب",
         assessment: submission ? "أنجز" : "لم ينجز",
       };
-    });
+    }));
   }
   return submissions.map((submission, index) => {
     const details = analyse(submission);
@@ -246,6 +269,22 @@ function distributions(report: InspectorReport, submissions: Submission[]): Insp
 export function analyseInspectorReport(report: InspectorReport, allSubmissions: Submission[], includeDemo = false): InspectorAnalysis {
   const submissions = byClassAndPeriod(report, allSubmissions, includeDemo);
   const students = studentRows(report, submissions);
+  const levelTotals = new Map<string, { total: number; participants: number }>();
+  students.forEach((student) => {
+    const current = levelTotals.get(student.level) ?? { total: 0, participants: 0 };
+    current.total += 1;
+    if (student.submission) current.participants += 1;
+    levelTotals.set(student.level, current);
+  });
+  const levelBreakdown: InspectorLevelBreakdown[] = Array.from(levelTotals.entries())
+    .map(([level, value]) => ({
+      level,
+      total: value.total,
+      participants: value.participants,
+      absent: value.total - value.participants,
+      participationPercent: value.total ? round1((value.participants / value.total) * 100) : 0,
+    }))
+    .sort((a, b) => ["الجذع المشترك", "الأولى باكالوريا", "الثانية باكالوريا"].indexOf(a.level) - ["الجذع المشترك", "الأولى باكالوريا", "الثانية باكالوريا"].indexOf(b.level));
   const totalStudents = students.length;
   const participants = submissions.length;
   const absent = Math.max(0, totalStudents - participants);
@@ -278,6 +317,7 @@ export function analyseInspectorReport(report: InspectorReport, allSubmissions: 
     supportCount,
     supportPercent: participants ? round1((supportCount / participants) * 100) : null,
     distribution: distributions(report, submissions),
+    levelBreakdown,
     skills,
     masteredSkills: skills.filter((skill) => skill.percent >= report.threshold),
     supportSkills,
@@ -290,13 +330,14 @@ export function analyseInspectorReport(report: InspectorReport, allSubmissions: 
 export function defaultInspectorReport(className = ""): InspectorReport {
   const schedule = scheduleForClass(className);
   const today = new Date().toISOString().slice(0, 10);
+  const allLevelsDemo = className === ALL_DEMO_LEVELS_CLASS;
   return {
     id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `report-${Date.now()}`,
     teacherName: "الأستاذ عماد طليل",
     institution: "الثانوية التأهيلية القدس — القنيطرة",
     academy: "الأكاديمية الجهوية للتربية والتكوين لجهة الرباط سلا القنيطرة",
     directorate: "المديرية الإقليمية بالقنيطرة",
-    level: schedule?.bankLevel ?? "الجذع المشترك",
+    level: allLevelsDemo ? "جميع المستويات" : schedule?.bankLevel ?? "الجذع المشترك",
     subject: "الاجتماعيات",
     className,
     schoolYear: ROSTER_YEAR,
@@ -324,5 +365,6 @@ export function updateReportFromAnalysis(report: InspectorReport, analysis: Insp
 }
 
 export function reportClassLabel(report: InspectorReport): string {
+  if (report.className === ALL_DEMO_LEVELS_CLASS) return "جميع المستويات — نموذج تجريبي بأسماء اللائحة الرسمية";
   return displayClassName(report.className) || report.className || "كل الأقسام";
 }
