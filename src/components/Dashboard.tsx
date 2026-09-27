@@ -17,6 +17,7 @@ import {
   LogOut,
   Search,
   PieChart,
+  Printer,
   ShieldAlert,
   RotateCcw,
   Settings2,
@@ -1006,20 +1007,31 @@ export default function Dashboard({ tab, go }: DashboardProps) {
                 </p>
                 <p className="mt-2 text-[11px] font-semibold text-ink-400">إعداد وإنجاز: الأستاذ عماد طليل — ثانوية القدس، القنيطرة</p>
               </div>
-              <button
-                type="button"
-                onClick={signOut}
-                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-extrabold text-rose-600 transition-transform hover:-translate-y-0.5"
-              >
-                <LogOut className="size-4" aria-hidden="true" />
-                تسجيل الخروج
-              </button>
+              <div className="flex shrink-0 flex-wrap gap-2" data-no-print>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-extrabold text-brand-700 transition-transform hover:-translate-y-0.5"
+                  title="طباعة لوحة القيادة التعليمية"
+                >
+                  <Printer className="size-4" aria-hidden="true" />
+                  طباعة لوحة القيادة التعليمية
+                </button>
+                <button
+                  type="button"
+                  onClick={signOut}
+                  className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-extrabold text-rose-600 transition-transform hover:-translate-y-0.5"
+                >
+                  <LogOut className="size-4" aria-hidden="true" />
+                  تسجيل الخروج
+                </button>
+              </div>
             </div>
           </header>
         </Reveal>
 
         {/* التبويبات */}
-        <nav className="mt-5 rounded-3xl border border-ink-900/8 bg-white/80 p-2 shadow-[0_18px_45px_-32px_rgba(4,36,26,0.3)]" role="tablist" aria-label="أقسام لوحة الأستاذ">
+        <nav className="mt-5 rounded-3xl border border-ink-900/8 bg-white/80 p-2 shadow-[0_18px_45px_-32px_rgba(4,36,26,0.3)]" role="tablist" aria-label="أقسام لوحة الأستاذ" data-no-print>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
           {TABS.map((t) => {
             const on = active === t.id;
