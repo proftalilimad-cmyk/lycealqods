@@ -233,5 +233,12 @@ const MINAR_LESSON_RANGES = allocateRanges(
   MINAR_LESSON_WEIGHTS,
 );
 
+/* صفحات موثقة من صور الكتاب؛ تُقدَّم على التوزيع التلقائي عندما يتوفر الربط. */
+const VERIFIED_MINAR_RANGES: Record<string, [number, number]> = {
+  "tc-sci.geography.0.0": [121, 124],
+};
+
 /** عروض الدروس بالترتيب الرسمي: التاريخ أولًا، ثم الجغرافيا. */
-export const MINAR_LESSON_DECKS: Deck[] = MINAR_LESSON_ENTRIES.map((entry, index) => buildDeck(entry, MINAR_LESSON_RANGES[index]));
+export const MINAR_LESSON_DECKS: Deck[] = MINAR_LESSON_ENTRIES.map((entry, index) =>
+  buildDeck(entry, VERIFIED_MINAR_RANGES[entry.key] ?? MINAR_LESSON_RANGES[index]),
+);
