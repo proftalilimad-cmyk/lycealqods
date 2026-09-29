@@ -990,264 +990,237 @@ ${
 }
 
 /* ------------------------------------------------------------------ */
-/* نسخة الطباعة الكاملة                                              */
+/* نسخة الطباعة المختصرة العملية                                      */
 /* ------------------------------------------------------------------ */
 
-function printList(items: string[], className = "print-list"): string {
-  const values = items.filter((item) => String(item ?? "").trim().length > 0);
-  return values.length
-    ? `<ul class="${className}">${values.map((item) => `<li>${esc(item)}</li>`).join("")}</ul>`
-    : "";
+function compactPrintText(value: string, max = 120): string {
+  const normalized = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (normalized.length <= max) return normalized;
+  const cut = normalized.slice(0, max).replace(/\s+\S*$/, "").trimEnd();
+  return `${cut}…`;
 }
 
 function printTableHead(): string {
   return `<thead><tr>
-    <th class="f-phase">مراحل إنجاز الدرس</th>
-    <th>أهداف التعلم المرتبطة بالنشاط</th>
+    <th class="f-phase">المرحلة</th>
+    <th>هدف التعلم المرتبط بالنشاط</th>
     <th>التدبير الديداكتيكي</th>
-    <th>الدعامات الديداكتيكية</th>
+    <th>الدعامات</th>
     <th class="f-product">المنتوج / الأثر المنتظر</th>
   </tr></thead>`;
 }
 
-function printStageProduct(stage: JadadaStage): string {
-  return [
-    stage.activities.length
-      ? `<div><strong>الأنشطة والمضامين:</strong>${printList(stage.activities)}</div>`
-      : "",
-    stage.questions.length
-      ? `<div><strong>أسئلة الاشتغال:</strong>${printList(stage.questions)}</div>`
-      : "",
-    stage.expected.length
-      ? `<div><strong>المنتوج / الأثر المنتظر:</strong>${printList(stage.expected)}</div>`
-      : "",
-    stage.assessment.length
-      ? `<div class="stage-assessment"><strong>التقويم المرحلي:</strong>${printList(stage.assessment)}</div>`
-      : "",
-  ].join("");
+interface CompactPrintStage {
+  name: string;
+  duration: string;
+  objective: string;
+  management: string;
+  supports: string;
+  product: string;
 }
 
-function printStageRow(stage: JadadaStage): string {
-  return `<tr class="print-stage-row">
-    <td class="f-phase"><b>${esc(stage.name)}</b><span class="f-time">${esc(stage.duration)}</span></td>
-    <td><p>${esc(stage.objective)}</p></td>
-    <td>${esc(stage.management)}</td>
-    <td>${printList(stage.supports)}</td>
-    <td class="f-product">${printStageProduct(stage)}</td>
-  </tr>`;
+function compactPrintStages(f: JadadaFiche): CompactPrintStage[] {
+  const targetLesson = f.key === "tc-sci.geography.0.0";
+  const sourceStages = f.stages.slice(1, 1 + f.sourceSections.length);
+  const targetSections = [
+    {
+      name: "تحديد موضوع الجغرافيا",
+      objective: "تحديد موضوع الجغرافيا انطلاقًا من الوثائق.",
+      management: "قراءة الوثائق واستخراج المعطيات ومناقشتها.",
+      supports: "الكتاب + الوثائق.",
+      product: "تعريف مختصر لموضوع الجغرافيا.",
+    },
+    {
+      name: "إبراز وظائف الجغرافيا",
+      objective: "استخراج وظائف الجغرافيا وتصنيفها.",
+      management: "اشتغال ثنائي/جماعي على الوثائق.",
+      supports: "الكتاب + الوثائق.",
+      product: "تصنيف وظائف الجغرافيا في جدول مختصر.",
+    },
+    {
+      name: "التعرف على أدوات الجغرافيا",
+      objective: "تمييز أدوات الجغرافيا وتحديد وظائفها.",
+      management: "قراءة الوثائق والجدول واستخراج المعطيات.",
+      supports: "الكتاب + الخريطة والجدول.",
+      product: "جدول: الأداة ← الوظيفة.",
+    },
+    {
+      name: "تطبيق النهج الجغرافي",
+      objective: "توظيف مراحل النهج الجغرافي في تحليل وثيقة.",
+      management: "تطبيق موجه ثم تصحيح جماعي.",
+      supports: "وثيقة جغرافية + شبكة تحليل.",
+      product: "تحليل وثيقة وفق: الوصف ← التفسير ← التعميم.",
+    },
+  ];
+
+  const rows: CompactPrintStage[] = [
+    {
+      name: "الانطلاق والتمهيد",
+      duration: targetLesson ? "10–15 دقيقة" : compactPrintText(f.stages[0]?.duration ?? "10 دقائق", 35),
+      objective: "صياغة الإشكالية واقتراح فرضيات.",
+      management: "أسئلة تمهيدية + مناقشة جماعية.",
+      supports: "الكتاب + السبورة.",
+      product: "الإشكالية + فرضيات أولية.",
+    },
+  ];
+
+  f.sourceSections.forEach((section, index) => {
+    const sourceStage = sourceStages[index];
+    if (targetLesson && targetSections[index]) {
+      rows.push({
+        ...targetSections[index],
+        duration: compactPrintText(sourceStage?.duration ?? "", 35),
+      });
+      return;
+    }
+    rows.push({
+      name: compactPrintText(section.title.replace(/^(أحدد|أبرز|أتعرف|أطبق)\s*/, ""), 65),
+      duration: compactPrintText(sourceStage?.duration ?? "", 35),
+      objective: compactPrintText(sourceStage?.objective ?? "بناء التعلمات المرتبطة بالمقطع.", 120),
+      management: compactPrintText(sourceStage?.management ?? "اشتغال موجه على الوثائق ومناقشة جماعية.", 120),
+      supports: compactPrintText(sourceStage?.supports.join("، ") ?? f.book, 90),
+      product: compactPrintText(sourceStage?.expected[0] ?? sourceStage?.activities[0] ?? "خلاصة المقطع.", 120),
+    });
+  });
+
+  const synthesis = f.stages[1 + f.sourceSections.length];
+  rows.push({
+    name: "التركيب والأثر الكتابي",
+    duration: compactPrintText(synthesis?.duration ?? "10 دقائق", 35),
+    objective: "تركيب مكتسبات الدرس في خلاصة منظمة.",
+    management: "تجميع الخلاصات وتصحيحها.",
+    supports: "السبورة + الدفاتر + الخطاطة.",
+    product: "خلاصة تركيبية + خطاطة الدرس.",
+  });
+
+  rows.push({
+    name: "التقويم والدعم",
+    duration: compactPrintText(f.stages[2 + f.sourceSections.length]?.duration ?? "10 دقائق", 35),
+    objective: "تقويم تحقق الأهداف ومعالجة التعثرات.",
+    management: "تقويم فردي + تصحيح جماعي + دعم.",
+    supports: "شبكة التقويم + الدفاتر.",
+    product: "أجوبة صحيحة وتصحيح التعثرات.",
+  });
+
+  if (f.application || targetLesson) {
+    rows.push({
+      name: "الوضعية التطبيقية / الامتداد",
+      duration: compactPrintText(f.application?.duration ?? "امتداد", 35),
+      objective: "توظيف النهج الجغرافي في قراءة وثيقة.",
+      management: "اشتغال فردي أو جماعي على وثيقة.",
+      supports: "وثيقة / خريطة / جدول.",
+      product: "وصف + تفسير + تعميم.",
+    });
+  }
+  return rows;
 }
 
-function printStageDetail(stage: JadadaStage | undefined): string {
-  if (!stage) return "";
-  return `<article class="print-stage-detail print-card">
-    <h3>${esc(stage.name)}</h3>
-    <p><strong>الحيز الزمني:</strong> ${esc(stage.duration)}</p>
-    <p><strong>هدف التعلم:</strong> ${esc(stage.objective)}</p>
-    ${stage.activities.length ? `<h4>الأنشطة والمضامين</h4>${printList(stage.activities)}` : ""}
-    ${stage.questions.length ? `<h4>أسئلة الاشتغال</h4>${printList(stage.questions)}` : ""}
-    ${stage.expected.length ? `<h4>المنتوج / الأثر المنتظر</h4>${printList(stage.expected)}` : ""}
-    ${stage.management ? `<h4>التدبير الديداكتيكي</h4><p>${esc(stage.management)}</p>` : ""}
-    ${stage.supports.length ? `<h4>الدعامات الديداكتيكية</h4>${printList(stage.supports)}` : ""}
-    ${stage.assessment.length ? `<h4>التقويم المرحلي والمؤشرات</h4>${printList(stage.assessment)}` : ""}
-  </article>`;
-}
-
-function printQuestionItem(question: JadadaQuizItem, index: number): string {
-  return `<li class="print-question">
-    <div class="question-text"><b>${index + 1}. ${esc(question.q)}</b></div>
-    ${question.options.length ? `<div class="question-options"><strong>الاختيارات:</strong>${printList(question.options)}</div>` : ""}
-    <div class="print-answer"><strong>الجواب المرتقب:</strong> ${esc(question.answer)}</div>
-    ${question.why ? `<div class="print-rationale"><strong>التعليل/المؤشر:</strong> ${esc(question.why)}</div>` : ""}
-  </li>`;
-}
-
-function printQuizList(quiz: JadadaQuizItem[], title?: string): string {
-  if (!quiz.length) return "";
-  return `${title ? `<h4>${esc(title)}</h4>` : ""}<ol class="print-questions">${quiz.map((question, index) => printQuestionItem(question, index)).join("")}</ol>`;
-}
-
-function printStageAssessment(stage: JadadaStage | undefined, f: JadadaFiche): string {
-  if (!stage || !stage.assessment.length) return "";
-  const items = stage.assessment
-    .map((question) => f.quiz.find((item) => item.q === question))
-    .filter((item): item is JadadaQuizItem => Boolean(item));
-  const missing = stage.assessment.filter((question) => !f.quiz.some((item) => item.q === question));
-  return `<article class="print-assessment print-card">
-    <h4>${esc(stage.name)}</h4>
-    ${items.length ? printQuizList(items) : ""}
-    ${missing.length ? `<h5>أسئلة التقويم المرحلي الواردة في المرحلة</h5>${printList(missing)}` : ""}
-  </article>`;
-}
-
-function printDocsHtml(docs: JadadaDoc[]): string {
-  return docs
+function compactPrintStageRows(stages: CompactPrintStage[]): string {
+  return stages
     .map(
-      (doc) => `<article class="print-doc print-card">
-        <h3>${esc(doc.label)}</h3>
-        <p>${esc(doc.text)}</p>
-        ${
-          doc.questions.length
-            ? `<table class="print-inner-table"><thead><tr><th>السؤال</th><th>النقط</th><th>عناصر الجواب</th></tr></thead><tbody>${doc.questions
-                .map((question) => `<tr><td>${esc(question.q)}</td><td>${esc(String(question.pts))}</td><td>${esc(question.answer)}</td></tr>`)
-                .join("")}</tbody></table>`
-            : ""
-        }
-      </article>`,
+      (stage) => `<tr>
+        <td class="f-phase"><b>${esc(stage.name)}</b><span class="f-time">${esc(stage.duration)}</span></td>
+        <td>${esc(stage.objective)}</td>
+        <td>${esc(stage.management)}</td>
+        <td>${esc(stage.supports)}</td>
+        <td class="f-product">${esc(stage.product)}</td>
+      </tr>`,
     )
     .join("");
 }
 
-function printReferenceList(references: { name: string; url: string }[]): string {
-  return references.length
-    ? `<ul class="print-list">${references
-        .map((reference) => `<li>${esc(reference.name)}${reference.url ? ` — <a href="${esc(reference.url)}">${esc(reference.url)}</a>` : ""}</li>`)
-        .join("")}</ul>`
-    : "";
+function compactPrintObjectives(targetLesson: boolean): string {
+  const objectives = targetLesson
+    ? [
+        "معرفيًا: أن يتعرف المتعلم موضوع الجغرافيا ووظائفها وأهم أدواتها.",
+        "منهجيًا: أن يوظف النهج الجغرافي في دراسة وثيقة، من الوصف إلى التفسير ثم التعميم.",
+        "مهاريًا: أن يستخرج المعطيات من الوثائق وينظمها في خلاصة أو خطاطة.",
+      ]
+    : [
+        "معرفيًا: أن يتعرف المتعلم مضامين الدرس ومفاهيمه الأساسية.",
+        "منهجيًا: أن يوظف منهجية المادة في دراسة الوثائق.",
+        "مهاريًا: أن يستخرج المعطيات وينظمها في خلاصة أو خطاطة.",
+      ];
+  return objectives.map((objective) => `<div>${esc(objective)}</div>`).join("");
+}
+
+function compactPrintContentRows(f: JadadaFiche): string {
+  const targetContent = f.key === "tc-sci.geography.0.0"
+    ? [
+        ["موضوع الجغرافيا", "الأرض والإنسان والبيئة والعلاقات المتبادلة بينها وتنظيم المجال."],
+        ["وظائفها", "دراسة السكان والمجال، تفسير التوزيعات والتحولات، والمساهمة في التخطيط."],
+        ["أدواتها", "الخريطة أداة أساسية، وتدعمها الجداول والإحصاءات والصور والنصوص والمبيانات."],
+      ]
+    : f.summary.slice(0, 3).map((summary, index) => [`المضمون ${index + 1}`, compactPrintText(summary, 190)]);
+  return targetContent.map(([label, value]) => `<tr><th>${esc(label)}</th><td>${esc(value)}</td></tr>`).join("");
 }
 
 /**
- * نسخة الطباعة الكاملة للجذاذة.
- * لا تستعمل هذه الدالة أي قصّ أو تلخيص: المصدر الكامل هو sourceSections،
- * وتُطبع معه جميع مراحل الحصة والوثائق والتقويمات والأجوبة والدعم.
+ * نسخة عملية مختصرة من الجذاذة: بطاقة واحدة، ثلاثة أهداف وجدول رئيسي واحد.
+ * لا تطبع هذه النسخة الأسئلة والأجوبة التفصيلية أو صفحات المصدر الطويلة؛
+ * تظل تلك المعطيات محفوظة في الجذاذة الكاملة داخل الموقع.
  */
 export function jadadaPrintBodyHtml(f: JadadaFiche): string {
-  const sectionCount = f.sourceSections.length;
-  const sectionStages = f.stages.slice(1, 1 + sectionCount);
-  const synthesisStage = f.stages[1 + sectionCount];
-  const assessmentStage = f.stages[2 + sectionCount];
-  const applicationStage = f.stages[3 + sectionCount];
-
-  const objectiveRows = [
-    ["معرفية", f.cognitiveObjectives],
-    ["مهارية", f.methodObjectives],
-    ["قيمية", f.valueObjectives],
-  ]
-    .map(([label, items]) => `<div><b>${esc(label as string)}</b>${printList(items as string[])}</div>`)
-    .join("");
-
-  const stageRows = f.stages.map(printStageRow).join("");
-  const sourceSections = f.sourceSections
-    .map(
-      (section, index) => `<article class="source-section print-section">
-        <h3>${index + 1}. ${esc(section.title)}</h3>
-        ${section.blocks.map(sourceBlockHtml).join("")}
-      </article>`,
-    )
-    .join("");
-  const stagedAssessments = sectionStages.map((stage) => printStageAssessment(stage, f)).join("");
-  const concepts = f.concepts.length
-    ? `<table class="print-inner-table"><thead><tr><th>المفهوم</th><th>الدلالة</th></tr></thead><tbody>${f.concepts
-        .map((item) => `<tr><th>${esc(item.term)}</th><td>${esc(item.def)}</td></tr>`)
-        .join("")}</tbody></table>`
-    : "";
-  const timeline = f.timeline.length
-    ? `<h3>الكرونولوجيا والمجالات</h3><table class="print-inner-table"><thead><tr><th>التاريخ</th><th>الحدث</th></tr></thead><tbody>${f.timeline
-        .map((item) => `<tr><th>${esc(item.date)}</th><td>${esc(item.event)}</td></tr>`)
-        .join("")}</tbody></table>`
-    : "";
-  const characters = f.characters.length
-    ? `<h3>شخصيات الدرس</h3><table class="print-inner-table"><thead><tr><th>الشخصية</th><th>الدور</th></tr></thead><tbody>${f.characters
-        .map((item) => `<tr><th>${esc(item.name)}</th><td>${esc(item.role)}</td></tr>`)
-        .join("")}</tbody></table>`
-    : "";
-  const places = f.places.length
-    ? `<h3>الأماكن والمجالات</h3><table class="print-inner-table"><thead><tr><th>المكان</th><th>الدلالة</th></tr></thead><tbody>${f.places
-        .map((item) => `<tr><th>${esc(item.name)}</th><td>${esc(item.why)}</td></tr>`)
-        .join("")}</tbody></table>`
-    : "";
-  const schema = f.schema
-    ? `<h3>${esc(f.schema.title)}</h3><table class="print-inner-table"><thead><tr><th>المدخل</th><th>المضمون</th></tr></thead><tbody>${f.schema.rows
-        .map((row) => `<tr><th>${esc(row.label)}</th><td>${esc(row.value)}</td></tr>`)
-        .join("")}</tbody></table>`
-    : "";
-  const application = f.application
-    ? `<article class="print-card print-application"><h3>${esc(f.application.title)}</h3><p><strong>المدة:</strong> ${esc(f.application.duration)}</p><p>${esc(f.application.prompt)}</p><h4>خطوات الإنجاز</h4>${printList(f.application.guide)}<h4>عناصر الجواب النموذجي</h4>${printList(f.application.model)}</article>`
-    : "";
-
-  const header = `<header class="f-header print-section">
-    <div class="f-meta-left"><table><tbody><tr><th>مدة الإنجاز</th><td>${esc(f.duration)}</td></tr><tr><th>الكتاب المعتمد</th><td>${esc(f.book)}</td></tr><tr><th>إعداد الأستاذ</th><td>${esc(f.teacher)}</td></tr></tbody></table></div>
-    <div class="f-title"><span class="f-number">${String(f.lessonIndex + 1).padStart(2, "0")}</span><h1>${esc(f.title)}</h1><small>${esc(f.authorLabel)} · ${esc(f.school)}</small></div>
-    <div class="f-meta-right"><table><tbody><tr><th>مادة</th><td>${esc(f.subjectLabel)}</td></tr><tr><th>المستوى</th><td>${esc(f.branchLabel)}</td></tr><tr><th>المجزوءة</th><td>${String(f.unitIndex + 1).padStart(2, "0")}</td></tr></tbody></table></div>
+  const targetLesson = f.key === "tc-sci.geography.0.0";
+  const stages = compactPrintStages(f);
+  const contentRows = compactPrintContentRows(f);
+  const schemaText = targetLesson
+    ? "الوصف ← التفسير ← التعميم"
+    : f.schema?.rows.map((row) => `${row.label}: ${compactPrintText(row.value, 95)}`).join(" · ") || "الوصف ← التفسير ← التعميم";
+  const applicationText = f.application
+    ? "توظيف النهج الجغرافي في قراءة وثيقة: وصف + تفسير + تعميم."
+    : "تطبيق مختصر لمنهجية الدرس عند الحاجة.";
+  const header = `<header class="f-header">
+    <div class="f-meta-left"><table><tbody><tr><th>المادة</th><td>${esc(f.subjectLabel)}</td></tr><tr><th>المستوى</th><td>${esc(f.branchLabel)}</td></tr><tr><th>المجزوءة</th><td>${String(f.unitIndex + 1).padStart(2, "0")} — ${esc(f.unitTitle)}</td></tr></tbody></table></div>
+    <div class="f-title"><span class="f-number">${String(f.lessonIndex + 1).padStart(2, "0")}</span><h1>${esc(f.title)}</h1><small>${esc(f.school)}</small></div>
+    <div class="f-meta-right"><table><tbody><tr><th>المدة</th><td>${esc(f.duration)}</td></tr><tr><th>الكتاب المعتمد</th><td>${esc(f.book)}</td></tr><tr><th>إعداد الأستاذ</th><td>${esc(f.teacher)}</td></tr></tbody></table></div>
   </header>`;
 
   return `<main class="lesson-plan-print print-document" dir="rtl">
     ${header}
     <section class="print-section print-cover">
-      <div class="f-page-label">الجذاذة — بطاقة الدرس</div>
+      <div class="f-page-label">الجذاذة التعليمية — بطاقة الدرس</div>
       <table class="f-problem"><tbody>
-        <tr><th>الكفاية / الإشكالية المركزية للمجزوءة</th><td>${esc(f.unitKifaya)}</td></tr>
-        <tr><th>الإشكالية المحورية للدرس</th><td>${esc(f.coreQuestion)}</td></tr>
+        <tr><th>الكفاية</th><td>${esc(compactPrintText(f.unitKifaya, 240))}</td></tr>
+        <tr><th>الإشكالية</th><td>${esc(compactPrintText(f.coreQuestion, 300))}</td></tr>
       </tbody></table>
-      <h2>الأهداف</h2>
-      <div class="f-objectives">${objectiveRows}</div>
+      <h2>أهداف التعلم</h2>
+      <div class="f-objectives">${compactPrintObjectives(targetLesson)}</div>
     </section>
 
     <section class="print-section">
       <h2>مراحل إنجاز الدرس</h2>
-      <table class="f-stage-table">${printTableHead()}<tbody>${stageRows}</tbody></table>
+      <table class="f-stage-table">${printTableHead()}<tbody>${compactPrintStageRows(stages)}</tbody></table>
     </section>
 
-    <section class="print-section">
-      <h2>الانطلاق والتمهيد</h2>
-      <p class="print-source-intro">${esc(f.intro)}</p>
-      ${printStageDetail(f.stages[0])}
+    <section class="print-section compact-bottom">
+      <div class="f-bottom-grid">
+        <article class="f-box">
+          <h2>المضامين الأساس</h2>
+          <table class="print-inner-table"><tbody>${contentRows}</tbody></table>
+        </article>
+        <article class="f-box">
+          <h2>الأثر الكتابي</h2>
+          <div class="f-method">${esc(schemaText)}</div>
+          <p class="f-note">خلاصة الدرس وخطاطته تُنجزان في ضوء مضامين المراحل السابقة.</p>
+        </article>
+      </div>
+      <div class="f-box f-assessment-box">
+        <h2>التقويم والدعم</h2>
+        <p>أسئلة التقويم المرحلي والإجمالي المرتبطة بأهداف الدرس.</p>
+        <p><strong>المعالجة:</strong> تصحيح جماعي للتعثرات وتوجيه المتعلمين إلى الدعم المناسب.</p>
+      </div>
+      <div class="f-box f-application-box">
+        <h2>الوضعية التطبيقية / الامتداد</h2>
+        <p>${esc(applicationText)}</p>
+      </div>
     </section>
 
-    <section class="print-section">
-      <h2>مضامين الدرس الكاملة</h2>
-      <div class="print-source-note">المحتوى التالي منقول كاملًا من مصدر الجذاذة، دون تلخيص أو إعادة صياغة.</div>
-      ${sourceSections}
-    </section>
-
-    <section class="print-section">
-      <h2>التركيب والأثر الكتابي</h2>
-      ${printStageDetail(synthesisStage)}
-      ${f.summary.length ? `<h3>الخلاصة</h3>${printList(f.summary)}` : ""}
-      ${schema}
-      ${f.examTips.length ? `<h3>توجيهات منهجية</h3>${printList(f.examTips)}` : ""}
-    </section>
-
-    <section class="print-section">
-      <h2>المفاهيم والامتدادات</h2>
-      ${concepts}
-      ${timeline}
-      ${characters}
-      ${places}
-    </section>
-
-    ${
-      f.docs.length
-        ? `<section class="print-section"><h2>الوثائق والدعامات وأسئلة الاشتغال</h2><div class="print-docs">${printDocsHtml(f.docs)}</div></section>`
-        : ""
-    }
-
-    <section class="print-section">
-      <h2>التقويم المرحلي والإجمالي</h2>
-      <h3>التقويم المرحلي</h3>
-      <p>تُعرض أسئلة التقويم المرحلي وأجوبتها كما وردت في بيانات كل مرحلة، بعد أنشطة بناء التعلمات.</p>
-      ${stagedAssessments || "<p class=\"print-empty\">لا توجد أسئلة تقويم مرحلي مستقلة محفوظة لهذه الجذاذة.</p>"}
-      <h3>التقويم الإجمالي والدعم</h3>
-      ${printStageDetail(assessmentStage)}
-      ${printQuizList(f.quiz, "أسئلة التقويم الإجمالي والأجوبة المرتقبة")}
-      ${f.examTips.length ? `<h4>مؤشرات المعالجة والتتبع المتاحة</h4>${printList(f.examTips)}` : ""}
-    </section>
-
-    ${application ? `<section class="print-section"><h2>الوضعية التطبيقية</h2>${printStageDetail(applicationStage)}${application}</section>` : ""}
-
-    ${
-      f.references.length
-        ? `<section class="print-section"><h2>المراجع والمصادر</h2>${printReferenceList(f.references)}</section>`
-        : ""
-    }
-
-    <section class="print-section print-end-note">
-      <p>${esc(f.sourceNote)}</p>
-      <p><strong>${esc(f.sign)}</strong></p>
-    </section>
+    <footer class="print-footer"><span>${esc(f.school)}</span><span>جذاذة عملية للاستعمال داخل القسم</span></footer>
   </main>`;
 }
 
-/** CSS مستقل لنسخة الطباعة الكاملة للجذاذة. */
+/** CSS مستقل للجذاذة المختصرة العملية — صفحة أو صفحتان، وثلاث كحد أقصى. */
 export function jadadaPrintCss(): string {
   const brand = SITE_COLORS.brand700;
   const brandLight = SITE_COLORS.brand600;
@@ -1260,93 +1233,67 @@ export function jadadaPrintCss(): string {
   const ink = SITE_COLORS.ink;
   const muted = SITE_COLORS.inkSoft;
   return `
-@page{size:A4 portrait;margin:12mm 10mm 14mm}
+@page{size:A4 portrait;margin:8mm 7mm 9mm}
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#fff;color:${ink};font-family:"Readex Pro","Cairo","Segoe UI",Tahoma,Arial,sans-serif;font-size:10pt;line-height:1.65}
+html,body{margin:0;padding:0;background:#fff;color:${ink};font-family:"Readex Pro","Cairo","Segoe UI",Tahoma,Arial,sans-serif;font-size:8.5pt;line-height:1.4}
 body{direction:rtl}
-.p-toolbar{display:flex;justify-content:center;gap:8px;padding:10px;background:#fff}
-.p-toolbar button{border:0;border-radius:8px;background:${brand};color:#fff;padding:9px 18px;font:700 13px "Cairo",sans-serif;cursor:pointer}
+.p-toolbar{display:flex;justify-content:center;padding:9px;background:#fff}
+.p-toolbar button{border:0;border-radius:7px;background:${brand};color:#fff;padding:8px 16px;font:700 12px "Cairo",sans-serif;cursor:pointer}
 .lesson-plan-print{width:100%;margin:0 auto;padding:0}
-.print-section{margin:0 0 9mm;break-inside:auto;page-break-inside:auto}
-.print-cover{break-after:page;page-break-after:always}
-.print-card,.source-section,.print-doc{break-inside:auto;page-break-inside:auto}
-h1,h2,h3,h4,h5{break-after:avoid;page-break-after:avoid}
-h1,h2,h3,h4,h5,p{orphans:3;widows:3}
-h2{margin:7mm 0 3mm;padding:2.5mm 3mm;background:${soft};border-inline-start:5px solid ${accent};color:${ink};font-family:"Cairo",sans-serif;font-size:15pt;line-height:1.45}
-h3{margin:5mm 0 2mm;color:${brand};font-family:"Cairo",sans-serif;font-size:12pt;line-height:1.45}
-h4{margin:3.5mm 0 1.5mm;color:${brand};font-family:"Cairo",sans-serif;font-size:10.5pt}
-h5{margin:2.5mm 0 1mm;color:${muted};font-size:9.5pt}
-p{margin:1.5mm 0}
-.f-header{display:grid;grid-template-columns:1fr 1.7fr 1fr;gap:4mm;align-items:stretch;direction:ltr;margin:0 0 5mm}
+.print-section{margin:0 0 4mm;break-inside:auto;page-break-inside:auto}
+h1,h2,h3,h4{break-after:avoid;page-break-after:avoid}
+h1,h2,h3,h4,p{orphans:3;widows:3}
+h2{margin:3mm 0 1.5mm;padding:1.5mm 2mm;background:${soft};border-inline-start:3px solid ${accent};color:${ink};font-family:"Cairo",sans-serif;font-size:11pt;line-height:1.3}
+h3{margin:2.5mm 0 1mm;color:${brand};font-family:"Cairo",sans-serif;font-size:9.5pt}
+h4{margin:2mm 0 .8mm;color:${brand};font-size:8.5pt}
+p{margin:1mm 0}
+.f-header{display:grid;grid-template-columns:1fr 1.55fr 1fr;gap:2.5mm;align-items:stretch;direction:ltr;margin:0 0 2.5mm}
 .f-header>div{direction:rtl}
 .f-header table,.f-problem,.f-stage-table,.print-inner-table{width:100%;border-collapse:collapse;table-layout:auto}
-.f-header table{height:100%;background:#fff;font-size:9pt}
-.f-header th,.f-header td{border:1px solid ${line};padding:2.2mm 2.5mm;vertical-align:middle}
-.f-header th{width:40%;background:${soft};color:${ink};font-weight:800}
+.f-header table{height:100%;background:#fff;font-size:7.8pt}
+.f-header th,.f-header td{border:.55px solid ${line};padding:1.4mm 1.6mm;vertical-align:middle}
+.f-header th{width:39%;background:${soft};color:${ink};font-weight:800}
 .f-header td{font-weight:600;color:${muted};background:#fff}
-.f-title{position:relative;display:flex;min-height:34mm;align-items:center;justify-content:center;flex-direction:column;text-align:center;border-radius:6mm;background:linear-gradient(135deg,${brandLight},${brand});color:#fff;padding:5mm 8mm;box-shadow:0 1.5mm 0 rgba(0,0,0,.08)}
-.f-title h1{margin:0;font-family:"Cairo",sans-serif;font-size:18pt;line-height:1.5;color:#fff}
-.f-title small{font-size:8.5pt;color:#d4ede0;margin-top:2mm}
-.f-number{position:absolute;inset-block-start:-3mm;inset-inline-end:-2.5mm;display:grid;place-items:center;width:13mm;height:13mm;border:1.2mm solid #fff;border-radius:50%;background:#04241a;color:#fff;font-family:"Cairo",sans-serif;font-size:11pt;font-weight:800}
-.f-page-label{background:${soft};color:${ink};text-align:center;font-family:"Cairo",sans-serif;font-size:12pt;font-weight:800;padding:2.2mm 3mm;margin:0 0 3mm}
-.f-problem{margin:3mm 0;font-size:10pt}
-.f-problem th,.f-problem td{border:1px solid ${line};padding:3mm;vertical-align:top}
-.f-problem th{width:28%;background:${soft};font-weight:800}
+.f-title{position:relative;display:flex;min-height:25mm;align-items:center;justify-content:center;flex-direction:column;text-align:center;border-radius:4mm;background:linear-gradient(135deg,${brandLight},${brand});color:#fff;padding:3mm 5mm;box-shadow:0 .8mm 0 rgba(0,0,0,.08)}
+.f-title h1{margin:0;font-family:"Cairo",sans-serif;font-size:14pt;line-height:1.4;color:#fff}
+.f-title small{font-size:6.8pt;color:#d4ede0;margin-top:1mm}
+.f-number{position:absolute;inset-block-start:-2mm;inset-inline-end:-1.8mm;display:grid;place-items:center;width:9mm;height:9mm;border:.8mm solid #fff;border-radius:50%;background:#04241a;color:#fff;font-family:"Cairo",sans-serif;font-size:8pt;font-weight:800}
+.f-page-label{background:${soft};color:${ink};text-align:center;font-family:"Cairo",sans-serif;font-size:9.5pt;font-weight:800;padding:1.3mm 2mm;margin:0 0 1.5mm}
+.f-problem{margin:1.5mm 0;font-size:8pt}
+.f-problem th,.f-problem td{border:.55px solid ${line};padding:1.7mm 2mm;vertical-align:top}
+.f-problem th{width:25%;background:${soft};font-weight:800}
 .f-problem td{background:${goldSoft};font-weight:600}
-.f-objectives{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;margin:3mm 0}
-.f-objectives>div{border:1px solid ${line};background:#fff;padding:3mm;break-inside:avoid}
-.f-objectives b{display:block;text-align:center;background:${soft};color:${ink};margin:-3mm -3mm 2mm;padding:2mm;font-family:"Cairo",sans-serif}
-.print-list{margin:1.5mm 0;padding-inline-start:6mm}
-.print-list li{margin:1mm 0}
-.print-list li::marker{color:${accent};font-weight:800}
-.f-stage-table{font-size:8.5pt;line-height:1.55}
-.f-stage-table th,.f-stage-table td{border:1px solid ${line};padding:2.5mm;vertical-align:top;text-align:start;overflow-wrap:anywhere}
-.f-stage-table thead th{background:${soft};color:${ink};text-align:center;font-family:"Cairo",sans-serif;font-size:9pt}
-.f-stage-table th:nth-child(1),.f-stage-table td:nth-child(1){width:15%}
+.f-objectives{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5mm;margin:1.5mm 0}
+.f-objectives>div{border:.55px solid ${line};background:#fff;padding:1.6mm 2mm;break-inside:avoid;font-size:7.8pt}
+.f-objectives b{display:block;text-align:center;background:${soft};color:${ink};margin:-1.6mm -2mm 1mm;padding:1mm;font-family:"Cairo",sans-serif}
+.f-stage-table{font-size:7.35pt;line-height:1.32}
+.f-stage-table th,.f-stage-table td{border:.55px solid ${line};padding:1.55mm 1.7mm;vertical-align:top;text-align:start;overflow-wrap:anywhere}
+.f-stage-table thead th{background:${soft};color:${ink};text-align:center;font-family:"Cairo",sans-serif;font-size:7.7pt;padding:1.8mm 1mm}
+.f-stage-table th:nth-child(1),.f-stage-table td:nth-child(1){width:16%}
 .f-stage-table th:nth-child(2),.f-stage-table td:nth-child(2){width:20%}
-.f-stage-table th:nth-child(3),.f-stage-table td:nth-child(3){width:20%}
-.f-stage-table th:nth-child(4),.f-stage-table td:nth-child(4){width:17%}
-.f-stage-table th:nth-child(5),.f-stage-table td:nth-child(5){width:28%}
+.f-stage-table th:nth-child(3),.f-stage-table td:nth-child(3){width:22%}
+.f-stage-table th:nth-child(4),.f-stage-table td:nth-child(4){width:16%}
+.f-stage-table th:nth-child(5),.f-stage-table td:nth-child(5){width:26%}
 .f-stage-table tbody tr:nth-child(even) td{background:#fff}
 .f-stage-table tbody tr:nth-child(odd) td{background:${pale}}
 .f-phase{background:${soft}!important;text-align:center!important;color:${ink};font-family:"Cairo",sans-serif}
-.f-time{display:block;margin-top:2mm;padding:1mm 1.5mm;border-radius:1mm;background:${accent};color:#fff;font-family:"Readex Pro",sans-serif;font-size:8pt}
-.f-product{background:#fffdf7!important}
-.f-product>div{margin:0 0 2mm}
-.f-product>div:last-child{margin-bottom:0}
-.stage-assessment{border-inline-start:3px solid ${gold};padding-inline-start:2mm}
-.print-source-intro{padding:3mm 4mm;border:1px dashed ${line};border-radius:2mm;background:${pale};font-size:10.5pt}
-.print-source-note{padding:2.5mm 3mm;border-inline-start:4px solid ${gold};background:${goldSoft};margin:3mm 0;font-weight:700}
-.source-section{margin:5mm 0}
-.source-section>h3{border-bottom:2px solid ${line};padding-bottom:1.5mm}
-.source-section p{line-height:1.75}
-.source-section ul{margin-top:2mm}
-.source-section table,.print-inner-table{margin:3mm 0;font-size:9pt}
-.source-section th,.source-section td,.print-inner-table th,.print-inner-table td{border:1px solid ${line};padding:2.5mm;vertical-align:top;text-align:start;overflow-wrap:anywhere}
-.source-section thead th,.print-inner-table thead th{background:${soft};color:${ink};text-align:center;font-family:"Cairo",sans-serif}
-.source-section tbody tr:nth-child(even) td,.print-inner-table tbody tr:nth-child(even) td{background:${pale}}
-.source-section .callout,.print-card{border:1px solid ${line};border-inline-start:4px solid ${gold};background:${goldSoft};padding:3mm 4mm;margin:3mm 0}
-.source-section .callout p{margin-bottom:0}
-.print-stage-detail{border:1px solid ${line};border-radius:2mm;background:#fff;padding:3mm 4mm;margin:4mm 0}
-.print-stage-detail h3{margin-top:0;background:${soft};padding:2mm 3mm}
-.print-stage-detail h4{border-bottom:1px solid ${line};padding-bottom:1mm}
-.print-assessment{background:${goldSoft};border-inline-start-color:${gold};margin:4mm 0;padding:3mm 4mm}
-.print-assessment h4{margin-top:0;color:${brand}}
-.print-questions{margin:2mm 0;padding-inline-start:7mm}
-.print-question{margin:3mm 0;padding:3mm 4mm;border:1px solid ${line};background:#fff;break-inside:avoid;page-break-inside:avoid}
-.question-text{font-size:10pt;line-height:1.7}
-.question-options{margin-top:2mm;color:${muted}}
-.question-options .print-list{margin-top:1mm}
-.print-answer{margin-top:2mm;color:${brand};font-weight:800}
-.print-rationale{margin-top:1.5mm;color:${muted};font-size:9pt}
-.print-docs{display:grid;grid-template-columns:1fr;gap:4mm}
-.print-doc{padding:3mm 4mm;border:1px solid ${line};border-inline-start:4px solid ${accent};background:#fff}
-.print-doc h3{margin-top:0}
-.print-inner-table{break-inside:auto;page-break-inside:auto}
-.print-application{background:${pale};border-inline-start-color:${accent}}
-.print-end-note{margin-top:8mm;padding-top:4mm;border-top:2px solid ${brand};color:${muted};font-size:9pt}
-.print-empty{padding:3mm;background:${pale};border:1px dashed ${line};color:${muted}
-}
+.f-time{display:block;margin-top:1mm;padding:.5mm 1mm;border-radius:.7mm;background:${accent};color:#fff;font-family:"Readex Pro",sans-serif;font-size:6.8pt}
+.f-product{background:#fffdf7!important;font-weight:600}
+.print-list{margin:.5mm 0;padding-inline-start:4mm}
+.print-list li{margin:.25mm 0}
+.print-list li::marker{color:${accent};font-weight:800}
+.f-bottom-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:2mm;align-items:start}
+.f-box{border:.55px solid ${line};background:#fff;padding:1.8mm 2mm;break-inside:avoid}
+.f-box h2{margin:-1.8mm -2mm 1.5mm;background:${soft};border:0;padding:1.2mm 1.5mm;text-align:center;font-size:9pt}
+.print-inner-table{font-size:7.6pt}
+.print-inner-table th,.print-inner-table td{border:.5px solid ${line};padding:1.2mm 1.5mm;vertical-align:top;text-align:start;overflow-wrap:anywhere}
+.print-inner-table th{width:25%;background:${goldSoft};font-weight:800}
+.print-inner-table tbody tr:nth-child(even) td{background:${pale}}
+.f-method{padding:3mm 2mm;background:${goldSoft};border-inline-start:3px solid ${gold};font-family:"Cairo",sans-serif;font-size:11pt;font-weight:900;text-align:center;direction:rtl}
+.f-note{font-size:7.3pt;color:${muted};margin-top:1.5mm}
+.f-assessment-box,.f-application-box{margin-top:2mm}
+.f-assessment-box p,.f-application-box p{font-size:7.8pt}
+.print-footer{display:flex;justify-content:space-between;gap:4mm;border-top:.7px solid ${brand};padding-top:1.5mm;margin-top:3mm;color:${muted};font-size:7pt}
 thead{display:table-header-group}
 tfoot{display:table-footer-group}
 table{page-break-inside:auto}
@@ -1354,21 +1301,19 @@ tr{break-inside:avoid;page-break-inside:avoid}
 th,td{break-inside:auto;overflow-wrap:anywhere;word-break:normal}
 .print-only{display:block!important}
 @media screen{
-  body{background:#eee8dc;padding:8mm}
-  .lesson-plan-print{max-width:198mm;background:#fff;padding:8mm;box-shadow:0 2mm 12mm rgba(66,45,29,.18)}
+  body{background:#eee8dc;padding:7mm}
+  .lesson-plan-print{max-width:198mm;background:#fff;padding:5mm;box-shadow:0 2mm 10mm rgba(66,45,29,.18)}
 }
 @media print{
   .no-print,.p-toolbar{display:none!important}
   .print-only{display:block!important}
   .lesson-plan-print{width:100%;margin:0;padding:0}
-  .print-section{break-inside:auto;page-break-inside:auto}
-  .f-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  *{box-shadow:none!important;text-shadow:none!important}
+  *{box-shadow:none!important;text-shadow:none!important;animation:none!important;transition:none!important}
 }
 `;
 }
 
-/** ملف HTML مستقل لنسخة الطباعة الكاملة (يُرسل مباشرة إلى نافذة الطباعة) */
+/** ملف HTML مستقل لنسخة الطباعة العملية (يُرسل مباشرة إلى نافذة الطباعة) */
 export function jadadaPrintHtml(f: JadadaFiche): string {
   return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>جذاذة: ${esc(f.title)}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet"><style>${jadadaPrintCss()}</style></head><body><div class="p-toolbar"><button type="button" onclick="window.print()">طباعة / حفظ PDF</button></div>${jadadaPrintBodyHtml(f)}</body></html>`;
 }
