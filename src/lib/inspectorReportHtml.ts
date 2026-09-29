@@ -82,7 +82,7 @@ export function inspectorReportHtml(report: InspectorReport, analysis: Inspector
   return htmlDocument(`
 <section class="cover">
   <header class="masthead"><div class="official-wordmark" dir="rtl"><div class="kingdom">المملكة المغربية</div><div class="ministry-name">وزارة التربية الوطنية<br>والتعليم الأولي والرياضة</div></div><img class="official-coat" src="/report/morocco-coat.png" alt="شعار المملكة المغربية" /></header><div class="head-lines" style="text-align:center;margin-top:6px"><p class="school">${esc(report.academy)}</p><p class="subhead">${esc(report.directorate)} · ${esc(report.institution)} · السنة الدراسية: ${esc(report.schoolYear)}</p></div>
-  <h1>${title}</h1><p class="subtitle">تقرير تربوي تحليلي رسمي لنتائج التقويم</p><p class="badge">${esc(report.assessmentType === "diagnostic" ? "التقويم التشخيصي" : "التقويم الشخصي")}</p>${analysis.dataSource === "demo" ? "<p class=\"badge\" style=\"background:#b8892d\">نسخة Demo — للمعاينة فقط</p>" : ""}
+  <h1>${title}</h1><p class="subtitle">تقرير تربوي تحليلي رسمي لنتائج التقويم</p><p class="badge">${esc(report.assessmentType === "diagnostic" ? "التقويم التشخيصي" : "التقويم الشخصي")}</p>
   <p class="cover-note">${esc(resultNote)}</p>
   <table class="grid identity"><tbody>
     <tr><th>الأستاذ(ة)</th><td>${esc(report.teacherName)}</td><th>المادة</th><td>${esc(report.subject)}</td></tr>
