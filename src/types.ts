@@ -87,6 +87,9 @@ export interface RubricResult {
 
 export type SkillsMap = Record<string, { got: number; max: number }>;
 
+export type AttendanceStatus = "present" | "absent";
+export type AssessmentStatus = "completed" | "not_started" | "absent";
+
 export interface Submission {
   id: string;
   name: string;
@@ -94,6 +97,22 @@ export interface Submission {
   studentNo?: string;
   bankId?: string;
   bankLabel?: string;
+  /** المستوى الدراسي لبنك الأسئلة (الجذع المشترك / الأولى باك / الثانية باك) */
+  bankLevel?: string;
+  /** معرف المستوى الذي حمله QR Code (jad3-moshtarak / 1bac / 2bac) */
+  diagnosticLevel?: string;
+  /** معرف الموعد/الحصة التنظيمي، إن كان القسم مرتبطًا بموعد محفوظ */
+  sessionId?: string;
+  /** مصدر السجل: real للسجل الفعلي وdemo للنموذج المعزول */
+  dataSource?: "real" | "demo";
+  /** علامة صريحة إضافية لسجل النموذج التجريبي */
+  isDemo?: boolean;
+  /** حالة الحضور المنفصلة عن نتيجة التقويم */
+  attendanceStatus?: AttendanceStatus;
+  /** حالة المشاركة المنفصلة عن الحضور */
+  assessmentStatus?: AssessmentStatus;
+  /** رقم مسار التلميذ(ة) من اللائحة الرسمية للقسم */
+  massar?: string;
   date: string;
   history: number;
   geography: number;
@@ -102,6 +121,52 @@ export interface Submission {
   level: string;
   skills: SkillsMap;
   demo?: boolean;
+  /* ---- معطيات التفصيل الفردي (تُحفظ منذ تفعيل التقارير الفردية) ----
+     السجلات المحفوظة قبل هذا التحديث لا تتضمنها، وتُعلن الوثيقة ذلك صراحة. */
+  /** إجابات التلميذ(ة) لكل سؤال، بترتيب بنك الأسئلة */
+  answers?: Answer[];
+  /** شبكة تنقيط الفقرة المكتوبة */
+  rubric?: RubricResult;
+  /** نص الفقرة المكتوبة */
+  writingText?: string;
+  /** المدة المستغرقة بالثواني */
+  timeUsedSeconds?: number;
+  /** نوع التقويم الذي أنشأ السجل؛ السجلات القديمة تُعامل تشخيصيًا افتراضيًا. */
+  assessmentType?: "diagnostic" | "personal";
+}
+
+export type InspectorAssessmentType = "diagnostic" | "personal";
+export type InspectorReportStatus = "draft" | "approved" | "archived";
+
+/**
+ * لقطة تقرير المفتش التي تُحفظ في قاعدة البيانات. لا تُخزّن النتائج
+ * كملخّص مُنشأ يدويًا فقط؛ بل ترتبط بمعرفات السجلات التي بُنيت عليها.
+ */
+export interface InspectorReport {
+  id: string;
+  teacherId?: string;
+  teacherName: string;
+  institution: string;
+  academy: string;
+  directorate: string;
+  level: string;
+  subject: string;
+  className: string;
+  schoolYear: string;
+  assessmentType: InspectorAssessmentType;
+  periodFrom: string;
+  periodTo: string;
+  threshold: number;
+  tools: string;
+  context: string;
+  objectives: string;
+  supportDuration: string;
+  status: InspectorReportStatus;
+  submissionIds: string[];
+  createdAt: string;
+  updatedAt: string;
+  /** نسخة HTML كاملة قابلة لإعادة المعاينة والطباعة؛ لا تُستعمل مصدرًا للنتائج. */
+  htmlSnapshot?: string;
 }
 
 export interface Methodology {

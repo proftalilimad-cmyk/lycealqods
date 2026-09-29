@@ -10,6 +10,7 @@ import { BAC2_SCI_HISTORY } from "./lessons/bac2SciHistory";
 import { BAC2_SCI_GEO } from "./lessons/bac2SciGeo";
 import { BAC2_BOOK_HISTORY } from "./lessons/bac2BookHistory";
 import { BAC2_BOOK_GEO } from "./lessons/bac2BookGeo";
+import { BAC2_ARTS_ADDITIONS } from "./lessons/bac2ArtsAdditions";
 
 /**
  * مكتبة محتوى الدروس.
@@ -250,7 +251,7 @@ export const LESSON_CONTENT: Record<string, LessonContent> = {
 };
 
 // دمج سجلات المحتوى المفصلة لكل المستويات والمسالك
-Object.assign(LESSON_CONTENT, TC_SCI_HISTORY, TC_SCI_GEO, TC_ARTS, BAC1_SCI_HISTORY, BAC1_SCI_GEO, BAC_ARTS_HISTORY, BAC2_SCI_HISTORY, BAC2_SCI_GEO, BAC2_BOOK_HISTORY, BAC2_BOOK_GEO);
+Object.assign(LESSON_CONTENT, TC_SCI_HISTORY, TC_SCI_GEO, TC_ARTS, BAC1_SCI_HISTORY, BAC1_SCI_GEO, BAC_ARTS_HISTORY, BAC2_SCI_HISTORY, BAC2_SCI_GEO, BAC2_BOOK_HISTORY, BAC2_BOOK_GEO, BAC2_ARTS_ADDITIONS);
 
 /**
  * ربط المحتوى المشترك بين المسالك:
@@ -304,6 +305,22 @@ const ALIASES: Record<string, { key: string; title?: string }> = {
   "bac2-arts.geography.0.2": { key: "bac2-sci.geography.0.2" },
   "bac2-arts.geography.1.2": { key: "bac2-sci.geography.1.0" },
   "bac2-arts.geography.1.3": { key: "bac2-sci.geography.1.1" },
+
+  /* استكمال محتوى «في رحاب التاريخ» و«منار الجغرافيا» للثانية باكالوريا */
+  "bac2-arts.history.0.1": { key: "bac2-book.history.1.0", title: "أزمة العالم الرأسمالي الكبرى لسنة 1929" },
+  "bac2-arts.history.0.2": { key: "bac2-book.history.1.1", title: "الحرب العالمية الثانية (1939–1945)" },
+  "bac2-arts.history.2.6": { key: "bac2-sci.history.3.2", title: "ملف: الثورة العلمية والتكنولوجية" },
+  "bac2-arts.geography.0.3": { key: "bac2-sci.geography.0.2", title: "المجال العالمي والتحديات الكبرى (التحدي السكاني، والتحدي البيئي)" },
+  "bac2-arts.geography.1.0": { key: "bac2-book.geography.1.1", title: "العولمة والهوية الثقافية" },
+  "bac2-arts.geography.1.1": { key: "bac2-book.geography.1.1", title: "الاتحاد الأوروبي نحو اندماج شامل" },
+  "bac2-arts.geography.1.4": { key: "bac2-sci.geography.3.2", title: "ملف: المنظمة العالمية للتجارة" },
+  "bac2-arts.geography.2.0": { key: "bac2-book.geography.1.0", title: "الولايات المتحدة الأمريكية: قوة اقتصادية عظمى" },
+  "bac2-arts.geography.2.1": { key: "bac2-sci.geography.2.0", title: "فرنسا: قوة فلاحية وصناعية كبرى في الاتحاد الأوروبي" },
+  "bac2-arts.geography.2.2": { key: "bac2-sci.geography.2.1", title: "اليابان: قوة تجارية كبرى" },
+  "bac2-arts.geography.2.3": { key: "bac2-book.geography.1.2", title: "الصين: قوة اقتصادية صاعدة" },
+  "bac2-arts.geography.2.4": { key: "bac2-sci.geography.3.0", title: "البرازيل: نموذج اقتصادي واستمرار التفاوتات في التنمية البشرية" },
+  "bac2-arts.geography.2.5": { key: "bac2-sci.geography.3.1", title: "كوريا الجنوبية: نموذج لبلد حديث النمو الاقتصادي" },
+  "bac2-arts.geography.2.6": { key: "bac2-sci.geography.3.2", title: "ملف: الهند — أوجه متعددة للتنمية" },
 
   /* كتاب «المختصر» ← درس نظام الحماية (ص 11) المكتوب سلفًا وفق الكتاب */
   "bac2-book.history.1.2": { key: "bac2-sci.history.0.2" },
@@ -452,6 +469,12 @@ export interface ResolvedLesson {
   branch: CurriculumBranch;
   subjectLabel: string;
   unit: CurriculumUnit;
+}
+
+/** هل محتوى الدرس مشتركًا مع درس آخر؟ (يُستعمل للتصريح بمصدر المحتوى في الجذاذات) */
+export function lessonAliasOf(key: string): { key: string; title?: string } | undefined {
+  if (LESSON_CONTENT[key]) return undefined;
+  return ALIASES[key];
 }
 
 /** استخراج الدرس ومساره الكامل من مفتاحه */

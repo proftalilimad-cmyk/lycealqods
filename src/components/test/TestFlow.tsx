@@ -14,15 +14,25 @@ import {
   UserRoundPen,
 } from "lucide-react";
 import { getBank, TEST_BANKS, type TestBankDef } from "../../data/testBanks";
+import { ROSTER_CLASSES, ROSTER_SOURCE, ROSTER_YEAR, type RosterStudent } from "../../data/rosters";
 import { TEST_DURATION_SECONDS } from "../../data/questions";
+import { scheduleForClass } from "../../data/diagnosticSchedule";
 import type { Submission } from "../../types";
 import { addSubmission } from "../../lib/storage";
+import { cloudConfigHint, isAssessmentSubmissionConfigured } from "../../lib/supabase";
 import Reveal from "../Reveal";
 import TestRunner, { type TestReport } from "./TestRunner";
 import TestResult from "./TestResult";
 
 interface TestFlowProps {
   initialBank?: string;
+  /** تسمية المستوى في صفحة QR؛ عند تحديدها تُعرض بنوك هذا المستوى فقط. */
+  diagnosticLevel?: string;
+  /** المعرف الذي جاء به QR Code، ويُحفظ مع النتيجة. */
+  diagnosticLevelId?: string;
+  /** قسم QR، إن وُجد: يُثبّت القسم مثلما يُثبّت المستوى. */
+  diagnosticClassName?: string;
+  onBackToLevels?: () => void;
   onHome: () => void;
 }
 
@@ -45,7 +55,23 @@ const QUESTION_TYPES = [
 
 const LEVEL_ORDER = ["الجذع المشترك", "الأولى باكالوريا", "الثانية باكالوريا"];
 
-function BankSelector({ onPick }: { onPick: (bank: TestBankDef) => void }) {
+/* الأقسام التي تظهر في بطاقة التلميذ(ة) — منتقاة من اللوائح الرسمية 2026-2027 */
+const DIAGNOSTIC_CLASS_LABELS = [
+  "جذع مشترك علوم خ ف 1",
+  "جذع مشترك علوم خ ف 2",
+  "جذع مشترك علوم خ ف 3",
+  "جذع مشترك علوم خ ف 4",
+  "الثانية بكالوريا علوم إنسانية خ ف 1",
+  "الثانية بكالوريا علوم إنسانية خ ف 2",
+] as const;
+
+const DIAGNOSTIC_ROSTER_CLASSES = ROSTER_CLASSES.filter((roster) =>
+  (DIAGNOSTIC_CLASS_LABELS as readonly string[]).includes(roster.label),
+);
+
+function BankSelector({ onPick, level }: { onPick: (bank: TestBankDef) => void; level?: string }) {
+  const levels = level ? LEVEL_ORDER.filter((item) => item === level) : LEVEL_ORDER;
+
   return (
     <div className="mx-auto max-w-6xl px-5 sm:px-8">
       <Reveal>
@@ -55,16 +81,17 @@ function BankSelector({ onPick }: { onPick: (bank: TestBankDef) => void }) {
             التقويم التشخيصي في الاجتماعيات
           </span>
           <h1 className="mt-5 font-display text-3xl font-black leading-[1.3] text-ink-900 sm:text-4xl">
-            اختر مستواك ومسلكك أولًا
+            {level ? `اختر المسلك داخل ${level}` : "اختر مستواك ومسلكك أولًا"}
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-ink-500 sm:text-base">
-            ثمانية تقويمات تشخيصية مخصصة: لكل مسلك بنك أسئلة ملائم لمناهجه ومكتسباته الجغرافية والتاريخية,
-            كل واحد: 20 سؤالًا، 10 تاريخ + 10 جغرافيا، 60 دقيقة، النقطة /20.
+            {level
+              ? "اختر بنك الأسئلة المناسب لمسلكك. يتضمن كل تقويم 20 سؤالًا: 10 تاريخ + 10 جغرافيا، خلال 60 دقيقة، والنقطة العامة /20."
+              : "تقويمات تشخيصية مخصصة: لكل مسلك بنك أسئلة ملائم لمناهجه ومكتسباته الجغرافية والتاريخية، وكل واحد يضم 20 سؤالًا: 10 تاريخ + 10 جغرافيا، خلال 60 دقيقة، والنقطة العامة /20."}
           </p>
         </div>
       </Reveal>
 
-      {LEVEL_ORDER.map((level, li) => {
+      {levels.map((level, li) => {
         const banks = TEST_BANKS.filter((b) => b.level === level);
         if (banks.length === 0) return null;
         return (
@@ -143,31 +170,76 @@ function BankSelector({ onPick }: { onPick: (bank: TestBankDef) => void }) {
   );
 }
 
-export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
+export default function TestFlow({ initialBank, diagnosticLevel, diagnosticLevelId, diagnosticClassName, onBackToLevels, onHome }: TestFlowProps) {
   const [bank, setBank] = useState<TestBankDef | undefined>(() => getBank(initialBank));
   const [stage, setStage] = useState<"intro" | "run" | "done">("intro");
   const [name, setName] = useState("");
-  const [className, setClassName] = useState("");
+  const [className, setClassName] = useState(diagnosticClassName ?? "");
+  const classLocked = Boolean(diagnosticClassName);
   const [studentNo, setStudentNo] = useState("");
+  /* اختيار الاسم من اللائحة الرسمية للقسم (رقم مسار = المفتاح) */
+  const [studentPick, setStudentPick] = useState("");
   const [error, setError] = useState("");
   const [report, setReport] = useState<TestReport | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  /* النتيجة كما حُفظت — تُستعمل لأزرار تحميل ملف التلميذ(ة) */
+  const [savedSub, setSavedSub] = useState<Submission | null>(null);
+  const [cloudSaveMessage, setCloudSaveMessage] = useState<string | null>(null);
+
+  const rosterClass = DIAGNOSTIC_ROSTER_CLASSES.find((roster) => roster.label === className);
+  const pickedStudent: RosterStudent | undefined = rosterClass?.students.find((st) => st.massar === studentPick);
 
   const pickBank = (b: TestBankDef) => {
     setBank(b);
-    setClassName(b.branch);
+    setClassName(diagnosticClassName ?? "");
+    setStudentPick("");
     setStage("intro");
     window.scrollTo({ top: 0 });
   };
 
+  const pickClass = (label: string) => {
+    if (classLocked) return;
+    setClassName(label);
+    setStudentPick("");
+    setName("");
+    setStudentNo("");
+  };
+
+  /* كتابة رقم التلميذ (ر.ت) بعد اختيار القسم → يظهر اسمه من اللائحة الرسمية */
+  const pickNo = (v: string) => {
+    setStudentNo(v);
+    if (!rosterClass) return;
+    const st = rosterClass.students.find((x) => String(x.n) === v.trim());
+    if (st) {
+      setStudentPick(st.massar);
+      setName(st.name);
+    } else {
+      setStudentPick("");
+      setName("");
+    }
+  };
+
+  const pickStudent = (massar: string) => {
+    setStudentPick(massar);
+    const st = rosterClass?.students.find((x) => x.massar === massar);
+    if (st) {
+      setName(st.name);
+      setStudentNo(String(st.n));
+    }
+  };
+
   const start = () => {
-    if (name.trim().length < 3) return setError("المرجو إدخال الاسم الكامل (3 حروف على الأقل).");
     if (!className) return setError("المرجو اختيار القسم.");
+    if (rosterClass && !pickedStudent)
+      return setError("المرجو كتابة رقم التلميذ(ة) كما في لائحة القسم (أو اختيار اسمه من القائمة) ليظهر اسمه.");
+    if (!rosterClass && name.trim().length < 3) return setError("المرجو إدخال الاسم الكامل (3 حروف على الأقل).");
     setError("");
     setStage("run");
     window.scrollTo({ top: 0 });
   };
 
-  const finish = (r: TestReport) => {
+  const finish = async (r: TestReport) => {
     if (!bank) return;
     const sub: Submission = {
       id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `s-${Date.now()}`,
@@ -176,6 +248,11 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
       studentNo: studentNo.trim() || undefined,
       bankId: bank.id,
       bankLabel: bank.branch,
+      bankLevel: bank.level,
+      diagnosticLevel: diagnosticLevelId ?? bank.level,
+      sessionId: scheduleForClass(className, bank.id)?.id,
+      dataSource: "real",
+      massar: pickedStudent?.massar,
       date: new Date().toISOString(),
       history: r.historyScore,
       geography: r.geographyScore,
@@ -183,21 +260,40 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
       percent: r.percent,
       level: r.levelLabel,
       skills: r.skills,
+      /* التفصيل الفردي: تُبنى منه ملفات التحميل (أجوبة، تقرير، Word، Excel) */
+      answers: r.answers,
+      rubric: r.rubric,
+      writingText: r.writingText,
+      timeUsedSeconds: r.timeUsedSeconds,
+      assessmentType: "diagnostic",
     };
+    setCloudSaveMessage(null);
+    setSaveError("");
+    setSaving(true);
     try {
-      addSubmission(sub);
-    } catch {
-      /* وضع بدون تخزين */
+      const result = await addSubmission(sub);
+      if (!result.cloudSaved) throw new Error(result.error ?? "تعذّر الحفظ المركزي.");
+      setCloudSaveMessage("تم حفظ النتيجة في قاعدة البيانات المركزية.");
+      setSavedSub(sub);
+      setReport(r);
+      setStage("done");
+      window.scrollTo({ top: 0 });
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "تعذّر الحفظ المركزي.";
+      setSaveError(`لم تُحفظ النتيجة. ${message}`);
+      throw reason;
+    } finally {
+      setSaving(false);
     }
-    setReport(r);
-    setStage("done");
-    window.scrollTo({ top: 0 });
   };
 
   const restart = () => {
     setReport(null);
+    setSavedSub(null);
+    setCloudSaveMessage(null);
+    setSaveError("");
     setName("");
-    setClassName(bank ? bank.branch : "");
+    setClassName(diagnosticClassName ?? (bank ? bank.branch : ""));
     setStudentNo("");
     setStage("intro");
     window.scrollTo({ top: 0 });
@@ -206,6 +302,7 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
   const changeBank = () => {
     setBank(undefined);
     setReport(null);
+    setSavedSub(null);
     setStage("intro");
     setName("");
     setStudentNo("");
@@ -213,12 +310,19 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
     window.scrollTo({ top: 0 });
   };
 
+  const changeLevel = () => {
+    changeBank();
+    if (!diagnosticLevel) onBackToLevels?.();
+  };
+
   if (stage === "run" && bank) {
     return (
       <TestRunner
         questions={bank.questions}
-        student={{ name: name.trim(), className, studentNo: studentNo.trim() || undefined }}
+        student={{ name: name.trim(), className, massar: pickedStudent?.massar }}
         onFinish={finish}
+        saving={saving}
+        saveError={saveError}
       />
     );
   }
@@ -230,7 +334,9 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
         questions={bank.questions}
         name={name.trim()}
         className={className}
-        studentNo={studentNo.trim() || undefined}
+        massar={savedSub?.massar ?? pickedStudent?.massar}
+        submission={savedSub ?? undefined}
+        cloudSaveMessage={cloudSaveMessage ?? undefined}
         onRestart={restart}
         onHome={onHome}
       />
@@ -242,7 +348,7 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
       <section className="relative overflow-hidden pt-32 pb-20 md:pt-40">
         <div className="pointer-events-none absolute inset-0 pattern-zellige-dark opacity-50" aria-hidden="true" />
         <div className="relative">
-          <BankSelector onPick={pickBank} />
+          <BankSelector onPick={pickBank} level={diagnosticLevel} />
         </div>
       </section>
     );
@@ -255,14 +361,21 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
       <div className="relative mx-auto max-w-5xl px-5 sm:px-8">
         <Reveal>
           <div className="text-center">
-            <button
-              type="button"
-              onClick={changeBank}
-              className="mb-4 inline-flex items-center gap-2 text-xs font-bold text-brand-700 transition-colors hover:text-brand-800"
-            >
-              <RotateCcw className="size-3.5" aria-hidden="true" />
-              تغيير المستوى / المسلك
-            </button>
+            {classLocked ? (
+              <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-extrabold text-brand-700">
+                <Target className="size-3.5" aria-hidden="true" />
+                القسم مثبت عبر QR
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={changeLevel}
+                className="mb-4 inline-flex items-center gap-2 text-xs font-bold text-brand-700 transition-colors hover:text-brand-800"
+              >
+                <RotateCcw className="size-3.5" aria-hidden="true" />
+                {diagnosticLevel ? "تغيير المسلك" : "تغيير المستوى / المسلك"}
+              </button>
+            )}
             <h1 className="mt-1 font-display text-2xl font-black leading-[1.35] text-ink-900 sm:text-3xl lg:text-[2.4rem]">
               التقويم التشخيصي في الاجتماعيات
             </h1>
@@ -319,44 +432,88 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
               </div>
             </div>
             <div className="space-y-4 p-7">
-              <div>
-                <label htmlFor="s-name" className="field-label">الاسم الكامل <span className="text-rose-500">*</span></label>
-                <input
-                  id="s-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="مثال: أمين العلوي"
-                  className="field"
-                  autoComplete="name"
-                />
-              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="s-class" className="field-label">القسم <span className="text-rose-500">*</span></label>
-                  <select id="s-class" value={className} onChange={(e) => setClassName(e.target.value)} className="field">
-                    <option value="">— اختر القسم —</option>
-                    <option value={bank.branch}>{bank.branch}</option>
-                    <option value="قسم آخر">قسم آخر</option>
+                  <label htmlFor="s-class" className="field-label">القسم (من اللوائح الرسمية {ROSTER_YEAR}) <span className="text-rose-500">*</span></label>
+                    <select id="s-class" value={className} onChange={(e) => pickClass(e.target.value)} className="field" disabled={classLocked}>
+                      <option value="">— اختر القسم —</option>
+                    {DIAGNOSTIC_ROSTER_CLASSES.map((c) => (
+                      <option key={c.id} value={c.label}>
+                        {c.label}
+                      </option>
+                    ))}
                   </select>
+                  <p className="mt-1 text-[10px] leading-relaxed text-ink-400">
+                    المصدر: {ROSTER_SOURCE} — الثانوية التأهيلية القدس، القنيطرة.
+                  </p>
+                  {classLocked && <p className="mt-1 text-[10px] font-extrabold text-brand-700">ثبّت QR هذا القسم الاختيار تلقائيًا.</p>}
                 </div>
                 <div>
-                  <label htmlFor="s-no" className="field-label">رقم التلميذ (اختياري)</label>
+                  <label htmlFor="s-no" className="field-label">
+                    رقم التلميذ (ر.ت من لائحة القسم) {rosterClass ? <span className="text-rose-500">*</span> : "(اختياري)"}
+                  </label>
                   <input
                     id="s-no"
                     type="text"
                     inputMode="numeric"
                     value={studentNo}
-                    onChange={(e) => setStudentNo(e.target.value)}
-                    placeholder="مثال: 12"
+                    onChange={(e) => pickNo(e.target.value)}
+                    placeholder={rosterClass ? "اكتب الرقم ليظهر الاسم" : "مثال: 12"}
                     className="field"
                   />
+                  {rosterClass && studentNo.trim() && !pickedStudent && (
+                    <p className="mt-1 text-[10px] font-bold leading-relaxed text-rose-500">
+                      لا يوجد تلميذ(ة) بهذا الرقم في لائحة هذا القسم.
+                    </p>
+                  )}
                 </div>
+              </div>
+              <div>
+                <label htmlFor="s-name" className="field-label">
+                  الاسم الكامل {pickedStudent ? "(يظهر معتمدًا من اللائحة الرسمية)" : rosterClass ? "(يظهر تلقائيًا بعد كتابة الرقم)" : <span className="text-rose-500">*</span>}
+                </label>
+                <input
+                  id="s-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={rosterClass ? "يظهر هنا اسم التلميذ(ة) بعد كتابة رقمه" : "مثال: أمين العلوي"}
+                  className="field"
+                  autoComplete="name"
+                  readOnly={Boolean(pickedStudent)}
+                />
+                {pickedStudent && (
+                  <p className="mt-1 text-[10px] font-bold leading-relaxed text-brand-700">
+                    {pickedStudent.name} — رقم مسار: {pickedStudent.massar} · ر.ت: {pickedStudent.n} · تاريخ الازدياد: {pickedStudent.birth || "—"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="s-student" className="field-label">أو: اختيار الاسم مباشرة من لائحة القسم</label>
+                <select
+                  id="s-student"
+                  value={studentPick}
+                  onChange={(e) => pickStudent(e.target.value)}
+                  className="field"
+                  disabled={!rosterClass}
+                >
+                  <option value="">{rosterClass ? "— اختر اسم التلميذ(ة) —" : "اختر القسم أولًا"}</option>
+                  {rosterClass?.students.map((st) => (
+                    <option key={st.massar} value={st.massar}>
+                      {st.n}. {st.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {error && (
                 <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-600" role="alert">
                   {error}
+                </p>
+              )}
+              {!isAssessmentSubmissionConfigured() && (
+                <p className="rounded-xl border border-gold-200 bg-gold-50 px-4 py-3 text-xs font-semibold leading-relaxed text-gold-800" role="status">
+                  الإرسال المركزي غير مهيأ بعد. {cloudConfigHint()} لا تُحفظ النتائج الحقيقية في localStorage.
                 </p>
               )}
 
@@ -372,7 +529,8 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
               <button
                 type="button"
                 onClick={start}
-                className="btn-shine group flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-l from-gold-400 to-gold-500 px-8 py-4 text-base font-extrabold text-ink-950 shadow-xl shadow-gold-600/25 transition-all duration-300 hover:-translate-y-0.5"
+                disabled={!isAssessmentSubmissionConfigured()}
+                className="btn-shine group flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-l from-gold-400 to-gold-500 px-8 py-4 text-base font-extrabold text-ink-950 shadow-xl shadow-gold-600/25 transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Play className="size-5" aria-hidden="true" />
                 ابدأ التقويم التشخيصي
@@ -390,9 +548,9 @@ export default function TestFlow({ initialBank, onHome }: TestFlowProps) {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-center">
             <BookOpenCheck className="size-4 text-brand-600" aria-hidden="true" />
             <p className="text-xs text-ink-500">
-              تتوفر أيضًا تقويمات لسبع مستويات ومسالك أخرى —
-              <button type="button" onClick={changeBank} className="font-extrabold text-brand-700 underline-offset-2 hover:underline">
-                اختر مستوى آخر
+              {diagnosticLevel ? "تتوفر مسالك أخرى داخل هذا المستوى —" : "تتوفر أيضًا تقويمات لمسالك ومستويات أخرى —"}
+              <button type="button" onClick={changeLevel} className="font-extrabold text-brand-700 underline-offset-2 hover:underline">
+                {diagnosticLevel ? "اختر مسلكًا آخر" : "اختر مستوى آخر"}
               </button>
             </p>
           </div>

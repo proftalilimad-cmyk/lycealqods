@@ -55,11 +55,17 @@ export default function MimosaMap() {
         <img
           src="/images/mimosa-map.jpg"
           alt="خريطة رقمية تعليمية لحي ميموزا بالقنيطرة: ثانوية القدس وسط المخطط، مسجد في الشمال الغربي، مجرى مائي في الجنوب الشرقي، شارع رئيسي من الشرق إلى الغرب وحديقة في الجنوب الغربي"
+          width={1408}
+          height={768}
+          decoding="async"
           className={`absolute inset-0 size-full object-cover transition-opacity duration-500 ${layer === "map" ? "opacity-100" : "opacity-0"}`}
         />
         <img
           src="/images/mimosa-aerial.jpg"
           alt="صورة قمرية تعليمية لحي ميموزا بالقنيطرة بنفس المعالم: ثانوية القدس وسط المخطط، مسجد في الشمال الغربي، مجرى مائي في الجنوب الشرقي، شارع رئيسي وحديقة"
+          width={1408}
+          height={768}
+          decoding="async"
           className={`absolute inset-0 size-full object-cover transition-opacity duration-500 ${layer === "aerial" ? "opacity-100" : "opacity-0"}`}
           loading="lazy"
         />

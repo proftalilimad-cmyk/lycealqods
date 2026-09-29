@@ -14,10 +14,12 @@ import {
   TrendingUp,
   XCircle,
 } from "lucide-react";
-import type { Answer, Question } from "../../types";
+import type { Answer, Question, Submission } from "../../types";
 import { gradeAutoQuestion, RECOMMENDATIONS } from "../../lib/grading";
+import { displayClassName, scheduleForSubmission, sessionTimeLabel } from "../../data/diagnosticSchedule";
 import Ring from "../Ring";
 import Reveal from "../Reveal";
+import StudentDownloads from "../StudentDownloads";
 import type { TestReport } from "./TestRunner";
 
 const LEVEL_STYLES: Record<string, string> = {
@@ -78,14 +80,19 @@ interface TestResultProps {
   questions: Question[];
   name: string;
   className: string;
-  studentNo?: string;
+  massar?: string;
+  /** النتيجة كما حُفظت — تُعرض بها أزرار تحميل ملف التلميذ(ة) */
+  submission?: Submission;
+  /** نتيجة الإرسال إلى قاعدة البيانات المركزية إن كان Supabase مفعّلًا */
+  cloudSaveMessage?: string;
   onRestart: () => void;
   onHome: () => void;
 }
 
-export default function TestResult({ questions: QUESTIONS, report, name, className, studentNo, onRestart, onHome }: TestResultProps) {
+export default function TestResult({ questions: QUESTIONS, report, name, className, massar, submission, cloudSaveMessage, onRestart, onHome }: TestResultProps) {
   const [openReview, setOpenReview] = useState<number | null>(null);
   const [showWriting, setShowWriting] = useState(false);
+  const [downloadNote, setDownloadNote] = useState<string | null>(null);
 
   const skillEntries = Object.entries(report.skills).map(([skill, v]) => ({
     skill,
@@ -98,6 +105,7 @@ export default function TestResult({ questions: QUESTIONS, report, name, classNa
 
   const minutesUsed = Math.floor(report.timeUsedSeconds / 60);
   const secondsUsed = report.timeUsedSeconds % 60;
+  const diagnosticSession = submission ? scheduleForSubmission(submission) : undefined;
 
   return (
     <section className="relative overflow-hidden pt-32 pb-20 md:pt-36">
@@ -121,9 +129,10 @@ export default function TestResult({ questions: QUESTIONS, report, name, classNa
                 </p>
                 <h1 className="mt-4 font-display text-2xl font-black sm:text-3xl">
                   {name}
-                  {studentNo ? <span className="text-white/60"> (رقم {studentNo})</span> : null}
+                  {massar ? <span className="text-white/60"> (مسار {massar})</span> : null}
                 </h1>
-                <p className="mt-1.5 text-sm text-white/55">{className}</p>
+                <p className="mt-1.5 text-sm text-white/55">{displayClassName(className)}</p>
+                {diagnosticSession && <p className="mt-1 text-[11px] font-semibold text-gold-200/80">موعد التقويم: {sessionTimeLabel(diagnosticSession)}</p>}
 
                 <div className="mt-5 flex flex-wrap items-center justify-center gap-3 md:justify-start">
                   <span className="rounded-2xl bg-white/10 px-5 py-3 backdrop-blur">
@@ -415,6 +424,25 @@ export default function TestResult({ questions: QUESTIONS, report, name, classNa
             );
           })}
         </div>
+
+        {/* ============ تحميل ملف التلميذ(ة) ============ */}
+        {submission && (
+          <Reveal delay={120}>
+            <div className="mt-10">
+              {cloudSaveMessage && (
+                <p role="status" className={`mb-3 rounded-2xl border px-5 py-3 text-xs font-bold leading-relaxed ${cloudSaveMessage.startsWith("تم") ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-gold-200 bg-gold-50 text-gold-800"}`}>
+                  {cloudSaveMessage}
+                </p>
+              )}
+              <StudentDownloads sub={submission} variant="card" onNotice={setDownloadNote} />
+              {downloadNote && (
+                <p role="status" className="mt-3 rounded-2xl border border-brand-200 bg-white px-5 py-3 text-xs font-bold leading-relaxed text-brand-800">
+                  {downloadNote}
+                </p>
+              )}
+            </div>
+          </Reveal>
+        )}
 
         {/* ============ إجراءات ============ */}
         <Reveal delay={150}>

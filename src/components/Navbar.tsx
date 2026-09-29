@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
-import { GraduationCap, LayoutDashboard, Menu, Search, X } from "lucide-react";
+import { GraduationCap, LayoutDashboard, Menu, X } from "lucide-react";
 import { NAV_LINKS, type Route } from "../routes";
 
 interface NavbarProps {
   route: Route;
   go: (r: Route) => void;
-  onSearch: () => void;
 }
 
-export default function Navbar({ route, go, onSearch }: NavbarProps) {
+export default function Navbar({ route, go }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -64,17 +63,9 @@ export default function Navbar({ route, go, onSearch }: NavbarProps) {
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={onSearch}
-              aria-label="البحث في المنصة"
-              className="grid size-10 place-items-center rounded-xl border border-ink-900/10 bg-white/70 text-ink-700 transition-all hover:border-brand-300 hover:text-brand-700"
-            >
-              <Search className="size-4.5" />
-            </button>
-            <button
-              type="button"
               onClick={() => go({ view: "dashboard" })}
-              aria-label="لوحة الأستاذ — نتائج التلاميذ"
-              title="لوحة الأستاذ"
+              aria-label="لوحة الأستاذ — دخول محمي باسم مستعمل وكلمة مرور"
+              title="لوحة الأستاذ (محمية)"
               className={`hidden size-10 place-items-center rounded-xl border transition-all sm:grid ${
                 route.view === "dashboard"
                   ? "border-brand-500 bg-brand-50 text-brand-700"
@@ -120,7 +111,7 @@ export default function Navbar({ route, go, onSearch }: NavbarProps) {
                   className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-brand-700/30"
                 >
                   <LayoutDashboard className="size-4" />
-                  لوحة الأستاذ — النتائج
+                  دخول لوحة الأستاذ (محمية)
                 </button>
               </nav>
             </div>

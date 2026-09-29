@@ -1,0 +1,23 @@
+/dashboard
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/dashboard/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/admin
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/admin/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/teacher
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/teacher/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/results
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/results/*
+  X-Robots-Tag: noindex, nofollow, noarchive
