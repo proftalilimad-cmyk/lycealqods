@@ -1006,7 +1006,7 @@ function printTableHead(): string {
     <th>هدف التعلم المرتبط بالنشاط</th>
     <th>التدبير الديداكتيكي</th>
     <th>الدعامات</th>
-    <th class="f-product">المنتوج / الأثر المنتظر</th>
+    <th class="f-product">المنتوج / الأثر الذي يكتبه المتعلم</th>
   </tr></thead>`;
 }
 
@@ -1022,34 +1022,54 @@ interface CompactPrintStage {
 function compactPrintStages(f: JadadaFiche): CompactPrintStage[] {
   const targetLesson = f.key === "tc-sci.geography.0.0";
   const sourceStages = f.stages.slice(1, 1 + f.sourceSections.length);
-  const targetSections = [
+  const targetActivityRows: CompactPrintStage[] = [
     {
-      name: "تحديد موضوع الجغرافيا",
-      objective: "تحديد موضوع الجغرافيا انطلاقًا من الوثائق.",
-      management: "قراءة الوثائق واستخراج المعطيات ومناقشتها.",
-      supports: "الكتاب + الوثائق.",
-      product: "تعريف مختصر لموضوع الجغرافيا.",
+      name: "المقطع 1 — النشاط 1: أحدد موضوع الجغرافيا",
+      duration: "10 د",
+      objective: "تحديد موضوع الجغرافيا انطلاقًا من خطاطة النظام البيئي.",
+      management: "ملاحظة الخطاطة، استخراج العناصر، ومناقشة العلاقة.",
+      supports: "الكتاب ص 121 + خطاطة.",
+      product: "موضوع الجغرافيا: الأرض موطن الإنسان؛ البيئة وعناصرها؛ تفاعل الإنسان معها.",
     },
     {
-      name: "إبراز وظائف الجغرافيا",
-      objective: "استخراج وظائف الجغرافيا وتصنيفها.",
-      management: "اشتغال ثنائي/جماعي على الوثائق.",
-      supports: "الكتاب + الوثائق.",
-      product: "تصنيف وظائف الجغرافيا في جدول مختصر.",
+      name: "المقطع 1 — النشاط 2: أبين أن السكان موضوع جغرافي",
+      duration: "10 د",
+      objective: "إبراز السكان باعتبارهم موضوعًا جغرافيًا.",
+      management: "قراءة الوثيقة واستخراج مظاهر الحركة والتنظيم.",
+      supports: "الكتاب ص 121–122 + خريطة.",
+      product: "السكان: توزيعهم، حركتهم داخل المجال وخارجه، تطورهم وتنظيم مجالهم.",
     },
     {
-      name: "التعرف على أدوات الجغرافيا",
-      objective: "تمييز أدوات الجغرافيا وتحديد وظائفها.",
-      management: "قراءة الوثائق والجدول واستخراج المعطيات.",
-      supports: "الكتاب + الخريطة والجدول.",
-      product: "جدول: الأداة ← الوظيفة.",
+      name: "المقطع 2 — النشاط 1: أستخلص وظيفة الجغرافيا وأهميتها",
+      duration: "10 د",
+      objective: "استخراج وظيفة الجغرافيا في تنظيم المجال.",
+      management: "قراءة النص/الخريطة ومناقشة المعطيات.",
+      supports: "الكتاب ص 122–123 + خريطة.",
+      product: "إعداد التراب: تنظيم السكان والأنشطة والتجهيزات لتحقيق تنمية متوازنة وعدالة مجالية.",
     },
     {
-      name: "تطبيق النهج الجغرافي",
+      name: "المقطع 2 — النشاط 2: أبرز وظائف أخرى للجغرافيا",
+      duration: "10 د",
+      objective: "تصنيف وظائف الجغرافيا وربطها بالحياة والمجال.",
+      management: "اشتغال ثنائي/جماعي ثم تركيب النتائج.",
+      supports: "الكتاب ص 123 + نص وخريطة.",
+      product: "الجغرافيا علم تطبيقي: تفسير الظواهر، معالجة مشكلات البيئة والمجال، والمساعدة على التخطيط.",
+    },
+    {
+      name: "المقطع 3 — النشاط 1: أبين أدوات الجغرافيا وأصنفها",
+      duration: "10 د",
+      objective: "تمييز أدوات الجغرافيا وتحديد وظيفة كل أداة.",
+      management: "قراءة الخطاطة وتصنيف الأدوات ومناقشتها.",
+      supports: "الكتاب ص 124 + خطاطة الأدوات.",
+      product: "أدوات أساسية: الخرائط والمعطيات؛ وأدوات مساعدة: الصور والنصوص والإحصاءات والمبيانات.",
+    },
+    {
+      name: "المقطع 3 — النشاط 2: أتعرف مراحل النهج الجغرافي",
+      duration: "10 د",
       objective: "توظيف مراحل النهج الجغرافي في تحليل وثيقة.",
-      management: "تطبيق موجه ثم تصحيح جماعي.",
-      supports: "وثيقة جغرافية + شبكة تحليل.",
-      product: "تحليل وثيقة وفق: الوصف ← التفسير ← التعميم.",
+      management: "قراءة الخطاطة وتطبيق مراحلها على وثيقة.",
+      supports: "الكتاب ص 124 + شبكة تحليل.",
+      product: "النهج الجغرافي: الوصف (ماذا وأين) ← التفسير (لماذا) ← التعميم (الخلاصة).",
     },
   ];
 
@@ -1064,24 +1084,21 @@ function compactPrintStages(f: JadadaFiche): CompactPrintStage[] {
     },
   ];
 
-  f.sourceSections.forEach((section, index) => {
-    const sourceStage = sourceStages[index];
-    if (targetLesson && targetSections[index]) {
+  if (targetLesson) {
+    rows.push(...targetActivityRows);
+  } else {
+    f.sourceSections.forEach((section, index) => {
+      const sourceStage = sourceStages[index];
       rows.push({
-        ...targetSections[index],
+        name: compactPrintText(section.title.replace(/^(أحدد|أبرز|أتعرف|أطبق)\s*/, ""), 65),
         duration: compactPrintText(sourceStage?.duration ?? "", 35),
+        objective: compactPrintText(sourceStage?.objective ?? "بناء التعلمات المرتبطة بالمقطع.", 120),
+        management: compactPrintText(sourceStage?.management ?? "اشتغال موجه على الوثائق ومناقشة جماعية.", 120),
+        supports: compactPrintText(sourceStage?.supports.join("، ") ?? f.book, 90),
+        product: compactPrintText(sourceStage?.expected[0] ?? sourceStage?.activities[0] ?? "خلاصة المقطع.", 120),
       });
-      return;
-    }
-    rows.push({
-      name: compactPrintText(section.title.replace(/^(أحدد|أبرز|أتعرف|أطبق)\s*/, ""), 65),
-      duration: compactPrintText(sourceStage?.duration ?? "", 35),
-      objective: compactPrintText(sourceStage?.objective ?? "بناء التعلمات المرتبطة بالمقطع.", 120),
-      management: compactPrintText(sourceStage?.management ?? "اشتغال موجه على الوثائق ومناقشة جماعية.", 120),
-      supports: compactPrintText(sourceStage?.supports.join("، ") ?? f.book, 90),
-      product: compactPrintText(sourceStage?.expected[0] ?? sourceStage?.activities[0] ?? "خلاصة المقطع.", 120),
     });
-  });
+  }
 
   const synthesis = f.stages[1 + f.sourceSections.length];
   rows.push({
@@ -1144,15 +1161,10 @@ function compactPrintObjectives(targetLesson: boolean): string {
   return objectives.map((objective) => `<div>${esc(objective)}</div>`).join("");
 }
 
-function compactPrintContentRows(f: JadadaFiche): string {
-  const targetContent = f.key === "tc-sci.geography.0.0"
-    ? [
-        ["موضوع الجغرافيا", "الأرض والإنسان والبيئة والعلاقات المتبادلة بينها وتنظيم المجال."],
-        ["وظائفها", "دراسة السكان والمجال، تفسير التوزيعات والتحولات، والمساهمة في التخطيط."],
-        ["أدواتها", "الخريطة أداة أساسية، وتدعمها الجداول والإحصاءات والصور والنصوص والمبيانات."],
-      ]
-    : f.summary.slice(0, 3).map((summary, index) => [`المضمون ${index + 1}`, compactPrintText(summary, 190)]);
-  return targetContent.map(([label, value]) => `<tr><th>${esc(label)}</th><td>${esc(value)}</td></tr>`).join("");
+function compactPrintSynthesis(f: JadadaFiche, targetLesson: boolean): string {
+  return targetLesson
+    ? "الجغرافيا علم يدرس الأرض باعتبارها موطنًا للإنسان، والبيئة والسكان وتنظيم المجال، ويسهم في التخطيط وتحقيق العدالة المجالية."
+    : compactPrintText(f.summary[0] ?? "خلاصة تركيبية لمضامين الدرس.", 260);
 }
 
 /**
@@ -1163,13 +1175,13 @@ function compactPrintContentRows(f: JadadaFiche): string {
 export function jadadaPrintBodyHtml(f: JadadaFiche): string {
   const targetLesson = f.key === "tc-sci.geography.0.0";
   const stages = compactPrintStages(f);
-  const contentRows = compactPrintContentRows(f);
+  const synthesisText = compactPrintSynthesis(f, targetLesson);
   const schemaText = targetLesson
     ? "الوصف ← التفسير ← التعميم"
     : f.schema?.rows.map((row) => `${row.label}: ${compactPrintText(row.value, 95)}`).join(" · ") || "الوصف ← التفسير ← التعميم";
   const applicationText = f.application
-    ? "توظيف النهج الجغرافي في قراءة وثيقة: وصف + تفسير + تعميم."
-    : "تطبيق مختصر لمنهجية الدرس عند الحاجة.";
+    ? "توظيف النهج الجغرافي في قراءة وثيقة: الوصف + التفسير + التعميم."
+    : "تطبيق لمنهجية الدرس عند الحاجة.";
   const header = `<header class="f-header">
     <div class="f-meta-left"><table><tbody><tr><th>المادة</th><td>${esc(f.subjectLabel)}</td></tr><tr><th>المستوى</th><td>${esc(f.branchLabel)}</td></tr><tr><th>المجزوءة</th><td>${String(f.unitIndex + 1).padStart(2, "0")} — ${esc(f.unitTitle)}</td></tr></tbody></table></div>
     <div class="f-title"><span class="f-number">${String(f.lessonIndex + 1).padStart(2, "0")}</span><h1>${esc(f.title)}</h1><small>${esc(f.school)}</small></div>
@@ -1196,13 +1208,12 @@ export function jadadaPrintBodyHtml(f: JadadaFiche): string {
     <section class="print-section compact-bottom">
       <div class="f-bottom-grid">
         <article class="f-box">
-          <h2>المضامين الأساس</h2>
-          <table class="print-inner-table"><tbody>${contentRows}</tbody></table>
+          <h2>الخلاصة والأثر الكتابي</h2>
+          <p class="f-note">${esc(synthesisText)}</p>
         </article>
         <article class="f-box">
-          <h2>الأثر الكتابي</h2>
+          <h2>الأثر المنهجي</h2>
           <div class="f-method">${esc(schemaText)}</div>
-          <p class="f-note">خلاصة الدرس وخطاطته تُنجزان في ضوء مضامين المراحل السابقة.</p>
         </article>
       </div>
       <div class="f-box f-assessment-box">
