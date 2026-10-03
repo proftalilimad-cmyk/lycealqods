@@ -1,6 +1,7 @@
 import type {
   CurriculumLevel,
   CurriculumUnit,
+  LessonActivityPlan,
   LessonBlock,
   LessonContent,
   LessonDoc,
@@ -30,8 +31,7 @@ export const JADADAT_AUTHOR_LABEL = `إعداد وإنجاز: ${JADADAT_TEACHER}
 export const JADADAT_SIGN = `إنجاز: ${JADADAT_TEACHER} — ${JADADAT_SCHOOL}`;
 
 export const JADADAT_SOURCE_NOTE =
-  "مضامين هذه الجذاذة مستخرجة من درس الموقع نفسه (الأهداف، التمهيد، السؤال المحوري، المقاطع، الوثائق، الكرونولوجيا، الخلاصة، الخطاطة، الوضعية التطبيقية، التقويم بأجوبته وتعليلاته، المراجع)، " +
-  "أما الغلاف الديداكتيكي (الكفايات، الأهداف المهارية والقيمية، تدبير الأنشطة، توزيع الحيز الزمني، ترتيب المراحل) فقد صيغ وفق التوجيهات التربوية الرسمية لتنظيم تدريس مواد الاجتماعيات بالسلك الثانوي التأهيلي.";
+  "مضامين الجذاذة مبنية على الدرس المنشور وعلى بنية المجزوءة والأنشطة الواردة في «منار التاريخ والجغرافيا»؛ ويظهر تحت كل مقطع النشاط والدعامة والمنتوج الكتابي المقابل. صيغ الغلاف الديداكتيكي وتوزيع الزمن وفق تنظيم تدريس الاجتماعيات بالسلك الثانوي التأهيلي، دون طباعة الوثائق الطويلة وأسئلتها كاملة في النسخة المختصرة.";
 
 /* ------------------------------------------------------------------ */
 /* ألوان الموقع (نفس رموز index.css)                                    */
@@ -101,13 +101,6 @@ const SUBJECT_SKILLS: Record<string, string[]> = {
   citizenship: ["صياغة موقف معلل من قضية مجتمعية والانخراط في حوار منظم داخل القسم."],
 };
 
-const TARGET_VALUES = [
-  "الاعتزاز بالهوية الوطنية والحضارية مع الانفتاح على القيم الكونية.",
-  "الروح النقدية والموضوعية والأمانة العلمية في نقل المعطيات وتوثيقها.",
-  "التربية على المواطنة والمسؤولية تجاه المجال والمجتمع.",
-  "العمل الجماعي واحترام الرأي الآخر أثناء مناقشة الوثائق.",
-];
-
 const MANAGEMENT_COMMON = [
   "تقديم الوثائق وطرح أسئلة الاشتغال، ثم مناقشة جماعية وتجميع الإنجازات على السبورة.",
   "اشتغال ثنائي أو في مجموعات على الوثائق، ثم عرض النتائج ومناقشتها وتصحيحها.",
@@ -133,10 +126,13 @@ const DEFAULT_BOOK = "الكتاب المدرسي المقرر";
 export interface JadadaStage {
   name: string;
   duration: string;
+  /** هدف المرحلة، لا يساوي المنتوج الكتابي */
   objective: string;
   management: string;
   supports: string[];
   activities: string[];
+  /** أثر كتابي واضح ينجزه المتعلم في هذه المرحلة */
+  product: string;
   questions: string[];
   expected: string[];
   assessment: string[];
@@ -185,9 +181,10 @@ export interface JadadaFiche {
   /* الغلاف الديداكتيكي */
   kifayat: string[];
   unitKifaya: string;
+  /** ثلاثة أهداف عامة فقط: معرفي، منهجي، مهاري */
   cognitiveObjectives: string[];
   methodObjectives: string[];
-  valueObjectives: string[];
+  skillObjectives: string[];
   /* محتوى الدرس */
   intro: string;
   coreQuestion: string;
@@ -209,6 +206,7 @@ export interface JadadaFiche {
   sectionsCount: number;
   /** إن كان محتوى الدرس مشتركًا مع درس آخر (حسب ALIASES في lessonContent) */
   sharedWith: { key: string; title: string } | null;
+  sourceReference: string;
   sourceNote: string;
   sign: string;
 }
@@ -345,6 +343,42 @@ function sectionExpected(section: LessonSection, subjectId: string): string[] {
   return unique(out).slice(0, 4);
 }
 
+/**
+ * منتوج احتياطي للدروس التي لا تملك بعد تخطيطًا مصدرّيًا خاصًا. لا نكتب
+ * «خلاصة المقطع» بصيغة عامة؛ بل نحدد نوع الأثر الذي سيتركه المتعلم.
+ */
+function fallbackSectionProduct(section: LessonSection, subjectId: string): string {
+  const block = section.blocks[0];
+  if (block?.type === "callout" && block.tone === "def") {
+    return `تعريف مكتوب لـ«${cleanTitle(block.label)}» مع خاصية أو مثال من المقطع.`;
+  }
+  if (block?.type === "table") {
+    return `جدول تركيب يستخرج ${cleanTitle(block.head[0] ?? "المعطيات")} ويربطها بفكرة المقطع.`;
+  }
+  if (block?.type === "ul") {
+    return `لائحة منظمة لعناصر «${cleanTitle(block.title ?? section.title)}» مع تصنيفها وبيان خصائصها.`;
+  }
+  return subjectId === "geography"
+    ? "فقرة جغرافية قصيرة: وصف الظاهرة، تفسيرها، ثم تعميم النتيجة."
+    : "فقرة تاريخية قصيرة تؤطر الظاهرة وتربط أسبابها بنتائجها.";
+}
+
+function sectionPlanActivities(content: LessonContent, section: LessonSection, index: number, subjectId: string): LessonActivityPlan[] {
+  const planned = content.didacticPlan?.activities.filter((activity) => activity.sectionIndex === index) ?? [];
+  if (planned.length) return planned;
+  return [
+    {
+      sectionIndex: index,
+      label: `نشاط المقطع ${index + 1}: ${cleanTitle(section.title)}`,
+      support: content.bookPage
+        ? `${content.bookPage.book} ص ${content.bookPage.page}`
+        : "الكتاب المدرسي والسبورة",
+      task: sectionActivities(section, subjectId)[0] ?? "اشتغال موجه على وثائق المقطع.",
+      product: fallbackSectionProduct(section, subjectId),
+    },
+  ];
+}
+
 const SUPPORT_KEYWORDS: { re: RegExp; label: string }[] = [
   { re: /خريط|خرائط|كرطو/, label: "خريطة" },
   { re: /مبيان|مبيانات|منحنى|أعمدة/, label: "مبيان" },
@@ -409,6 +443,19 @@ function unitKifayaFor(subjectId: string, unitTitle: string): string {
     return `استثمار مكتسبات «${u}» في التعبير عن موقف مواطن مسؤول ومعلل.`;
   }
   return `الموضعة في الزمن وتأطير «${u}» في سياقها التاريخي، ومعالجة وثائقها، واكتساب مفاهيمها، وبناء مقال تاريخي حول إشكاليتها.`;
+}
+
+function skillObjectiveFor(content: LessonContent, subjectId: string): string {
+  if (subjectId === "geography") {
+    if (content.schema || content.timeline.length) {
+      return "إنجاز خطاطة أو تعبير خريطي/زمني منظم انطلاقًا من معطيات الدرس.";
+    }
+    return "تحرير فقرة جغرافية منظمة تستثمر وثيقة وتصل بين الوصف والتفسير والتعميم.";
+  }
+  if (content.timeline.length) {
+    return "إنجاز خط زمني أو جدول تاريخي ثم تحرير فقرة تركيبية موجزة.";
+  }
+  return "تحرير أثر كتابي تاريخي منظم يوظف المفاهيم والمعطيات المستخرجة من الوثائق.";
 }
 
 /** توزيع الوثائق على المقاطع بحسب ترتيبها (توزيع مقترح) */
@@ -476,6 +523,7 @@ export function buildJadada(key: string): JadadaFiche | null {
       `السؤال المحوري: ${cleanTitle(content.coreQuestion)}`,
       "تدوين فرضيات المتعلمين على السبورة للرجوع إليها عند التركيب.",
     ]),
+    product: "تدوين الإشكالية وفرضيتين أوليتين في الدفتر للعودة إليهما أثناء التركيب.",
     questions: unique([cleanTitle(content.coreQuestion)]),
     expected: ["أن يربط المتعلم الدرس بمكتسباته السابقة.", "أن يصوغ الإشكالية ويقترح فرضيات للعمل."],
     assessment: [],
@@ -484,14 +532,21 @@ export function buildJadada(key: string): JadadaFiche | null {
   /* 2 — مقاطع بناء المعرفة */
   content.sections.forEach((section, i) => {
     const title = cleanTitle(section.title);
-    const rawText = flattenBlocks(section.blocks).join(" ");
+    const plannedActivities = sectionPlanActivities(content, section, i, subjectId);
+    const rawText = `${flattenBlocks(section.blocks).join(" ")} ${plannedActivities.map((a) => `${a.label} ${a.support} ${a.task} ${a.product}`).join(" ")}`;
     stages.push({
       name: `المقطع ${i + 1}: ${title}`,
       duration: `${sectionMinutes[i] ?? round5(phaseMinutes[1] / Math.max(1, content.sections.length))} دقيقة`,
       objective: `بناء المعرفة حول: ${title}`,
       management: MANAGEMENT_COMMON[i % MANAGEMENT_COMMON.length],
-      supports: unique([book, ...detectSupports(rawText), ...docsForSection(content, i).map((d) => cleanTitle(d.label))]),
-      activities: sectionActivities(section, subjectId),
+      supports: unique([
+        book,
+        ...detectSupports(rawText),
+        ...plannedActivities.map((activity) => cleanTitle(activity.support)),
+        ...docsForSection(content, i).map((d) => cleanTitle(d.label)),
+      ]),
+      activities: plannedActivities.map((activity) => `${cleanTitle(activity.label)}: ${cleanTitle(activity.task)}`),
+      product: unique(plannedActivities.map((activity) => cleanTitle(activity.product))).join(" / "),
       questions: sectionQuestions(section, subjectId),
       expected: sectionExpected(section, subjectId),
       assessment: quizForSection(content, i),
@@ -518,6 +573,9 @@ export function buildJadada(key: string): JadadaFiche | null {
       ...content.summary.slice(0, 4).map((s) => `خلاصة: ${firstSentence(s, 190)}`),
       ...(content.examTips.length ? [`توجيه منهجي: ${firstSentence(content.examTips[0], 160)}`] : []),
     ]),
+    product: content.schema
+      ? `خطاطة تركيبية في الدفتر: ${cleanTitle(content.schema.title ?? "خطاطة الدرس")}، ثم فقرة جوابية مرتبطة بالإشكالية.`
+      : `فقرة تركيبية في الدفتر تجيب عن الإشكالية وتربط بين ${content.sections.length} مقاطع الدرس.`,
     questions: [
       "ما الخلاصة العامة التي يمكن تركيبها من مقاطع الدرس؟",
       "هل تأكدت فرضيات الانطلاق؟ وبمَ؟",
@@ -537,6 +595,7 @@ export function buildJadada(key: string): JadadaFiche | null {
     management: "إنجاز فردي لأسئلة التقويم ثم تصحيح جماعي؛ فالتصحيح لحظة دعم ومعالجة لا إعادة للدرس.",
     supports: unique(["أسئلة التقويم المرفقة بالدرس", "دفاتر المتعلمين", "السبورة"]),
     activities: content.quiz.slice(0, 4).map((q) => `سؤال: ${cleanTitle(q.q)}`),
+    product: "ورقة تقويم مختصرة: أجوبة المتعلم عن أسئلة الدرس، ثم تصحيح ذاتي وبطاقة دعم للمتعثر.",
     questions: content.quiz.slice(4).map((q) => cleanTitle(q.q)),
     expected: content.quiz
       .slice(0, 3)
@@ -547,23 +606,17 @@ export function buildJadada(key: string): JadadaFiche | null {
 
   /* 5 — الامتداد والوضعية التطبيقية */
   const app = content.application;
-  if (app || content.docs?.length) {
+  if (app) {
     stages.push({
-      name: "الامتداد والوضعية التطبيقية",
-      duration: app?.duration ? cleanTitle(app.duration) : "في حصة الأنشطة أو خارج الحصة",
-      objective: app ? cleanTitle(app.title) : "تطبيق المنهجية على وثائق الدرس",
-      management: "اشتغال فردي أو في مجموعات على الوضعية والوثائق، ثم عرض الإنجازات ومناقشتها وتقويمها بشبكة.",
-      supports: unique([
-        ...(app ? ["نص الوضعية التطبيقية"] : []),
-        ...(content.docs ?? []).map((d) => cleanTitle(d.label)),
-        book,
-      ]),
-      activities: unique([
-        ...(app ? [firstSentence(app.prompt, 260), ...app.guide.slice(0, 4).map((g) => `خطوة: ${cleanTitle(g)}`)] : []),
-        ...(content.docs ?? []).slice(0, 2).map((d) => `${cleanTitle(d.label)}: ${firstSentence(d.text, 160)}`),
-      ]),
-      questions: unique(app?.guide.slice(0, 3).map(cleanTitle) ?? (content.docs ?? [])[0]?.questions.map((q) => cleanTitle(q.q)) ?? []),
-      expected: unique(app?.model.slice(0, 3).map((m) => cleanTitle(m)) ?? ["إنجاز تطبيق يوظف منهجية الدرس."]),
+      name: "الوضعية التطبيقية / الامتداد",
+      duration: cleanTitle(app.duration),
+      objective: cleanTitle(app.title),
+      management: "اشتغال فردي أو في مجموعات على الوضعية، ثم عرض الإنجازات ومناقشتها وتقويمها بشبكة.",
+      supports: unique(["نص الوضعية التطبيقية", ...(content.docs ?? []).map((d) => cleanTitle(d.label)), book]),
+      activities: [firstSentence(app.prompt, 260), ...app.guide.slice(0, 4).map((g) => `خطوة: ${cleanTitle(g)}`)],
+      product: unique(app.model.slice(0, 3).map((m) => cleanTitle(m))).join("؛ ") || "إنجاز كتابي يوظف منهجية الدرس.",
+      questions: app.guide.slice(0, 3).map(cleanTitle),
+      expected: app.model.slice(0, 3).map(cleanTitle),
       assessment: [],
     });
   }
@@ -595,9 +648,17 @@ export function buildJadada(key: string): JadadaFiche | null {
     authorLabel: JADADAT_AUTHOR_LABEL,
     kifayat: SUBJECT_KIFAYA[subjectId] ?? SUBJECT_KIFAYA.history,
     unitKifaya: unitKifayaFor(subjectId, unit.title),
-    cognitiveObjectives: content.objectives.map(cleanTitle).filter(Boolean),
-    methodObjectives: SUBJECT_SKILLS[subjectId] ?? SUBJECT_SKILLS.history,
-    valueObjectives: TARGET_VALUES,
+    cognitiveObjectives: [cleanTitle(content.objectives[0] ?? "ضبط مضامين الدرس ومفاهيمه الأساسية.")],
+    methodObjectives: [
+      cleanTitle(
+        subjectId === "geography"
+          ? "توظيف النهج الجغرافي: وصف الوثيقة وتفسير معطياتها ثم تعميم النتيجة."
+          : subjectId === "citizenship"
+            ? "تحليل الوثائق وصياغة موقف معلل من القضية المدروسة."
+            : SUBJECT_SKILLS.history[1],
+      ),
+    ],
+    skillObjectives: [skillObjectiveFor(content, subjectId)],
     intro: cleanTitle(content.intro),
     coreQuestion: cleanTitle(content.coreQuestion),
     concepts: content.glossary.map((g) => ({ term: cleanTitle(g.term), def: cleanTitle(g.def) })),
@@ -634,6 +695,7 @@ export function buildJadada(key: string): JadadaFiche | null {
       if (!alias) return null;
       return { key: alias.key, title: resolveLesson(alias.key)?.content.title ?? alias.key };
     })(),
+    sourceReference: content.didacticPlan?.source ?? "الكتاب المدرسي المقرر ومضامين الدرس المنشور.",
     sourceNote: JADADAT_SOURCE_NOTE,
     sign: JADADAT_SIGN,
   };
@@ -841,10 +903,10 @@ export function jadadaBodyHtml(f: JadadaFiche): string {
     .map(
       (s) => `<tr>
   <td><span class="stage-name">${esc(s.name)}</span><br><span class="chip">${esc(s.duration)}</span></td>
-  <td><p>${esc(s.objective)}</p>${listHtml(s.activities)}</td>
+  <td><p><strong>هدف المرحلة:</strong> ${esc(s.objective)}</p>${listHtml(s.activities)}</td>
+  <td><p><strong>المنتوج / الأثر الكتابي:</strong> ${esc(s.product)}</p>${s.expected.length ? `<p><strong>مؤشر الإنجاز:</strong></p>${listHtml(s.expected)}` : ""}</td>
   <td>${s.questions.length ? `<p><strong>أسئلة الاشتغال:</strong></p>${listHtml(s.questions)}` : ""}${
-        s.expected.length ? `<p><strong>الإنجازات المرتقبة:</strong></p>${listHtml(s.expected)}` : ""
-      }${s.assessment.length ? `<p><strong>تقويم مرحلي:</strong></p>${listHtml(s.assessment)}` : ""}</td>
+        s.assessment.length ? `<p><strong>تقويم مرحلي:</strong></p>${listHtml(s.assessment)}` : ""}</td>
   <td>${esc(s.management)}</td>
   <td>${listHtml(s.supports)}</td>
 </tr>`,
@@ -908,6 +970,7 @@ ${
       value: `${f.duration} ≈ ${f.durationMinutes} دقيقة${f.durationApprox ? " (توزيع مقترح)" : ""}`,
     },
     { label: "الكتاب المدرسي", value: f.book },
+    { label: "مرجع بناء الأنشطة", value: f.sourceReference },
     { label: "المنهاج الرسمي", value: f.program },
     ...(f.sharedWith
       ? [{ label: "مصدر المحتوى", value: `محتوى مشترك مع الدرس: «${f.sharedWith.title}» (${f.sharedWith.key}) — حسب برمجة المسالك المتقاربة` }]
@@ -920,13 +983,13 @@ ${
   <div class="callout gold"><strong>كفاية الوحدة:</strong> ${esc(f.unitKifaya)}</div>
   ${listHtml(f.kifayat)}
 
-  <h2>${next()}. الأهداف التعلمية</h2>
-  <h3>أهداف معرفية (من مضامين الدرس)</h3>
+  <h2>${next()}. الأهداف التعلمية — ثلاثة أهداف عامة</h2>
+  <h3>1. معرفي</h3>
   ${listHtml(f.cognitiveObjectives)}
-  <h3>أهداف مهارية ومنهجية</h3>
+  <h3>2. منهجي</h3>
   ${listHtml(f.methodObjectives)}
-  <h3>أهداف قيمية ووجدانية</h3>
-  ${listHtml(f.valueObjectives)}
+  <h3>3. مهاري</h3>
+  ${listHtml(f.skillObjectives)}
 
   <h2>${next()}. الإشكالية والمفاهيم</h2>
   ${f.intro ? `<p><strong>التمهيد:</strong> ${esc(f.intro)}</p>` : ""}
@@ -939,17 +1002,18 @@ ${
   <h2>${next()}. مجرى الحصة: المراحل والأنشطة</h2>
   <table>
     <thead><tr>
-      <th style="width:16%">المرحلة والحيز الزمني</th>
-      <th style="width:26%">الأنشطة والمضامين</th>
-      <th style="width:24%">أسئلة الاشتغال والإنجازات المرتقبة</th>
-      <th style="width:18%">التدبير الديداكتيكي</th>
-      <th style="width:16%">الدعامات والوسائل</th>
+      <th style="width:14%">المرحلة والحيز الزمني</th>
+      <th style="width:23%">الهدف والأنشطة</th>
+      <th style="width:21%">المنتوج / الأثر الكتابي</th>
+      <th style="width:17%">الأسئلة والتقويم</th>
+      <th style="width:14%">التدبير الديداكتيكي</th>
+      <th style="width:11%">الدعامات</th>
     </tr></thead>
     <tbody>${stagesHtml}</tbody>
   </table>
 
   <h2>${next()}. مضامين المحاور كما وردت في الدرس</h2>
-  <div class="callout gold"><strong>المصدر:</strong> هذه المقاطع منقولة من الدرس المنشور في قسم «الدروس»؛ صيغت المراحل أعلاه لتنظيم أجرأتها داخل الحصة.</div>
+  <div class="callout gold"><strong>مرجع المقاطع:</strong> ${esc(f.sourceReference)}. صيغت المراحل والمنتوجات أعلاه لتنظيم أجرأة أنشطة المصدر داخل الحصة، دون اختزال مضمون الدرس في عبارة عامة.</div>
   ${sourceSectionsHtml(f.sourceSections)}
 
   ${f.docs.length ? `<h2>${next()}. الوثائق والدعامات وأسئلة تحليلها</h2>${docsHtml}` : ""}
@@ -1020,113 +1084,62 @@ interface CompactPrintStage {
 }
 
 function compactPrintStages(f: JadadaFiche): CompactPrintStage[] {
-  const targetLesson = f.key === "tc-sci.geography.0.0";
-  const sourceStages = f.stages.slice(1, 1 + f.sourceSections.length);
-  const targetActivityRows: CompactPrintStage[] = [
-    {
-      name: "المقطع 1 — النشاط 1: أحدد موضوع الجغرافيا",
-      duration: "10 د",
-      objective: "تحديد موضوع الجغرافيا انطلاقًا من خطاطة النظام البيئي.",
-      management: "ملاحظة الخطاطة، استخراج العناصر، ومناقشة العلاقة.",
-      supports: "الكتاب ص 121 + خطاطة.",
-      product: "موضوع الجغرافيا: الأرض موطن الإنسان؛ البيئة وعناصرها؛ تفاعل الإنسان معها.",
-    },
-    {
-      name: "المقطع 1 — النشاط 2: أبين أن السكان موضوع جغرافي",
-      duration: "10 د",
-      objective: "إبراز السكان باعتبارهم موضوعًا جغرافيًا.",
-      management: "قراءة الوثيقة واستخراج مظاهر الحركة والتنظيم.",
-      supports: "الكتاب ص 121–122 + خريطة.",
-      product: "السكان: توزيعهم، حركتهم داخل المجال وخارجه، تطورهم وتنظيم مجالهم.",
-    },
-    {
-      name: "المقطع 2 — النشاط 1: أستخلص وظيفة الجغرافيا وأهميتها",
-      duration: "10 د",
-      objective: "استخراج وظيفة الجغرافيا في تنظيم المجال.",
-      management: "قراءة النص/الخريطة ومناقشة المعطيات.",
-      supports: "الكتاب ص 122–123 + خريطة.",
-      product: "إعداد التراب: تنظيم السكان والأنشطة والتجهيزات لتحقيق تنمية متوازنة وعدالة مجالية.",
-    },
-    {
-      name: "المقطع 2 — النشاط 2: أبرز وظائف أخرى للجغرافيا",
-      duration: "10 د",
-      objective: "تصنيف وظائف الجغرافيا وربطها بالحياة والمجال.",
-      management: "اشتغال ثنائي/جماعي ثم تركيب النتائج.",
-      supports: "الكتاب ص 123 + نص وخريطة.",
-      product: "الجغرافيا علم تطبيقي: تفسير الظواهر، معالجة مشكلات البيئة والمجال، والمساعدة على التخطيط.",
-    },
-    {
-      name: "المقطع 3 — النشاط 1: أبين أدوات الجغرافيا وأصنفها",
-      duration: "10 د",
-      objective: "تمييز أدوات الجغرافيا وتحديد وظيفة كل أداة.",
-      management: "قراءة الخطاطة وتصنيف الأدوات ومناقشتها.",
-      supports: "الكتاب ص 124 + خطاطة الأدوات.",
-      product: "أدوات أساسية: الخرائط والمعطيات؛ وأدوات مساعدة: الصور والنصوص والإحصاءات والمبيانات.",
-    },
-    {
-      name: "المقطع 3 — النشاط 2: أتعرف مراحل النهج الجغرافي",
-      duration: "10 د",
-      objective: "توظيف مراحل النهج الجغرافي في تحليل وثيقة.",
-      management: "قراءة الخطاطة وتطبيق مراحلها على وثيقة.",
-      supports: "الكتاب ص 124 + شبكة تحليل.",
-      product: "النهج الجغرافي: الوصف (ماذا وأين) ← التفسير (لماذا) ← التعميم (الخلاصة).",
-    },
-  ];
-
   const rows: CompactPrintStage[] = [
     {
       name: "الانطلاق والتمهيد",
-      duration: targetLesson ? "10–15 دقيقة" : compactPrintText(f.stages[0]?.duration ?? "10 دقائق", 35),
-      objective: "صياغة الإشكالية واقتراح فرضيات.",
-      management: "أسئلة تمهيدية + مناقشة جماعية.",
+      duration: compactPrintText(f.stages[0]?.duration ?? "10 دقائق", 35),
+      objective: "صياغة الإشكالية وربطها بالمكتسبات السابقة.",
+      management: "أسئلة تمهيدية، قراءة التمهيد، ثم مناقشة جماعية.",
       supports: "الكتاب + السبورة.",
-      product: "الإشكالية + فرضيات أولية.",
+      product: "الإشكالية وفرضيتان أوليتان مكتوبتان في الدفتر.",
     },
   ];
 
-  if (targetLesson) {
-    rows.push(...targetActivityRows);
-  } else {
-    f.sourceSections.forEach((section, index) => {
-      const sourceStage = sourceStages[index];
-      rows.push({
-        name: compactPrintText(section.title.replace(/^(أحدد|أبرز|أتعرف|أطبق)\s*/, ""), 65),
-        duration: compactPrintText(sourceStage?.duration ?? "", 35),
-        objective: compactPrintText(sourceStage?.objective ?? "بناء التعلمات المرتبطة بالمقطع.", 120),
-        management: compactPrintText(sourceStage?.management ?? "اشتغال موجه على الوثائق ومناقشة جماعية.", 120),
-        supports: compactPrintText(sourceStage?.supports.join("، ") ?? f.book, 90),
-        product: compactPrintText(sourceStage?.expected[0] ?? sourceStage?.activities[0] ?? "خلاصة المقطع.", 120),
-      });
+  const sourceStages = f.stages.slice(1, 1 + f.sourceSections.length);
+  f.sourceSections.forEach((section, index) => {
+    const sourceStage = sourceStages[index];
+    const activityLabel = sourceStage?.activities[0]
+      ? compactPrintText(sourceStage.activities[0], 95)
+      : "اشتغال موجه على نشاط المقطع";
+    rows.push({
+      name: compactPrintText(`المقطع ${index + 1} — ${section.title} / ${activityLabel}`, 125),
+      duration: compactPrintText(sourceStage?.duration ?? "", 35),
+      objective: compactPrintText(sourceStage?.objective ?? `بناء المعرفة حول: ${section.title}`, 125),
+      management: compactPrintText(sourceStage?.management ?? "اشتغال موجه ومناقشة جماعية.", 125),
+      supports: compactPrintText(sourceStage?.supports.join("، ") ?? f.book, 105),
+      product: compactPrintText(sourceStage?.product ?? "منتوج كتابي مرتبط بالمقطع والنشاط.", 150),
     });
-  }
+  });
 
   const synthesis = f.stages[1 + f.sourceSections.length];
   rows.push({
     name: "التركيب والأثر الكتابي",
     duration: compactPrintText(synthesis?.duration ?? "10 دقائق", 35),
-    objective: "تركيب مكتسبات الدرس في خلاصة منظمة.",
-    management: "تجميع الخلاصات وتصحيحها.",
+    objective: "تركيب مكتسبات المقاطع والإجابة عن الإشكالية.",
+    management: "تجميع الخلاصات، تحرير الفقرة أو الخطاطة، ثم التصحيح الجماعي.",
     supports: "السبورة + الدفاتر + الخطاطة.",
-    product: "خلاصة تركيبية + خطاطة الدرس.",
+    product: compactPrintText(synthesis?.product ?? "فقرة تركيبية مرتبطة بإشكالية الدرس.", 150),
   });
 
+  const assessment = f.stages[2 + f.sourceSections.length];
   rows.push({
     name: "التقويم والدعم",
-    duration: compactPrintText(f.stages[2 + f.sourceSections.length]?.duration ?? "10 دقائق", 35),
+    duration: compactPrintText(assessment?.duration ?? "10 دقائق", 35),
     objective: "تقويم تحقق الأهداف ومعالجة التعثرات.",
-    management: "تقويم فردي + تصحيح جماعي + دعم.",
+    management: "تقويم فردي، تصحيح جماعي، ثم توجيه إلى الدعم.",
     supports: "شبكة التقويم + الدفاتر.",
-    product: "أجوبة صحيحة وتصحيح التعثرات.",
+    product: compactPrintText(assessment?.product ?? "أجوبة التقويم مصححة وبطاقة دعم للمتعثر.", 150),
   });
 
-  if (f.application || targetLesson) {
+  if (f.application) {
+    const application = f.stages[f.stages.length - 1];
     rows.push({
       name: "الوضعية التطبيقية / الامتداد",
-      duration: compactPrintText(f.application?.duration ?? "امتداد", 35),
-      objective: "توظيف النهج الجغرافي في قراءة وثيقة.",
-      management: "اشتغال فردي أو جماعي على وثيقة.",
-      supports: "وثيقة / خريطة / جدول.",
-      product: "وصف + تفسير + تعميم.",
+      duration: compactPrintText(f.application.duration, 35),
+      objective: compactPrintText(f.application.title, 125),
+      management: "اشتغال فردي أو جماعي، عرض الإنجازات وتقويمها بشبكة.",
+      supports: "نص الوضعية + وثيقة الدرس.",
+      product: compactPrintText(application?.product ?? f.application.model.join("؛ "), 150),
     });
   }
   return rows;
@@ -1146,25 +1159,22 @@ function compactPrintStageRows(stages: CompactPrintStage[]): string {
     .join("");
 }
 
-function compactPrintObjectives(targetLesson: boolean): string {
-  const objectives = targetLesson
-    ? [
-        "معرفيًا: أن يتعرف المتعلم موضوع الجغرافيا ووظائفها وأهم أدواتها.",
-        "منهجيًا: أن يوظف النهج الجغرافي في دراسة وثيقة، من الوصف إلى التفسير ثم التعميم.",
-        "مهاريًا: أن يستخرج المعطيات من الوثائق وينظمها في خلاصة أو خطاطة.",
-      ]
-    : [
-        "معرفيًا: أن يتعرف المتعلم مضامين الدرس ومفاهيمه الأساسية.",
-        "منهجيًا: أن يوظف منهجية المادة في دراسة الوثائق.",
-        "مهاريًا: أن يستخرج المعطيات وينظمها في خلاصة أو خطاطة.",
-      ];
-  return objectives.map((objective) => `<div>${esc(objective)}</div>`).join("");
+function compactPrintObjectives(f: JadadaFiche): string {
+  const objectiveGroups: [string, string[]][] = [
+    ["معرفيًا", f.cognitiveObjectives],
+    ["منهجيًا", f.methodObjectives],
+    ["مهاريًا", f.skillObjectives],
+  ];
+  return objectiveGroups
+    .map(([label, values]) => `<div><b>${esc(label)}</b>${esc(values[0] ?? "")}</div>`)
+    .join("");
 }
 
-function compactPrintSynthesis(f: JadadaFiche, targetLesson: boolean): string {
-  return targetLesson
-    ? "الجغرافيا علم يدرس الأرض باعتبارها موطنًا للإنسان، والبيئة والسكان وتنظيم المجال، ويسهم في التخطيط وتحقيق العدالة المجالية."
-    : compactPrintText(f.summary[0] ?? "خلاصة تركيبية لمضامين الدرس.", 260);
+function compactPrintSynthesis(f: JadadaFiche): string {
+  return compactPrintText(
+    f.summary[0] ?? f.stages[1 + f.sourceSections.length]?.product ?? "أثر كتابي تركيبي مرتبط بإشكالية الدرس.",
+    260,
+  );
 }
 
 /**
@@ -1173,15 +1183,11 @@ function compactPrintSynthesis(f: JadadaFiche, targetLesson: boolean): string {
  * تظل تلك المعطيات محفوظة في الجذاذة الكاملة داخل الموقع.
  */
 export function jadadaPrintBodyHtml(f: JadadaFiche): string {
-  const targetLesson = f.key === "tc-sci.geography.0.0";
   const stages = compactPrintStages(f);
-  const synthesisText = compactPrintSynthesis(f, targetLesson);
-  const schemaText = targetLesson
-    ? "الوصف ← التفسير ← التعميم"
-    : f.schema?.rows.map((row) => `${row.label}: ${compactPrintText(row.value, 95)}`).join(" · ") || "الوصف ← التفسير ← التعميم";
-  const applicationText = f.application
-    ? "توظيف النهج الجغرافي في قراءة وثيقة: الوصف + التفسير + التعميم."
-    : "تطبيق لمنهجية الدرس عند الحاجة.";
+  const synthesisText = compactPrintSynthesis(f);
+  const schemaText =
+    f.schema?.rows.map((row) => `${row.label}: ${compactPrintText(row.value, 95)}`).join(" · ") ||
+    (f.subjectId === "geography" ? "الوصف ← التفسير ← التعميم" : "تأطير ← تحليل الوثائق ← تركيب");
   const header = `<header class="f-header">
     <div class="f-meta-left"><table><tbody><tr><th>المادة</th><td>${esc(f.subjectLabel)}</td></tr><tr><th>المستوى</th><td>${esc(f.branchLabel)}</td></tr><tr><th>المجزوءة</th><td>${String(f.unitIndex + 1).padStart(2, "0")} — ${esc(f.unitTitle)}</td></tr></tbody></table></div>
     <div class="f-title"><span class="f-number">${String(f.lessonIndex + 1).padStart(2, "0")}</span><h1>${esc(f.title)}</h1><small>${esc(f.school)}</small></div>
@@ -1197,7 +1203,7 @@ export function jadadaPrintBodyHtml(f: JadadaFiche): string {
         <tr><th>الإشكالية</th><td>${esc(compactPrintText(f.coreQuestion, 300))}</td></tr>
       </tbody></table>
       <h2>أهداف التعلم</h2>
-      <div class="f-objectives">${compactPrintObjectives(targetLesson)}</div>
+      <div class="f-objectives">${compactPrintObjectives(f)}</div>
     </section>
 
     <section class="print-section">
@@ -1221,10 +1227,14 @@ export function jadadaPrintBodyHtml(f: JadadaFiche): string {
         <p>أسئلة التقويم المرحلي والإجمالي المرتبطة بأهداف الدرس.</p>
         <p><strong>المعالجة:</strong> تصحيح جماعي للتعثرات وتوجيه المتعلمين إلى الدعم المناسب.</p>
       </div>
-      <div class="f-box f-application-box">
+      ${
+        f.application
+          ? `<div class="f-box f-application-box">
         <h2>الوضعية التطبيقية / الامتداد</h2>
-        <p>${esc(applicationText)}</p>
-      </div>
+        <p>${esc(f.application.title)}: ${esc(compactPrintText(f.application.prompt, 240))}</p>
+      </div>`
+          : ""
+      }
     </section>
 
     <footer class="print-footer"><span>${esc(f.school)}</span><span>جذاذة عملية للاستعمال داخل القسم</span></footer>

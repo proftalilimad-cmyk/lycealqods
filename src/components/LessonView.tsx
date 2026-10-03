@@ -338,6 +338,40 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
               </div>
             )}
 
+            {/* أنشطة المصدر والمنتوجات الكتابية — للجذع المشترك العلمي */}
+            {lesson.didacticPlan && lesson.didacticPlan.activities.length > 0 && (
+              <div data-lesson-block>
+                <Reveal delay={70}>
+                  <div className="rounded-3xl border border-brand-200/70 bg-brand-50/35 p-7 sm:p-8">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-extrabold tracking-wide text-brand-700">تخطيط الاشتغال</p>
+                        <h2 className="mt-1 font-display text-lg font-extrabold text-ink-900 sm:text-xl">أنشطة الدرس والمنتوجات الكتابية</h2>
+                      </div>
+                      <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-ink-500 ring-1 ring-brand-200">مرجع: {lesson.didacticPlan.source}</span>
+                    </div>
+                    <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                      {lesson.didacticPlan.activities.map((activity, ai) => (
+                        <article key={`${activity.sectionIndex}-${activity.label}`} className="rounded-2xl border border-ink-900/7 bg-white p-4 shadow-sm">
+                          <div className="flex items-start gap-3">
+                            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-100 text-xs font-black text-brand-700">{ai + 1}</span>
+                            <div className="min-w-0">
+                              <h3 className="font-display text-sm font-extrabold leading-relaxed text-ink-900">{activity.label}</h3>
+                              <dl className="mt-3 space-y-2 text-xs leading-relaxed text-ink-600">
+                                <div><dt className="inline font-extrabold text-brand-700">المهمة: </dt><dd className="inline">{activity.task}</dd></div>
+                                <div><dt className="inline font-extrabold text-brand-700">الدعامة: </dt><dd className="inline">{activity.support}</dd></div>
+                                <div className="rounded-xl bg-gold-50 px-3 py-2"><dt className="inline font-extrabold text-gold-700">المنتوج الذي يكتبه المتعلم: </dt><dd className="inline font-semibold text-ink-800">{activity.product}</dd></div>
+                              </dl>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                </Reveal>
+              </div>
+            )}
+
             {/* المحاور */}
             {lesson.sections.map((section, si) => (
               <div data-lesson-block key={section.title}>

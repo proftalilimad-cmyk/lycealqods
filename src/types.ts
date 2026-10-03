@@ -266,6 +266,24 @@ export interface LessonApplication {
   model: string[];
 }
 
+/**
+ * تخطيط موجز لأنشطة الدرس كما ترد في الجذاذة/الكتاب المدرسي.
+ * يميز بين المهمة التي ينجزها المتعلم والمنتوج الكتابي الناتج عنها،
+ * حتى لا تتحول الجذاذة إلى وصف عام للمقطع.
+ */
+export interface LessonActivityPlan {
+  sectionIndex: number;
+  label: string;
+  support: string;
+  task: string;
+  product: string;
+}
+
+export interface LessonDidacticPlan {
+  source: string;
+  activities: LessonActivityPlan[];
+}
+
 export interface LessonContent {
   id: string;
   title: string;
@@ -282,6 +300,8 @@ export interface LessonContent {
   docs?: LessonDoc[];
   schema?: LessonSchema;
   application?: LessonApplication;
+  /** تخطيط أنشطة مطابق لمقاطع المصدر، يستعمله مولد الجذاذة */
+  didacticPlan?: LessonDidacticPlan;
   /** مربعات منفصلة: شخصيات وأحداث وأماكن */
   characters?: { name: string; role: string }[];
   places?: { name: string; why: string }[];

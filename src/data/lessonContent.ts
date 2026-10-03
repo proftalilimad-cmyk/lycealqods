@@ -11,6 +11,7 @@ import { BAC2_SCI_GEO } from "./lessons/bac2SciGeo";
 import { BAC2_BOOK_HISTORY } from "./lessons/bac2BookHistory";
 import { BAC2_BOOK_GEO } from "./lessons/bac2BookGeo";
 import { BAC2_ARTS_ADDITIONS } from "./lessons/bac2ArtsAdditions";
+import { TC_SCI_DIDACTIC_PLANS } from "./lessons/tcSciDidacticPlans";
 
 /**
  * مكتبة محتوى الدروس.
@@ -252,6 +253,13 @@ export const LESSON_CONTENT: Record<string, LessonContent> = {
 
 // دمج سجلات المحتوى المفصلة لكل المستويات والمسالك
 Object.assign(LESSON_CONTENT, TC_SCI_HISTORY, TC_SCI_GEO, TC_ARTS, BAC1_SCI_HISTORY, BAC1_SCI_GEO, BAC_ARTS_HISTORY, BAC2_SCI_HISTORY, BAC2_SCI_GEO, BAC2_BOOK_HISTORY, BAC2_BOOK_GEO, BAC2_ARTS_ADDITIONS);
+
+// إرفاق تخطيط أنشطة مصدره المجزوءتان الأولى والثانية بالجذع العلمي.
+// يبقى التخطيط منفصلًا عن متن الدرس حتى لا نكرر الدرس في الجذاذة، ويُستعمل
+// لإظهار النشاط والدعامة والمنتوج الكتابي المقابلين لكل مقطع.
+for (const [key, plan] of Object.entries(TC_SCI_DIDACTIC_PLANS)) {
+  if (LESSON_CONTENT[key]) LESSON_CONTENT[key].didacticPlan = plan;
+}
 
 /**
  * ربط المحتوى المشترك بين المسالك:

@@ -273,9 +273,9 @@ function drawObjectives(ctx: any, fiche: JadadaFiche, y: number): number {
   const width = (CONTENT_W - gap * 2) / 3;
   const h = 54;
   const rows: [string, string][] = [
-    ["أهداف معرفية", listText(fiche.cognitiveObjectives, 3, 115)],
-    ["أهداف مهارية", listText(fiche.methodObjectives, 3, 110)],
-    ["أهداف قيمية", listText(fiche.valueObjectives, 2, 115)],
+    ["هدف معرفي", listText(fiche.cognitiveObjectives, 1, 150)],
+    ["هدف منهجي", listText(fiche.methodObjectives, 1, 150)],
+    ["هدف مهاري", listText(fiche.skillObjectives, 1, 150)],
   ];
   rows.forEach(([label, value], i) => {
     const x = MARGIN + i * (width + gap);
@@ -287,9 +287,9 @@ function drawObjectives(ctx: any, fiche: JadadaFiche, y: number): number {
   return y + h + 6;
 }
 
-function rowData(stage: JadadaStage, product: string): string[] {
+function rowData(stage: JadadaStage): string[] {
   return [
-    product,
+    stage.product,
     listText(stage.supports, 4, 85),
     compact(stage.management, 180),
     `${compact(stage.objective, 145)}\n${listText(stage.expected, 2, 110)}`,
@@ -404,12 +404,12 @@ function buildPages(fiche: JadadaFiche): CanvasPage[] {
   const synthesis = fiche.stages[1 + sectionCount];
   const assessment = fiche.stages[2 + sectionCount];
   const pageOneRows = [
-    ...(intro ? [rowData(intro, `${compact(fiche.intro, 250)}\n${listText(intro.activities.slice(1), 2, 105)}`)] : []),
-    ...sectionStages.slice(0, split).map((stage, i) => rowData(stage, `${compact(fiche.sourceSections[i].title, 100)}\n${compact(fiche.sourceSections[i].blocks.map((b: any) => b.text ?? b.items?.join(" ") ?? b.label ?? "").join(" "), 260)}`)),
+    ...(intro ? [rowData(intro)] : []),
+    ...sectionStages.slice(0, split).map((stage) => rowData(stage)),
   ];
   const pageTwoRows = [
-    ...sectionStages.slice(split).map((stage, i) => rowData(stage, `${compact(fiche.sourceSections[split + i].title, 100)}\n${compact(fiche.sourceSections[split + i].blocks.map((b: any) => b.text ?? b.items?.join(" ") ?? b.label ?? "").join(" "), 260)}`)),
-    ...(synthesis ? [rowData(synthesis, `${fiche.summary.slice(0, 2).map((item) => compact(item, 170)).join(" · ")}\n${listText(fiche.examTips, 1, 130)}`)] : []),
+    ...sectionStages.slice(split).map((stage) => rowData(stage)),
+    ...(synthesis ? [rowData(synthesis)] : []),
   ];
 
   const pages: CanvasPage[] = [];
@@ -435,7 +435,7 @@ function buildPages(fiche: JadadaFiche): CanvasPage[] {
 
   page = newPage();
   y = drawHeader(page.ctx, fiche, "الجذاذة — التقويم والدعم");
-  const assessmentRows = assessment ? [rowData(assessment, `${listText(assessment.activities, 3, 135)}\n${listText(assessment.expected, 3, 115)}`)] : [];
+  const assessmentRows = assessment ? [rowData(assessment)] : [];
   y = drawPlanTable(page.ctx, assessmentRows, y, 300);
   y += 8;
   y = drawQuiz(page.ctx, fiche, y, 565);
