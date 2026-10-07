@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   AlarmClock,
+  ArrowLeft,
   ArrowRight,
   Award,
   BadgeCheck,
@@ -10,6 +11,7 @@ import {
   ChevronLeft,
   Clock3,
   FileText,
+  Flag,
   FlaskConical,
   GraduationCap,
   Info,
@@ -23,6 +25,7 @@ import {
   Quote,
   RotateCcw,
   Scale,
+  Send,
   Target,
   TriangleAlert,
   XCircle,
@@ -159,6 +162,171 @@ function LessonQuiz({ quiz }: { quiz: LessonContent["quiz"] }) {
             <RotateCcw className="size-4" aria-hidden="true" />
             إعادة الاختبار
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- التقويم النهائي التفاعلي — على نمط التقويم التشخيصي ---------- */
+function LessonFinalAssessment({ quiz }: { quiz: LessonContent["quiz"] }) {
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [current, setCurrent] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const item = quiz[current];
+  const answeredCount = Object.keys(answers).length;
+  const score = quiz.reduce((total, question, index) => total + (answers[index] === question.answer ? 1 : 0), 0);
+  const percent = quiz.length ? Math.round((score / quiz.length) * 100) : 0;
+  const unansweredCount = quiz.length - answeredCount;
+
+  const choose = (optionIndex: number) => {
+    if (submitted) return;
+    setAnswers((previous) => ({ ...previous, [current]: optionIndex }));
+  };
+
+  const reset = () => {
+    setAnswers({});
+    setCurrent(0);
+    setSubmitted(false);
+    setConfirming(false);
+  };
+
+  if (!item) return null;
+
+  return (
+    <div className="space-y-5" dir="rtl">
+      <div className="sticky top-24 z-20 rounded-2xl border border-ink-900/8 bg-white/95 p-4 shadow-[0_18px_40px_-24px_rgba(4,36,26,0.35)] backdrop-blur-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="grid size-10 place-items-center rounded-xl bg-brand-50 text-brand-600">
+              <Flag className="size-5" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-extrabold text-ink-900">
+                السؤال <span className="text-brand-700">{current + 1}</span> من {quiz.length}
+              </p>
+              <p className="text-[11px] text-ink-500">{submitted ? "تم التصحيح — انتقل بين الأسئلة لمراجعة أجوبتك." : `${answeredCount} مجاب عنها — يمكنك التنقل بحرية قبل الإرسال.`}</p>
+            </div>
+          </div>
+          {!submitted ? (
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-lg shadow-brand-700/20 transition-transform hover:-translate-y-0.5"
+            >
+              <Send className="size-4" aria-hidden="true" />
+              إرسال التقويم
+            </button>
+          ) : (
+            <span className="rounded-xl bg-emerald-50 px-4 py-2.5 text-xs font-extrabold text-emerald-700">النتيجة: {score} / {quiz.length}</span>
+          )}
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-paper-warm" role="progressbar" aria-valuenow={submitted ? quiz.length : answeredCount} aria-valuemin={0} aria-valuemax={quiz.length}>
+          <div className="h-full rounded-full bg-gradient-to-l from-gold-400 to-brand-500 transition-all duration-500" style={{ width: `${((submitted ? quiz.length : answeredCount) / quiz.length) * 100}%` }} />
+        </div>
+      </div>
+
+      {submitted && (
+        <div className="animate-fade-up rounded-2xl border border-brand-200 bg-gradient-to-l from-brand-50 to-gold-50 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-extrabold text-brand-700">نتيجة التقويم النهائي</p>
+              <p className="mt-1 font-display text-2xl font-black text-ink-900">{score} / {quiz.length} <span className="text-base text-ink-500">({percent}%)</span></p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-600">
+                {percent >= 80 ? "تمكن جيد جدًا من مضامين الدرس." : percent >= 60 ? "تمكن متوسط؛ راجع الأسئلة المعلّمة باللون الأحمر." : "تحتاج إلى دعم ومراجعة المحاور ثم إعادة التقويم."}
+              </p>
+            </div>
+            <button type="button" onClick={reset} className="inline-flex items-center gap-2 rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-xs font-extrabold text-brand-700 transition hover:-translate-y-0.5">
+              <RotateCcw className="size-4" aria-hidden="true" />
+              إعادة التقويم
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-3xl border border-ink-900/6 bg-white p-5 shadow-[0_25px_60px_-30px_rgba(4,36,26,0.25)] sm:p-8">
+        <div className="flex items-start gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-600 text-xs font-black text-white">{current + 1}</span>
+          <p className="text-sm font-extrabold leading-loose text-ink-900">{item.q}</p>
+        </div>
+        <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
+          {item.options.map((option, optionIndex) => {
+            const picked = answers[current] === optionIndex;
+            const correct = item.answer === optionIndex;
+            const reveal = submitted;
+            return (
+              <button
+                key={option}
+                type="button"
+                disabled={submitted}
+                onClick={() => choose(optionIndex)}
+                className={`flex items-start gap-2.5 rounded-xl border-2 px-4 py-3.5 text-start text-[13px] font-semibold leading-relaxed transition-all ${
+                  reveal && correct
+                    ? "border-emerald-400 bg-emerald-50 text-emerald-800"
+                    : reveal && picked && !correct
+                      ? "border-rose-400 bg-rose-50 text-rose-700"
+                      : picked
+                        ? "border-gold-400 bg-gold-50 text-gold-800"
+                        : "border-ink-900/10 bg-white text-ink-800 hover:-translate-y-0.5 hover:border-brand-400"
+                }`}
+              >
+                {reveal && correct ? <CheckCircle2 className="mt-0.5 size-4.5 shrink-0 text-emerald-600" aria-hidden="true" /> : reveal && picked ? <XCircle className="mt-0.5 size-4.5 shrink-0 text-rose-600" aria-hidden="true" /> : <span className="mt-0.5 size-4.5 shrink-0 rounded-full border-2 border-ink-300" aria-hidden="true" />}
+                <span>{option}</span>
+              </button>
+            );
+          })}
+        </div>
+        {submitted && (
+          <p className="animate-fade-up mt-4 rounded-xl bg-brand-50 px-4 py-3 text-xs leading-loose text-brand-800">
+            <span className="font-extrabold">التصحيح والتعليل: </span>{item.why}
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <button type="button" onClick={() => setCurrent((value) => Math.max(0, value - 1))} disabled={current === 0} className="inline-flex items-center gap-2 rounded-xl border border-ink-900/10 bg-white px-4 py-3 text-xs font-bold text-ink-700 transition enabled:hover:-translate-y-0.5 enabled:hover:border-brand-400 disabled:opacity-40">
+          <ArrowRight className="size-4" aria-hidden="true" /> السابق
+        </button>
+        {current < quiz.length - 1 ? (
+          <button type="button" onClick={() => setCurrent((value) => Math.min(quiz.length - 1, value + 1))} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-5 py-3 text-xs font-extrabold text-white shadow-lg shadow-brand-700/20 transition hover:-translate-y-0.5">
+            التالي <ArrowLeft className="size-4" aria-hidden="true" />
+          </button>
+        ) : (
+          !submitted && <button type="button" onClick={() => setConfirming(true)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-gold-400 to-gold-500 px-5 py-3 text-xs font-extrabold text-ink-950 shadow-lg shadow-gold-600/20 transition hover:-translate-y-0.5"><Send className="size-4" aria-hidden="true" /> إنهاء وإرسال</button>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-ink-900/6 bg-cream p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-extrabold text-ink-800">قائمة الأسئلة</p>
+          <p className="text-[11px] text-ink-500">{submitted ? "الأخضر صحيح، والأحمر يحتاج إلى مراجعة." : "اختر رقمًا للانتقال مباشرة."}</p>
+        </div>
+        <div className="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-10">
+          {quiz.map((question, index) => {
+            const answered = answers[index] !== undefined;
+            const correct = submitted && answers[index] === question.answer;
+            return (
+              <button key={index} type="button" onClick={() => setCurrent(index)} aria-current={current === index ? "true" : undefined} className={`grid aspect-square place-items-center rounded-lg text-xs font-extrabold transition ${
+                current === index ? "scale-110 border-2 border-gold-500 bg-gold-100 text-gold-700 shadow" : submitted && answered ? correct ? "bg-emerald-600 text-white" : "bg-rose-500 text-white" : answered ? "bg-brand-600 text-white" : "border border-ink-900/12 bg-white text-ink-500 hover:border-brand-300"
+              }`}>{index + 1}</button>
+            );
+          })}
+        </div>
+      </div>
+
+      {confirming && (
+        <div className="fixed inset-0 z-[70] grid place-items-center p-4" role="dialog" aria-modal="true" aria-label="تأكيد إرسال التقويم النهائي">
+          <button type="button" aria-label="إغلاق" onClick={() => setConfirming(false)} className="absolute inset-0 bg-brand-950/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-7 shadow-2xl">
+            <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-gold-100 text-gold-600"><TriangleAlert className="size-7" aria-hidden="true" /></span>
+            <h3 className="mt-4 text-center font-display text-xl font-black text-ink-900">تأكيد إرسال التقويم</h3>
+            <p className="mt-2 text-center text-sm leading-loose text-ink-500">أجبت عن <strong className="text-brand-700">{answeredCount}</strong> من {quiz.length} سؤالًا.{unansweredCount > 0 ? ` ستحتسب ${unansweredCount} أسئلة غير مجاب عنها ضمن الأخطاء.` : " أجبت عن جميع الأسئلة."}</p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button type="button" onClick={() => setConfirming(false)} className="rounded-xl border border-ink-900/10 px-4 py-3 text-sm font-bold text-ink-700 hover:bg-paper-warm">متابعة المراجعة</button>
+              <button type="button" onClick={() => { setSubmitted(true); setConfirming(false); }} className="rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-brand-700/20">تأكيد التصحيح</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -798,7 +966,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
                 </h2>
                 <p className="mt-1.5 text-xs text-ink-500">{lesson.quiz.length} سؤالًا تفاعليًا بتصحيح فوري للتأكد من استيعاب الدرس.</p>
                 <div className="mt-5">
-                  <LessonQuiz quiz={lesson.quiz} />
+                  {lesson.formativeAssessments?.length ? <LessonFinalAssessment quiz={lesson.quiz} /> : <LessonQuiz quiz={lesson.quiz} />}
                 </div>
               </div>
             </Reveal>
