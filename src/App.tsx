@@ -161,7 +161,8 @@ export default function App() {
             if (!resolvedLesson) return <Lessons go={go} />;
             return (
               <LessonView
-                key={route.id}
+                key={`${route.id}-${route.focus ?? "top"}`}
+                focus={route.focus}
                 lesson={resolvedLesson.content}
                 breadcrumb={{
                   level: resolvedLesson.level.label,

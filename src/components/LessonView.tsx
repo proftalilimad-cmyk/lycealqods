@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlarmClock,
   ArrowLeft,
@@ -404,12 +404,13 @@ function LessonFormativeAssessments({ assessments }: { assessments: LessonFormat
 /* ---------- عرض الدرس ---------- */
 interface LessonViewProps {
   lesson: LessonContent;
+  focus?: "final";
   breadcrumb: { level: string; branch: string; subject: string; unit: string };
   onBack: () => void;
   go: (r: Route) => void;
 }
 
-export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonViewProps) {
+export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: LessonViewProps) {
   const [sectionIndex, setSectionIndex] = useState(0);
   const [openDocId, setOpenDocId] = useState<number | null>(null);
   const [showModel, setShowModel] = useState(false);
@@ -431,6 +432,14 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
     );
     return items;
   }, [lesson]);
+
+  useEffect(() => {
+    if (focus !== "final") return;
+    const timer = window.setTimeout(() => {
+      document.getElementById("lesson-final-assessment")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [focus, lesson.id]);
 
   return (
     <section className="pt-32 pb-20 md:pt-36">
@@ -955,7 +964,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
             </div>
 
             {/* اختبر فهمك */}
-            <div data-lesson-block>
+            <div id="lesson-final-assessment" data-lesson-block>
             <Reveal>
               <div className="rounded-3xl border border-ink-900/6 bg-cream p-7 sm:p-8">
                 <h2 className="flex items-center gap-2.5 font-display text-xl font-extrabold text-ink-900">

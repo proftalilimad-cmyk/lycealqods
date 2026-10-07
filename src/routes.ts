@@ -10,7 +10,7 @@ export type Route =
   | { view: "jadadat"; id?: string; level?: string }
   | { view: "methods"; id?: string }
   | { view: "apps"; id?: string; level?: string }
-  | { view: "lesson"; id: string }
+  | { view: "lesson"; id: string; focus?: "final" }
   | { view: "resources"; type?: string; open?: string }
   | { view: "decks"; id?: string; subject?: string };
 
@@ -125,7 +125,7 @@ export function routeToPath(route: Route): string {
       if (route.id) return `/jadadat/${encodeSegment(route.id)}`;
       return route.level ? `/jadadat?level=${encodeSegment(route.level)}` : "/jadadat";
     case "lesson":
-      return `/lesson/${encodeSegment(route.id)}`;
+      return route.focus === "final" ? `/lesson/${encodeSegment(route.id)}?focus=final` : `/lesson/${encodeSegment(route.id)}`;
     case "methods":
       return route.id ? `/methods/${encodeSegment(route.id)}` : "/methods";
     case "apps": {
@@ -173,8 +173,10 @@ export function routeFromPath(rawPath: string): Route {
       const level = query.get("level");
       return level ? { view: "jadadat", level } : { view: "jadadat" };
     }
-    case "lesson":
-      return parts[1] ? { view: "lesson", id: parts[1] } : { view: "lessons" };
+    case "lesson": {
+      const focus = query.get("focus");
+      return parts[1] ? { view: "lesson", id: parts[1], ...(focus === "final" ? { focus: "final" as const } : {}) } : { view: "lessons" };
+    }
     case "methods":
       return parts[1] ? { view: "methods", id: parts[1] } : { view: "methods" };
     case "apps": {

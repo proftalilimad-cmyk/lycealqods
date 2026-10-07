@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BadgeCheck, BookOpen, BookOpenCheck, FileText, FlaskConical, Globe2, History, Hourglass, Landmark, MonitorPlay, Scale, Sparkles, Wrench } from "lucide-react";
+import { BadgeCheck, BookOpen, BookOpenCheck, FileText, FlaskConical, Globe2, History, Hourglass, Landmark, ListChecks, MonitorPlay, Scale, Sparkles, Wrench } from "lucide-react";
 import { LEVELS } from "../data/curriculum";
 import { hasLessonContent, lessonKey } from "../data/lessonContent";
 import { getDeckForLesson } from "../data/decks";
@@ -18,7 +18,7 @@ const SUBJECT_ICONS: Record<string, typeof History> = {
   citizenship: Scale,
 };
 
-function LessonRow({ lesson, index, ready, onOpen, deckId, onDeck }: { lesson: LessonItem; index: number; ready: boolean; onOpen: () => void; deckId?: string; onDeck?: () => void }) {
+function LessonRow({ lesson, index, ready, onOpen, onAssessment, deckId, onDeck }: { lesson: LessonItem; index: number; ready: boolean; onOpen: () => void; onAssessment?: () => void; deckId?: string; onDeck?: () => void }) {
   if (lesson.soon) {
     return (
       <li className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
@@ -87,6 +87,19 @@ function LessonRow({ lesson, index, ready, onOpen, deckId, onDeck }: { lesson: L
           >
             <MonitorPlay className="size-3.5" aria-hidden="true" />
             العرض التفاعلي
+          </button>
+        )}
+        {ready && onAssessment && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAssessment();
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gold-300 bg-gold-50 px-3.5 py-2 text-[11px] font-extrabold text-gold-700 transition-all hover:-translate-y-0.5 hover:border-gold-500 hover:bg-gold-100"
+          >
+            <ListChecks className="size-3.5" aria-hidden="true" />
+            التقويم النهائي
           </button>
         )}
         {ready ? (
@@ -231,6 +244,12 @@ export default function Lessons({ go, initialLevel }: LessonsProps) {
                     <span>
                       <span className={`block text-sm font-extrabold ${active ? "text-brand-700" : "text-ink-900"}`}>{s.label}</span>
                       <span className="block text-[10px] text-ink-500">دروس {s.label} — {branch.label}</span>
+                      {branch.id === "bac2-arts" && (
+                        <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-gold-50 px-2 py-0.5 text-[9px] font-extrabold text-gold-700 ring-1 ring-gold-200">
+                          <ListChecks className="size-3" aria-hidden="true" />
+                          تقويم نهائي: 20 سؤالًا لكل درس
+                        </span>
+                      )}
                     </span>
                   </button>
                 );
@@ -287,6 +306,7 @@ export default function Lessons({ go, initialLevel }: LessonsProps) {
                           index={li}
                           ready={ready}
                           onOpen={() => go({ view: "lesson", id: key })}
+                          onAssessment={branch.id === "bac2-arts" ? () => go({ view: "lesson", id: key, focus: "final" }) : undefined}
                           deckId={deck?.id}
                           onDeck={deck ? () => go({ view: "decks", id: deck.id }) : undefined}
                         />
