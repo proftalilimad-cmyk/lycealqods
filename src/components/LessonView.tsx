@@ -254,7 +254,13 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
     if (lesson.docs?.length) items.push("الوثائق وتحليلها");
     if (lesson.schema) items.push("الخطاطة التركيبية");
     if (lesson.application) items.push("تمرين تطبيقي");
-    items.push("خط زمني", "معجم المفاهيم", "خلاصة مركزة", "في الامتحان", "اختبر فهمك");
+    items.push(
+      "خط زمني",
+      "معجم المفاهيم",
+      "خلاصة مركزة",
+      "في الامتحان",
+      lesson.formativeAssessments?.length ? `التقويم النهائي (${lesson.quiz.length} سؤالًا)` : "اختبر فهمك",
+    );
     return items;
   }, [lesson]);
 
@@ -788,9 +794,9 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
                   <span className="grid size-10 place-items-center rounded-xl bg-brand-50 text-brand-600">
                     <ListChecks className="size-5" aria-hidden="true" />
                   </span>
-                  اختبر فهمك
+                  {lesson.formativeAssessments?.length ? "التقويم النهائي: اختبر فهمك" : "اختبر فهمك"}
                 </h2>
-                <p className="mt-1.5 text-xs text-ink-500">أربعة أسئلة تفاعلية بتصحيح فوري للتأكد من استيعاب الدرس.</p>
+                <p className="mt-1.5 text-xs text-ink-500">{lesson.quiz.length} سؤالًا تفاعليًا بتصحيح فوري للتأكد من استيعاب الدرس.</p>
                 <div className="mt-5">
                   <LessonQuiz quiz={lesson.quiz} />
                 </div>

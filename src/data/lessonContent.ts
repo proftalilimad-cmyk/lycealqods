@@ -11,6 +11,7 @@ import { BAC2_SCI_GEO } from "./lessons/bac2SciGeo";
 import { BAC2_BOOK_HISTORY } from "./lessons/bac2BookHistory";
 import { BAC2_BOOK_GEO } from "./lessons/bac2BookGeo";
 import { BAC2_ARTS_ADDITIONS } from "./lessons/bac2ArtsAdditions";
+import { buildBac2ArtsFinalQuiz } from "./lessons/bac2ArtsFinalAssessment";
 import { TC_SCI_DIDACTIC_PLANS } from "./lessons/tcSciDidacticPlans";
 
 /**
@@ -429,6 +430,7 @@ function withBac2ArtsFormativeAssessments(content: LessonContent, key: string): 
   return {
     ...content,
     formativeAssessments: buildBac2ArtsFormativeAssessments(content, subjectId),
+    quiz: buildBac2ArtsFinalQuiz(content, subjectId),
   };
 }
 
