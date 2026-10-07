@@ -27,7 +27,7 @@ import {
   TriangleAlert,
   XCircle,
 } from "lucide-react";
-import type { LessonBlock, LessonContent } from "../types";
+import type { LessonBlock, LessonContent, LessonFormativeAssessment } from "../types";
 import Reveal from "./Reveal";
 import SmartText, { AutoTableView } from "./SmartText";
 import { isYear } from "../lib/tableDetect";
@@ -165,6 +165,74 @@ function LessonQuiz({ quiz }: { quiz: LessonContent["quiz"] }) {
   );
 }
 
+/* ---------- التقويم المرحلي الخاص بالدرس ---------- */
+function LessonFormativeAssessments({ assessments }: { assessments: LessonFormativeAssessment[] }) {
+  const phaseLabels = {
+    launch: "الانطلاق واستحضار المكتسبات",
+    building: "التقويم البنائي أثناء تحليل المقطع",
+    checkpoint: "التحقق من الفهم والتوظيف",
+    synthesis: "التقويم التركيبي والمعالجة",
+  } as const;
+
+  return (
+    <section
+      data-lesson-block
+      dir="rtl"
+      aria-labelledby="formative-assessment-title"
+      className="rounded-3xl border border-brand-200 bg-gradient-to-b from-brand-50/80 via-white to-gold-50/35 p-7 sm:p-8 print:break-inside-auto"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-extrabold tracking-wide text-brand-700">تقويم مواكب للتعلم</p>
+          <h2 id="formative-assessment-title" className="mt-1 flex items-center gap-2.5 font-display text-xl font-extrabold text-ink-900">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-700">
+              <ListChecks className="size-5" aria-hidden="true" />
+            </span>
+            التقويم المرحلي الخاص بالدرس
+          </h2>
+          <p className="mt-2 max-w-3xl text-xs leading-loose text-ink-600">
+            أنشطة قصيرة مرتبطة بعنوان الدرس ومحاوره ومهاراته؛ تنقل المتعلم من استحضار المكتسبات إلى الفهم والتوظيف ثم التركيب والمعالجة.
+          </p>
+        </div>
+        <span className="rounded-full bg-white px-3.5 py-2 text-[11px] font-extrabold text-brand-700 ring-1 ring-brand-200">
+          {assessments.length} مراحل تقويمية
+        </span>
+      </div>
+
+      <div className="mt-6 space-y-4">
+        {assessments.map((assessment, index) => (
+          <article key={`${assessment.phase}-${assessment.sectionIndex ?? "final"}`} className="print:break-inside-avoid overflow-hidden rounded-2xl border border-ink-900/8 bg-white shadow-sm">
+            <div className="flex flex-wrap items-center gap-3 border-b border-ink-900/7 bg-cream/70 px-5 py-4">
+              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-600 text-xs font-black text-white">{index + 1}</span>
+              <div>
+                <p className="text-[10px] font-extrabold text-brand-700">{phaseLabels[assessment.phase]}</p>
+                <h3 className="mt-0.5 font-display text-sm font-extrabold leading-relaxed text-ink-900">{assessment.title}</h3>
+              </div>
+            </div>
+            <div className="grid gap-4 p-5 md:grid-cols-2">
+              <div className="rounded-xl border border-brand-100 bg-brand-50/50 p-4">
+                <p className="text-[11px] font-extrabold text-brand-700">النشاط / السؤال</p>
+                <p className="mt-2 text-[13px] font-semibold leading-loose text-ink-800">{assessment.prompt}</p>
+              </div>
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+                <p className="flex items-center gap-1.5 text-[11px] font-extrabold text-emerald-700">
+                  <BadgeCheck className="size-4" aria-hidden="true" />
+                  المنتوج المنتظر ومعايير النجاح
+                </p>
+                <p className="mt-2 text-[13px] leading-loose text-ink-800">{assessment.expected}</p>
+              </div>
+            </div>
+            <div className="border-t border-gold-100 bg-gold-50/55 px-5 py-3.5 text-xs leading-loose text-ink-700">
+              <span className="font-extrabold text-gold-700">الدعم أو المعالجة المقترحة: </span>
+              {assessment.support}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ---------- عرض الدرس ---------- */
 interface LessonViewProps {
   lesson: LessonContent;
@@ -182,6 +250,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
     const items = ["أهداف الدرس", "تمهيد وإشكالية"];
     if (lesson.bookPage) items.push("صفحة الكتاب");
     items.push(...lesson.sections.map((s) => s.title));
+    if (lesson.formativeAssessments?.length) items.push("التقويم المرحلي الخاص بالدرس");
     if (lesson.docs?.length) items.push("الوثائق وتحليلها");
     if (lesson.schema) items.push("الخطاطة التركيبية");
     if (lesson.application) items.push("تمرين تطبيقي");
@@ -392,6 +461,11 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
               </Reveal>
               </div>
             ))}
+
+            {/* التقويم المرحلي الخاص بدروس الثانية باكالوريا آداب */}
+            {lesson.formativeAssessments && lesson.formativeAssessments.length > 0 && (
+              <LessonFormativeAssessments assessments={lesson.formativeAssessments} />
+            )}
 
             {/* الوثائق وتحليلها */}
             {lesson.docs && lesson.docs.length > 0 && (

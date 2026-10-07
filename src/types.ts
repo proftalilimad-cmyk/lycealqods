@@ -284,6 +284,18 @@ export interface LessonDidacticPlan {
   activities: LessonActivityPlan[];
 }
 
+/** تقويمات قصيرة مرتبطة بما أنجزه المتعلم فعليًا في كل مرحلة من مراحل الدرس. */
+export type LessonAssessmentPhase = "launch" | "building" | "checkpoint" | "synthesis";
+
+export interface LessonFormativeAssessment {
+  phase: LessonAssessmentPhase;
+  sectionIndex: number | null;
+  title: string;
+  prompt: string;
+  expected: string;
+  support: string;
+}
+
 export interface LessonContent {
   id: string;
   title: string;
@@ -302,6 +314,8 @@ export interface LessonContent {
   application?: LessonApplication;
   /** تخطيط أنشطة مطابق لمقاطع المصدر، يستعمله مولد الجذاذة */
   didacticPlan?: LessonDidacticPlan;
+  /** تقويم مرحلي مرتبط بعنوان الدرس، بمحاوره، وبكل مرحلة من مراحله */
+  formativeAssessments?: LessonFormativeAssessment[];
   /** مربعات منفصلة: شخصيات وأحداث وأماكن */
   characters?: { name: string; role: string }[];
   places?: { name: string; why: string }[];

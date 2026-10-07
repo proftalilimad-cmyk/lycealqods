@@ -1,4 +1,4 @@
-import type { CurriculumBranch, CurriculumLevel, CurriculumUnit, LessonContent } from "../types";
+import type { CurriculumBranch, CurriculumLevel, CurriculumUnit, LessonContent, LessonFormativeAssessment } from "../types";
 import { LEVELS } from "./curriculum";
 import { TC_SCI_HISTORY } from "./lessons/tcSciHistory";
 import { TC_SCI_GEO } from "./lessons/tcSciGeo";
@@ -334,6 +334,104 @@ const ALIASES: Record<string, { key: string; title?: string }> = {
   "bac2-book.history.1.2": { key: "bac2-sci.history.0.2" },
 };
 
+/**
+ * يبني تقويمًا مرحليًا عمليًا لكل درس من دروس الثانية باكالوريا آداب وعلوم
+ * إنسانية. لا يكرر التقويم العام الموجود في quiz؛ بل يقيس ناتج كل مقطع بعد
+ * الاشتغال عليه، ويستخرج المطلوب من بنية المقطع نفسه (تعريف، جدول، لائحة أو
+ * فقرة). بهذه الطريقة يحصل كل درس، بما في ذلك الدروس المحالة إلى محتوى مشترك،
+ * على تقويم خاص بمقاطع ذلك الدرس.
+ */
+function buildBac2ArtsFormativeAssessments(content: LessonContent, subjectId: "history" | "geography") {
+  const objectiveFocus = content.objectives.slice(0, 2).join("؛ ") || "ضبط المفاهيم وتحليل المعطيات وبناء خلاصة مركبة";
+  const quizAnchor = content.quiz[0];
+  const support = subjectId === "geography"
+    ? "شبكة الوصف والتفسير والتعميم، مع العودة إلى خريطة أو جدول أو صورة المقطع."
+    : "شبكة تحليل الوثيقة: التأطير، استخراج المعطيات، الربط، ثم تركيب جواب قصير.";
+  const assessments: LessonFormativeAssessment[] = [
+    {
+      phase: "launch",
+      sectionIndex: null,
+      title: "تقويم الانطلاق واستحضار المكتسبات",
+      prompt: subjectId === "geography"
+        ? `انطلاقًا من عنوان «${content.title}» وإشكاليته، استحضر مكتسبين عن المجال أو الظاهرة، واقترح فرضية أولية للتفسير.`
+        : `انطلاقًا من عنوان «${content.title}» وإشكاليته، استحضر مكتسبين تاريخيين واقترح فرضية أولية للإجابة.`,
+      expected: `يستحضر المتعلم مكتسبين مرتبطين بموضوع «${content.title}»، ويصوغ فرضية قابلة للمراجعة بدل الاكتفاء بتكرار العنوان. ويمهّد ذلك لتحقيق الهدفين: ${objectiveFocus}.`,
+      support: "عرض الكلمات المفتاحية في العنوان، واسترجاع درس سابق أو خط زمني قريب، ثم تحويل الاسترجاع إلى سؤال.",
+    },
+  ];
+
+  content.sections.forEach((section, sectionIndex) => {
+    const firstBlock = section.blocks[0];
+    const sectionText = section.blocks
+      .map((block) => {
+        if (block.type === "p" || block.type === "callout") return block.text;
+        if (block.type === "ul") return `${block.title ?? ""} ${block.items.join("؛ ")}`;
+        return `${block.head.join("؛ ")} ${block.rows.flat().join("؛ ")}`;
+      })
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const isDefinitionCallout = firstBlock?.type === "callout" && firstBlock.tone === "def" && firstBlock.label.length < 70 && !/[؟?!]/.test(firstBlock.label);
+    const focus = isDefinitionCallout
+      ? `المفهوم «${firstBlock.label}» ومعناه في سياق الدرس`
+      : firstBlock?.type === "table"
+        ? `معطيات ${firstBlock.head.join(" و")}`
+        : `الفكرة الأساس في مقطع «${section.title}»`;
+    const prompt = firstBlock?.type === "table"
+      ? `استخرج من جدول مقطع «${section.title}» معطيين أساسيين، ثم اربط بينهما في استنتاج واحد.`
+      : isDefinitionCallout
+        ? `عرّف ${focus}، ثم وظّفه في جملة تفسر موضوع مقطع «${section.title}».`
+        : subjectId === "geography"
+          ? `صف الظاهرة أو المعطيات الواردة في مقطع «${section.title}»، ثم فسّر عاملًا واحدًا واستخلص نتيجة.`
+          : `استخرج الفكرة الأساس من مقطع «${section.title}»، وحدد عنصرين يثبتانها، ثم اربطها بإشكالية الدرس.`;
+    const expected = firstBlock?.type === "table"
+      ? `يقدم المتعلم معطيين صحيحين من الجدول ويصوغ استنتاجًا يربط بينهما: ${sectionText.slice(0, 260)}.`
+      : isDefinitionCallout
+        ? `${firstBlock.text.slice(0, 300)}.`
+        : `${sectionText.slice(0, 300)}.`;
+    assessments.push({
+      phase: "building",
+      sectionIndex,
+      title: `تقويم بنائي ${sectionIndex + 1}: ${section.title}`,
+      prompt,
+      expected,
+      support,
+    });
+  });
+
+  assessments.push(
+    {
+      phase: "checkpoint",
+      sectionIndex: null,
+      title: "تقويم مرحلي للتحقق من الفهم والتوظيف",
+      prompt: `${subjectId === "geography"
+        ? `وظّف مفهومين ومعطيين من محاور «${content.title}» في جواب منظم يصف الظاهرة ويفسرها.`
+        : `وظّف مفهومين ومحطتين من محاور «${content.title}» في جواب منظم يبرز العلاقة بين الأحداث والعوامل والنتائج.`} ${quizAnchor ? `وسؤال التوظيف المرتبط بالدرس: «${quizAnchor.q}»` : ""}`,
+      expected: `جواب يربط بين محاور الدرس لا مجرد تعدادها، ويستعمل مفاهيم ومعطيات صحيحة من المقاطع: ${content.summary.slice(0, 2).join("؛ ")}. ويظهر فيه تحقق الهدفين: ${objectiveFocus}.${quizAnchor ? ` ويقبل التصحيح جوابًا يحدد «${quizAnchor.options[quizAnchor.answer]}» ويعلله: ${quizAnchor.why}.` : ""}`,
+      support,
+    },
+    {
+      phase: "synthesis",
+      sectionIndex: null,
+      title: "التقويم التركيبي النهائي والمعالجة",
+      prompt: `أنجز خلاصة مركبة من 6 إلى 8 أسطر تجيب عن الإشكالية المركزية للدرس: «${content.coreQuestion}».`,
+      expected: `خلاصة تتضمن تعريف الموضوع وتأطيره، أفكار المحاور الأساسية، أمثلة أو معطيات دقيقة، ثم جوابًا صريحًا عن الإشكالية: ${content.summary.slice(0, 3).join("؛ ")}. وتترجم الهدفين التعلميين: ${objectiveFocus}.`,
+      support: "المعالجة المقترحة: تقديم خطاطة أو قائمة مفاهيم، إعادة تحليل مقطع واحد بتوجيه، ثم إعادة كتابة الخلاصة باستعمال روابط مثل لأن، لذلك، بينما، ومن جهة أخرى.",
+    },
+  );
+  return assessments;
+}
+
+function withBac2ArtsFormativeAssessments(content: LessonContent, key: string): LessonContent {
+  if (!key.startsWith("bac2-arts.") || content.formativeAssessments?.length) return content;
+  const subjectId = key.split(".")[1] as "history" | "geography";
+  if (subjectId !== "history" && subjectId !== "geography") return content;
+  return {
+    ...content,
+    formativeAssessments: buildBac2ArtsFormativeAssessments(content, subjectId),
+  };
+}
+
 function foldAsil(subject: "history" | "geography", indexes: string[]) {
   const out: Record<string, { key: string }> = {};
   indexes.forEach((ix) => {
@@ -458,12 +556,13 @@ export function hasLessonContent(key: string): boolean {
 
 export function getLessonContent(key: string): LessonContent | undefined {
   const direct = LESSON_CONTENT[key];
-  if (direct) return direct;
+  if (direct) return withBac2ArtsFormativeAssessments(direct, key);
   const alias = ALIASES[key];
   if (!alias) return undefined;
   const base = LESSON_CONTENT[alias.key];
   if (!base) return undefined;
-  return alias.title ? { ...base, id: key, title: alias.title } : { ...base, id: key };
+  const content = alias.title ? { ...base, id: key, title: alias.title } : { ...base, id: key };
+  return withBac2ArtsFormativeAssessments(content, key);
 }
 
 /** توليد مفتاح الدرس من موقعه في بنية المقرر */

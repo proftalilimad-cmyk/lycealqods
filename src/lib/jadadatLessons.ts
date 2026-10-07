@@ -5,6 +5,7 @@ import type {
   LessonBlock,
   LessonContent,
   LessonDoc,
+  LessonFormativeAssessment,
   LessonSection,
 } from "../types";
 import { LEVELS } from "../data/curriculum";
@@ -193,6 +194,8 @@ export interface JadadaFiche {
   characters: { name: string; role: string }[];
   places: { name: string; why: string }[];
   stages: JadadaStage[];
+  /** تقويم مرحلي مختصر يطبع فقط للدروس التي صُمم لها تقويم خاص */
+  formativeAssessments?: LessonFormativeAssessment[];
   /** المحاور الأصلية كاملة كما وردت في قسم الدروس (لضمان عدم اختزال المضمون) */
   sourceSections: { title: string; blocks: LessonBlock[] }[];
   docs: JadadaDoc[];
@@ -666,6 +669,7 @@ export function buildJadada(key: string): JadadaFiche | null {
     characters: (content.characters ?? []).map((x) => ({ name: cleanTitle(x.name), role: cleanTitle(x.role) })),
     places: (content.places ?? []).map((x) => ({ name: cleanTitle(x.name), why: cleanTitle(x.why) })),
     stages,
+    formativeAssessments: content.formativeAssessments,
     sourceSections: content.sections.map((section) => ({ title: section.title, blocks: section.blocks })),
     docs: (content.docs ?? []).map((d) => ({
       label: cleanTitle(d.label),
@@ -1177,6 +1181,19 @@ function compactPrintSynthesis(f: JadadaFiche): string {
   );
 }
 
+/** ملخص لا يطبع الأسئلة الطويلة، ويُدرج فقط عندما يملك الدرس تقويمًا خاصًا. */
+function compactPrintFormativeAssessments(f: JadadaFiche): string {
+  const assessments = f.formativeAssessments ?? [];
+  if (!assessments.length) return "";
+  return `<div class="f-box f-formative-box">
+    <h2>التقويم المرحلي الخاص بالدرس</h2>
+    <ol class="print-list">${assessments
+      .map((assessment) => `<li><strong>${esc(assessment.title)}:</strong> ${esc(compactPrintText(assessment.expected, 155))}</li>`)
+      .join("")}</ol>
+    <p><strong>المعالجة:</strong> ${esc(compactPrintText(assessments[assessments.length - 1]?.support ?? "دعم موجه حسب موطن التعثر.", 190))}</p>
+  </div>`;
+}
+
 /**
  * نسخة عملية مختصرة من الجذاذة: بطاقة واحدة، ثلاثة أهداف وجدول رئيسي واحد.
  * لا تطبع هذه النسخة الأسئلة والأجوبة التفصيلية أو صفحات المصدر الطويلة؛
@@ -1227,6 +1244,7 @@ export function jadadaPrintBodyHtml(f: JadadaFiche): string {
         <p>أسئلة التقويم المرحلي والإجمالي المرتبطة بأهداف الدرس.</p>
         <p><strong>المعالجة:</strong> تصحيح جماعي للتعثرات وتوجيه المتعلمين إلى الدعم المناسب.</p>
       </div>
+      ${compactPrintFormativeAssessments(f)}
       ${
         f.application
           ? `<div class="f-box f-application-box">
@@ -1312,8 +1330,9 @@ p{margin:1mm 0}
 .print-inner-table tbody tr:nth-child(even) td{background:${pale}}
 .f-method{padding:3mm 2mm;background:${goldSoft};border-inline-start:3px solid ${gold};font-family:"Cairo",sans-serif;font-size:11pt;font-weight:900;text-align:center;direction:rtl}
 .f-note{font-size:7.3pt;color:${muted};margin-top:1.5mm}
-.f-assessment-box,.f-application-box{margin-top:2mm}
-.f-assessment-box p,.f-application-box p{font-size:7.8pt}
+.f-assessment-box,.f-formative-box,.f-application-box{margin-top:2mm}
+.f-assessment-box p,.f-formative-box p,.f-application-box p{font-size:7.8pt}
+.f-formative-box ol{margin-top:1mm}
 .print-footer{display:flex;justify-content:space-between;gap:4mm;border-top:.7px solid ${brand};padding-top:1.5mm;margin-top:3mm;color:${muted};font-size:7pt}
 thead{display:table-header-group}
 tfoot{display:table-footer-group}
