@@ -417,6 +417,7 @@ export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: Le
   const deck = useMemo(() => getDeckForLesson(lesson.id), [lesson.id]);
   const toc = useMemo(() => {
     const items = ["أهداف الدرس", "تمهيد وإشكالية"];
+    if (lesson.sourceMaterial) items.push("المادة المرجعية المعتمدة");
     if (lesson.bookPage) items.push("صفحة الكتاب");
     items.push(...lesson.sections.map((s) => s.title));
     if (lesson.formativeAssessments?.length) items.push("التقويم المرحلي الخاص بالدرس");
@@ -556,6 +557,44 @@ export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: Le
               </div>
             </Reveal>
             </div>
+
+            {/* المادة المرجعية التي بُني عليها درس الثانية باكالوريا آداب */}
+            {lesson.sourceMaterial && (
+              <div data-lesson-block>
+                <Reveal delay={50}>
+                  <div className="rounded-3xl border border-brand-200/70 bg-gradient-to-l from-brand-50/80 via-white to-gold-50/45 p-7 sm:p-8">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[11px] font-extrabold tracking-wide text-brand-700">مصدر الإنجاز</p>
+                        <h2 className="mt-1 flex items-center gap-2.5 font-display text-lg font-extrabold text-ink-900 sm:text-xl">
+                          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-700">
+                            <BookOpenCheck className="size-5" aria-hidden="true" />
+                          </span>
+                          المادة المرجعية المعتمدة
+                        </h2>
+                      </div>
+                      <span className="rounded-full bg-white px-3.5 py-2 text-[11px] font-extrabold text-brand-700 ring-1 ring-brand-200">{lesson.sourceMaterial.title}</span>
+                    </div>
+                    <p className="mt-4 max-w-3xl text-sm leading-loose text-ink-700">{lesson.sourceMaterial.note}</p>
+                    <div className="mt-4 flex flex-wrap gap-2.5">
+                      {lesson.sourceMaterial.files.map((file) => (
+                        <a
+                          key={file.url}
+                          href={file.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-3.5 py-2.5 text-xs font-extrabold text-brand-700 transition-all hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-sm"
+                        >
+                          <FileText className="size-4" aria-hidden="true" />
+                          {file.label}
+                          <ArrowLeft className="size-3.5" aria-hidden="true" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </Reveal>
+              </div>
+            )}
 
             {/* صفحة الكتاب المدرسي */}
             {lesson.bookPage && (

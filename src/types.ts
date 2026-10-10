@@ -266,6 +266,13 @@ export interface LessonApplication {
   model: string[];
 }
 
+/** المادة المرجعية التي بُني عليها درس الثانية باكالوريا */
+export interface LessonSourceMaterial {
+  title: string;
+  note: string;
+  files: { label: string; url: string }[];
+}
+
 /**
  * تخطيط موجز لأنشطة الدرس كما ترد في الجذاذة/الكتاب المدرسي.
  * يميز بين المهمة التي ينجزها المتعلم والمنتوج الكتابي الناتج عنها،
@@ -322,4 +329,6 @@ export interface LessonContent {
   references?: { name: string; url: string }[];
   /** صفحة الكتاب/الملخص المدرسي الذي بُني عليه الدرس (صورة داخل public/) */
   bookPage?: { src: string; book: string; page: number; caption?: string };
+  /** روابط المادة المرجعية التي بُني عليها الدرس، خاصة بدروس الثانية باكالوريا آداب */
+  sourceMaterial?: LessonSourceMaterial;
 }
