@@ -4,6 +4,7 @@ import {
   ArrowDownUp,
   Award,
   BarChart3,
+  BookOpenCheck,
   ChartColumn,
   ClipboardList,
   Download,
@@ -48,6 +49,7 @@ import SupabaseSettings from "./SupabaseSettings";
 import Jadadat from "./Jadadat";
 import InspectorReports from "./InspectorReports";
 import InspectorDiagnosticDemo from "./InspectorDiagnosticDemo";
+import TeacherBac2Lessons from "./TeacherBac2Lessons";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -922,6 +924,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
    ============================================================
    تبويبات:
      results  → نتائج التقويم التشخيصي
+     bac2-lessons → فهرس دروس الثانية باكالوريا آداب ومصادرها وتقويماتها
      reports  → تقرير التقويم التشخيصي الموجه للمفتش وحفظه المركزي
      inspector-demo → نموذج تشخيصي تجريبي معزول لفضاء المفتش
      jadadat  → الجذاذات
@@ -934,6 +937,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
 
 const TABS = [
   { id: "results", label: "نتائج التقويم التشخيصي", hint: "الحضور، النتائج، التقارير والتصدير", icon: ChartColumn },
+  { id: "bac2-lessons", label: "دروس الثانية باك", hint: "32 درسًا آداب — المحتوى، التقويم والجذاذات", icon: BookOpenCheck },
   { id: "reports", label: "تقارير موجهة للمفتش", hint: "تحليل رسمي موجه للمفتش، معاينة، PDF وحفظ مركزي", icon: FileBarChart },
   { id: "inspector-demo", label: "التقويم التشخيصي التجريبي", hint: "DEMO / TEST — عرض ومحاكاة معزولة", icon: FlaskConical },
   { id: "jadadat", label: "الجذاذات", hint: "إعداد الدروس والأنشطة والتقويم", icon: FileText },
@@ -1032,7 +1036,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
 
         {/* التبويبات */}
         <nav className="mt-5 rounded-3xl border border-ink-900/8 bg-white/80 p-2 shadow-[0_18px_45px_-32px_rgba(4,36,26,0.3)]" role="tablist" aria-label="أقسام لوحة الأستاذ" data-no-print>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-7">
           {TABS.map((t) => {
             const on = active === t.id;
             return (
@@ -1064,6 +1068,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
         {/* محتوى التبويب */}
         <div className="mt-7">
           {active === "results" && <TestResultsPanel go={go} />}
+          {active === "bac2-lessons" && <TeacherBac2Lessons go={go} />}
           {active === "reports" && <InspectorReports />}
           {active === "inspector-demo" && <InspectorDiagnosticDemo />}
           {active === "jadadat" && <Jadadat go={go} embedded />}
