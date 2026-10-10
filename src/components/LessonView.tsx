@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlarmClock,
+  ArrowLeft,
   ArrowRight,
   Award,
   BadgeCheck,
@@ -10,6 +11,7 @@ import {
   ChevronLeft,
   Clock3,
   FileText,
+  Flag,
   FlaskConical,
   GraduationCap,
   Info,
@@ -23,12 +25,15 @@ import {
   Quote,
   RotateCcw,
   Scale,
+  Send,
   Target,
   TriangleAlert,
   XCircle,
 } from "lucide-react";
-import type { LessonBlock, LessonContent } from "../types";
+import type { LessonBlock, LessonContent, LessonFormativeAssessment } from "../types";
 import Reveal from "./Reveal";
+import SmartText, { AutoTableView } from "./SmartText";
+import { isYear } from "../lib/tableDetect";
 import CopyLinkButton from "./CopyLinkButton";
 import type { Route } from "../routes";
 import { getDeckForLesson } from "../data/decks";
@@ -36,7 +41,8 @@ import { getDeckForLesson } from "../data/decks";
 /* ---------- عارض الكتل ---------- */
 function BlockRenderer({ block }: { block: LessonBlock }) {
   if (block.type === "p") {
-    return <p className="text-[15px] leading-loose text-ink-700">{block.text}</p>;
+    /* البيانات المنظمة داخل الفقرة تتحول تلقائيًا إلى جدول حقيقي (النظام الموحد) */
+    return <SmartText text={block.text} className="text-[15px] leading-loose text-ink-700" />;
   }
   if (block.type === "ul") {
     return (
@@ -54,29 +60,15 @@ function BlockRenderer({ block }: { block: LessonBlock }) {
     );
   }
   if (block.type === "table") {
+    /* تصميم موحّد لكل جداول الدروس (كتل + وثائق + تقويمات): نفس النظام والمكوّن */
     return (
-      <div className="overflow-x-auto rounded-2xl border border-ink-900/6">
-        <table className="w-full min-w-[560px] text-sm">
-          <thead>
-            <tr className="bg-brand-800 text-white">
-              {block.head.map((h) => (
-                <th key={h} className="px-4 py-3 text-start font-display text-xs font-extrabold">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {block.rows.map((row, i) => (
-              <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-paper-warm/40"}>
-                {row.map((cell, j) => (
-                  <td key={j} className={`px-4 py-3 align-top leading-relaxed ${j === 0 ? "font-bold text-ink-900" : "text-ink-700"}`}>
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <AutoTableView
+        t={{
+          head: block.head,
+          rows: block.rows,
+          timeSeries: block.rows.length > 1 && block.rows.every((r) => isYear(r[0] ?? "")),
+        }}
+      />
     );
   }
   const tones = {
@@ -176,29 +168,279 @@ function LessonQuiz({ quiz }: { quiz: LessonContent["quiz"] }) {
   );
 }
 
+/* ---------- التقويم النهائي التفاعلي — على نمط التقويم التشخيصي ---------- */
+function LessonFinalAssessment({ quiz }: { quiz: LessonContent["quiz"] }) {
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [current, setCurrent] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const item = quiz[current];
+  const answeredCount = Object.keys(answers).length;
+  const score = quiz.reduce((total, question, index) => total + (answers[index] === question.answer ? 1 : 0), 0);
+  const percent = quiz.length ? Math.round((score / quiz.length) * 100) : 0;
+  const unansweredCount = quiz.length - answeredCount;
+
+  const choose = (optionIndex: number) => {
+    if (submitted) return;
+    setAnswers((previous) => ({ ...previous, [current]: optionIndex }));
+  };
+
+  const reset = () => {
+    setAnswers({});
+    setCurrent(0);
+    setSubmitted(false);
+    setConfirming(false);
+  };
+
+  if (!item) return null;
+
+  return (
+    <div className="space-y-5" dir="rtl">
+      <div className="sticky top-24 z-20 rounded-2xl border border-ink-900/8 bg-white/95 p-4 shadow-[0_18px_40px_-24px_rgba(4,36,26,0.35)] backdrop-blur-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="grid size-10 place-items-center rounded-xl bg-brand-50 text-brand-600">
+              <Flag className="size-5" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-extrabold text-ink-900">
+                السؤال <span className="text-brand-700">{current + 1}</span> من {quiz.length}
+              </p>
+              <p className="text-[11px] text-ink-500">{submitted ? "تم التصحيح — انتقل بين الأسئلة لمراجعة أجوبتك." : `${answeredCount} مجاب عنها — يمكنك التنقل بحرية قبل الإرسال.`}</p>
+            </div>
+          </div>
+          {!submitted ? (
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-lg shadow-brand-700/20 transition-transform hover:-translate-y-0.5"
+            >
+              <Send className="size-4" aria-hidden="true" />
+              إرسال التقويم
+            </button>
+          ) : (
+            <span className="rounded-xl bg-emerald-50 px-4 py-2.5 text-xs font-extrabold text-emerald-700">النتيجة: {score} / {quiz.length}</span>
+          )}
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-paper-warm" role="progressbar" aria-valuenow={submitted ? quiz.length : answeredCount} aria-valuemin={0} aria-valuemax={quiz.length}>
+          <div className="h-full rounded-full bg-gradient-to-l from-gold-400 to-brand-500 transition-all duration-500" style={{ width: `${((submitted ? quiz.length : answeredCount) / quiz.length) * 100}%` }} />
+        </div>
+      </div>
+
+      {submitted && (
+        <div className="animate-fade-up rounded-2xl border border-brand-200 bg-gradient-to-l from-brand-50 to-gold-50 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-extrabold text-brand-700">نتيجة التقويم النهائي</p>
+              <p className="mt-1 font-display text-2xl font-black text-ink-900">{score} / {quiz.length} <span className="text-base text-ink-500">({percent}%)</span></p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-600">
+                {percent >= 80 ? "تمكن جيد جدًا من مضامين الدرس." : percent >= 60 ? "تمكن متوسط؛ راجع الأسئلة المعلّمة باللون الأحمر." : "تحتاج إلى دعم ومراجعة المحاور ثم إعادة التقويم."}
+              </p>
+            </div>
+            <button type="button" onClick={reset} className="inline-flex items-center gap-2 rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-xs font-extrabold text-brand-700 transition hover:-translate-y-0.5">
+              <RotateCcw className="size-4" aria-hidden="true" />
+              إعادة التقويم
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-3xl border border-ink-900/6 bg-white p-5 shadow-[0_25px_60px_-30px_rgba(4,36,26,0.25)] sm:p-8">
+        <div className="flex items-start gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-600 text-xs font-black text-white">{current + 1}</span>
+          <p className="text-sm font-extrabold leading-loose text-ink-900">{item.q}</p>
+        </div>
+        <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
+          {item.options.map((option, optionIndex) => {
+            const picked = answers[current] === optionIndex;
+            const correct = item.answer === optionIndex;
+            const reveal = submitted;
+            return (
+              <button
+                key={option}
+                type="button"
+                disabled={submitted}
+                onClick={() => choose(optionIndex)}
+                className={`flex items-start gap-2.5 rounded-xl border-2 px-4 py-3.5 text-start text-[13px] font-semibold leading-relaxed transition-all ${
+                  reveal && correct
+                    ? "border-emerald-400 bg-emerald-50 text-emerald-800"
+                    : reveal && picked && !correct
+                      ? "border-rose-400 bg-rose-50 text-rose-700"
+                      : picked
+                        ? "border-gold-400 bg-gold-50 text-gold-800"
+                        : "border-ink-900/10 bg-white text-ink-800 hover:-translate-y-0.5 hover:border-brand-400"
+                }`}
+              >
+                {reveal && correct ? <CheckCircle2 className="mt-0.5 size-4.5 shrink-0 text-emerald-600" aria-hidden="true" /> : reveal && picked ? <XCircle className="mt-0.5 size-4.5 shrink-0 text-rose-600" aria-hidden="true" /> : <span className="mt-0.5 size-4.5 shrink-0 rounded-full border-2 border-ink-300" aria-hidden="true" />}
+                <span>{option}</span>
+              </button>
+            );
+          })}
+        </div>
+        {submitted && (
+          <p className="animate-fade-up mt-4 rounded-xl bg-brand-50 px-4 py-3 text-xs leading-loose text-brand-800">
+            <span className="font-extrabold">التصحيح والتعليل: </span>{item.why}
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <button type="button" onClick={() => setCurrent((value) => Math.max(0, value - 1))} disabled={current === 0} className="inline-flex items-center gap-2 rounded-xl border border-ink-900/10 bg-white px-4 py-3 text-xs font-bold text-ink-700 transition enabled:hover:-translate-y-0.5 enabled:hover:border-brand-400 disabled:opacity-40">
+          <ArrowRight className="size-4" aria-hidden="true" /> السابق
+        </button>
+        {current < quiz.length - 1 ? (
+          <button type="button" onClick={() => setCurrent((value) => Math.min(quiz.length - 1, value + 1))} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-5 py-3 text-xs font-extrabold text-white shadow-lg shadow-brand-700/20 transition hover:-translate-y-0.5">
+            التالي <ArrowLeft className="size-4" aria-hidden="true" />
+          </button>
+        ) : (
+          !submitted && <button type="button" onClick={() => setConfirming(true)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-gold-400 to-gold-500 px-5 py-3 text-xs font-extrabold text-ink-950 shadow-lg shadow-gold-600/20 transition hover:-translate-y-0.5"><Send className="size-4" aria-hidden="true" /> إنهاء وإرسال</button>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-ink-900/6 bg-cream p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-extrabold text-ink-800">قائمة الأسئلة</p>
+          <p className="text-[11px] text-ink-500">{submitted ? "الأخضر صحيح، والأحمر يحتاج إلى مراجعة." : "اختر رقمًا للانتقال مباشرة."}</p>
+        </div>
+        <div className="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-10">
+          {quiz.map((question, index) => {
+            const answered = answers[index] !== undefined;
+            const correct = submitted && answers[index] === question.answer;
+            return (
+              <button key={index} type="button" onClick={() => setCurrent(index)} aria-current={current === index ? "true" : undefined} className={`grid aspect-square place-items-center rounded-lg text-xs font-extrabold transition ${
+                current === index ? "scale-110 border-2 border-gold-500 bg-gold-100 text-gold-700 shadow" : submitted && answered ? correct ? "bg-emerald-600 text-white" : "bg-rose-500 text-white" : answered ? "bg-brand-600 text-white" : "border border-ink-900/12 bg-white text-ink-500 hover:border-brand-300"
+              }`}>{index + 1}</button>
+            );
+          })}
+        </div>
+      </div>
+
+      {confirming && (
+        <div className="fixed inset-0 z-[70] grid place-items-center p-4" role="dialog" aria-modal="true" aria-label="تأكيد إرسال التقويم النهائي">
+          <button type="button" aria-label="إغلاق" onClick={() => setConfirming(false)} className="absolute inset-0 bg-brand-950/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-7 shadow-2xl">
+            <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-gold-100 text-gold-600"><TriangleAlert className="size-7" aria-hidden="true" /></span>
+            <h3 className="mt-4 text-center font-display text-xl font-black text-ink-900">تأكيد إرسال التقويم</h3>
+            <p className="mt-2 text-center text-sm leading-loose text-ink-500">أجبت عن <strong className="text-brand-700">{answeredCount}</strong> من {quiz.length} سؤالًا.{unansweredCount > 0 ? ` ستحتسب ${unansweredCount} أسئلة غير مجاب عنها ضمن الأخطاء.` : " أجبت عن جميع الأسئلة."}</p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button type="button" onClick={() => setConfirming(false)} className="rounded-xl border border-ink-900/10 px-4 py-3 text-sm font-bold text-ink-700 hover:bg-paper-warm">متابعة المراجعة</button>
+              <button type="button" onClick={() => { setSubmitted(true); setConfirming(false); }} className="rounded-xl bg-gradient-to-l from-brand-600 to-brand-700 px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-brand-700/20">تأكيد التصحيح</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- التقويم المرحلي الخاص بالدرس ---------- */
+function LessonFormativeAssessments({ assessments }: { assessments: LessonFormativeAssessment[] }) {
+  const phaseLabels = {
+    launch: "الانطلاق واستحضار المكتسبات",
+    building: "التقويم البنائي أثناء تحليل المقطع",
+    checkpoint: "التحقق من الفهم والتوظيف",
+    synthesis: "التقويم التركيبي والمعالجة",
+  } as const;
+
+  return (
+    <section
+      data-lesson-block
+      dir="rtl"
+      aria-labelledby="formative-assessment-title"
+      className="rounded-3xl border border-brand-200 bg-gradient-to-b from-brand-50/80 via-white to-gold-50/35 p-7 sm:p-8 print:break-inside-auto"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-extrabold tracking-wide text-brand-700">تقويم مواكب للتعلم</p>
+          <h2 id="formative-assessment-title" className="mt-1 flex items-center gap-2.5 font-display text-xl font-extrabold text-ink-900">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-700">
+              <ListChecks className="size-5" aria-hidden="true" />
+            </span>
+            التقويم المرحلي الخاص بالدرس
+          </h2>
+          <p className="mt-2 max-w-3xl text-xs leading-loose text-ink-600">
+            أنشطة قصيرة مرتبطة بعنوان الدرس ومحاوره ومهاراته؛ تنقل المتعلم من استحضار المكتسبات إلى الفهم والتوظيف ثم التركيب والمعالجة.
+          </p>
+        </div>
+        <span className="rounded-full bg-white px-3.5 py-2 text-[11px] font-extrabold text-brand-700 ring-1 ring-brand-200">
+          {assessments.length} مراحل تقويمية
+        </span>
+      </div>
+
+      <div className="mt-6 space-y-4">
+        {assessments.map((assessment, index) => (
+          <article key={`${assessment.phase}-${assessment.sectionIndex ?? "final"}`} className="print:break-inside-avoid overflow-hidden rounded-2xl border border-ink-900/8 bg-white shadow-sm">
+            <div className="flex flex-wrap items-center gap-3 border-b border-ink-900/7 bg-cream/70 px-5 py-4">
+              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-600 text-xs font-black text-white">{index + 1}</span>
+              <div>
+                <p className="text-[10px] font-extrabold text-brand-700">{phaseLabels[assessment.phase]}</p>
+                <h3 className="mt-0.5 font-display text-sm font-extrabold leading-relaxed text-ink-900">{assessment.title}</h3>
+              </div>
+            </div>
+            <div className="grid gap-4 p-5 md:grid-cols-2">
+              <div className="rounded-xl border border-brand-100 bg-brand-50/50 p-4">
+                <p className="text-[11px] font-extrabold text-brand-700">النشاط / السؤال</p>
+                <p className="mt-2 text-[13px] font-semibold leading-loose text-ink-800">{assessment.prompt}</p>
+              </div>
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+                <p className="flex items-center gap-1.5 text-[11px] font-extrabold text-emerald-700">
+                  <BadgeCheck className="size-4" aria-hidden="true" />
+                  المنتوج المنتظر ومعايير النجاح
+                </p>
+                <p className="mt-2 text-[13px] leading-loose text-ink-800">{assessment.expected}</p>
+              </div>
+            </div>
+            <div className="border-t border-gold-100 bg-gold-50/55 px-5 py-3.5 text-xs leading-loose text-ink-700">
+              <span className="font-extrabold text-gold-700">الدعم أو المعالجة المقترحة: </span>
+              {assessment.support}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ---------- عرض الدرس ---------- */
 interface LessonViewProps {
   lesson: LessonContent;
+  focus?: "final";
   breadcrumb: { level: string; branch: string; subject: string; unit: string };
   onBack: () => void;
   go: (r: Route) => void;
 }
 
-export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonViewProps) {
+export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: LessonViewProps) {
   const [sectionIndex, setSectionIndex] = useState(0);
   const [openDocId, setOpenDocId] = useState<number | null>(null);
   const [showModel, setShowModel] = useState(false);
   const deck = useMemo(() => getDeckForLesson(lesson.id), [lesson.id]);
   const toc = useMemo(() => {
     const items = ["أهداف الدرس", "تمهيد وإشكالية"];
+    if (lesson.sourceMaterial) items.push("المادة المرجعية المعتمدة");
     if (lesson.bookPage) items.push("صفحة الكتاب");
     items.push(...lesson.sections.map((s) => s.title));
+    if (lesson.formativeAssessments?.length) items.push("التقويم المرحلي الخاص بالدرس");
     if (lesson.docs?.length) items.push("الوثائق وتحليلها");
     if (lesson.schema) items.push("الخطاطة التركيبية");
     if (lesson.application) items.push("تمرين تطبيقي");
-    items.push("خط زمني", "معجم المفاهيم", "خلاصة مركزة", "في الامتحان", "اختبر فهمك");
+    items.push(
+      "خط زمني",
+      "معجم المفاهيم",
+      "خلاصة مركزة",
+      "في الامتحان",
+      lesson.formativeAssessments?.length ? `التقويم النهائي (${lesson.quiz.length} سؤالًا)` : "اختبر فهمك",
+    );
     return items;
   }, [lesson]);
+
+  useEffect(() => {
+    if (focus !== "final") return;
+    const timer = window.setTimeout(() => {
+      document.getElementById("lesson-final-assessment")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [focus, lesson.id]);
 
   return (
     <section className="pt-32 pb-20 md:pt-36">
@@ -316,6 +558,44 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
             </Reveal>
             </div>
 
+            {/* المادة المرجعية التي بُني عليها درس الثانية باكالوريا آداب */}
+            {lesson.sourceMaterial && (
+              <div data-lesson-block>
+                <Reveal delay={50}>
+                  <div className="rounded-3xl border border-brand-200/70 bg-gradient-to-l from-brand-50/80 via-white to-gold-50/45 p-7 sm:p-8">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[11px] font-extrabold tracking-wide text-brand-700">مصدر الإنجاز</p>
+                        <h2 className="mt-1 flex items-center gap-2.5 font-display text-lg font-extrabold text-ink-900 sm:text-xl">
+                          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-700">
+                            <BookOpenCheck className="size-5" aria-hidden="true" />
+                          </span>
+                          المادة المرجعية المعتمدة
+                        </h2>
+                      </div>
+                      <span className="rounded-full bg-white px-3.5 py-2 text-[11px] font-extrabold text-brand-700 ring-1 ring-brand-200">{lesson.sourceMaterial.title}</span>
+                    </div>
+                    <p className="mt-4 max-w-3xl text-sm leading-loose text-ink-700">{lesson.sourceMaterial.note}</p>
+                    <div className="mt-4 flex flex-wrap gap-2.5">
+                      {lesson.sourceMaterial.files.map((file) => (
+                        <a
+                          key={file.url}
+                          href={file.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-3.5 py-2.5 text-xs font-extrabold text-brand-700 transition-all hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-sm"
+                        >
+                          <FileText className="size-4" aria-hidden="true" />
+                          {file.label}
+                          <ArrowLeft className="size-3.5" aria-hidden="true" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </Reveal>
+              </div>
+            )}
+
             {/* صفحة الكتاب المدرسي */}
             {lesson.bookPage && (
               <div data-lesson-block>
@@ -337,6 +617,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
                       src={lesson.bookPage.src}
                       alt={`${lesson.bookPage.book} — الصفحة ${lesson.bookPage.page}`}
                       loading="lazy"
+                      decoding="async"
                       className="mx-auto w-full max-w-3xl rounded-xl border border-ink-900/10 bg-white shadow-md"
                     />
                   </a>
@@ -345,6 +626,40 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
                   )}
                 </div>
               </Reveal>
+              </div>
+            )}
+
+            {/* أنشطة المصدر والمنتوجات الكتابية — للجذع المشترك العلمي */}
+            {lesson.didacticPlan && lesson.didacticPlan.activities.length > 0 && (
+              <div data-lesson-block>
+                <Reveal delay={70}>
+                  <div className="rounded-3xl border border-brand-200/70 bg-brand-50/35 p-7 sm:p-8">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-extrabold tracking-wide text-brand-700">تخطيط الاشتغال</p>
+                        <h2 className="mt-1 font-display text-lg font-extrabold text-ink-900 sm:text-xl">أنشطة الدرس والمنتوجات الكتابية</h2>
+                      </div>
+                      <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-ink-500 ring-1 ring-brand-200">مرجع: {lesson.didacticPlan.source}</span>
+                    </div>
+                    <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                      {lesson.didacticPlan.activities.map((activity, ai) => (
+                        <article key={`${activity.sectionIndex}-${activity.label}`} className="rounded-2xl border border-ink-900/7 bg-white p-4 shadow-sm">
+                          <div className="flex items-start gap-3">
+                            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-100 text-xs font-black text-brand-700">{ai + 1}</span>
+                            <div className="min-w-0">
+                              <h3 className="font-display text-sm font-extrabold leading-relaxed text-ink-900">{activity.label}</h3>
+                              <dl className="mt-3 space-y-2 text-xs leading-relaxed text-ink-600">
+                                <div><dt className="inline font-extrabold text-brand-700">المهمة: </dt><dd className="inline">{activity.task}</dd></div>
+                                <div><dt className="inline font-extrabold text-brand-700">الدعامة: </dt><dd className="inline">{activity.support}</dd></div>
+                                <div className="rounded-xl bg-gold-50 px-3 py-2"><dt className="inline font-extrabold text-gold-700">المنتوج الذي يكتبه المتعلم: </dt><dd className="inline font-semibold text-ink-800">{activity.product}</dd></div>
+                              </dl>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                </Reveal>
               </div>
             )}
 
@@ -369,6 +684,11 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
               </div>
             ))}
 
+            {/* التقويم المرحلي الخاص بدروس الثانية باكالوريا آداب */}
+            {lesson.formativeAssessments && lesson.formativeAssessments.length > 0 && (
+              <LessonFormativeAssessments assessments={lesson.formativeAssessments} />
+            )}
+
             {/* الوثائق وتحليلها */}
             {lesson.docs && lesson.docs.length > 0 && (
               <div data-lesson-block>
@@ -388,7 +708,7 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
                         <div key={di} className="overflow-hidden rounded-2xl border border-ink-900/8">
                           <div className="border-b border-ink-900/8 bg-gold-50/70 p-5">
                             <p className="text-[11px] font-extrabold text-gold-700">{doc.label}</p>
-                            <p className="mt-2.5 whitespace-pre-line text-sm leading-loose text-ink-700">{doc.text}</p>
+                            <div className="mt-2.5"><SmartText text={doc.text} className="text-sm leading-loose text-ink-700" /></div>
                           </div>
                           <ol className="divide-y divide-ink-900/5 px-5 py-2 sm:px-6">
                             {doc.questions.map((qa, qi) => (
@@ -683,18 +1003,18 @@ export default function LessonView({ lesson, breadcrumb, onBack, go }: LessonVie
             </div>
 
             {/* اختبر فهمك */}
-            <div data-lesson-block>
+            <div id="lesson-final-assessment" data-lesson-block>
             <Reveal>
               <div className="rounded-3xl border border-ink-900/6 bg-cream p-7 sm:p-8">
                 <h2 className="flex items-center gap-2.5 font-display text-xl font-extrabold text-ink-900">
                   <span className="grid size-10 place-items-center rounded-xl bg-brand-50 text-brand-600">
                     <ListChecks className="size-5" aria-hidden="true" />
                   </span>
-                  اختبر فهمك
+                  {lesson.formativeAssessments?.length ? "التقويم النهائي: اختبر فهمك" : "اختبر فهمك"}
                 </h2>
-                <p className="mt-1.5 text-xs text-ink-500">أربعة أسئلة تفاعلية بتصحيح فوري للتأكد من استيعاب الدرس.</p>
+                <p className="mt-1.5 text-xs text-ink-500">{lesson.quiz.length} سؤالًا تفاعليًا بتصحيح فوري للتأكد من استيعاب الدرس.</p>
                 <div className="mt-5">
-                  <LessonQuiz quiz={lesson.quiz} />
+                  {lesson.formativeAssessments?.length ? <LessonFinalAssessment quiz={lesson.quiz} /> : <LessonQuiz quiz={lesson.quiz} />}
                 </div>
               </div>
             </Reveal>
