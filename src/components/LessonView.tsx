@@ -417,7 +417,7 @@ export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: Le
   const deck = useMemo(() => getDeckForLesson(lesson.id), [lesson.id]);
   const toc = useMemo(() => {
     const items = ["أهداف الدرس", "تمهيد وإشكالية"];
-    if (lesson.sourceMaterial) items.push("المادة المرجعية المعتمدة");
+    if (lesson.sourceMaterial) items.push("المصدر الأصلي كما هو مرفوع");
     if (lesson.bookPage) items.push("صفحة الكتاب");
     items.push(...lesson.sections.map((s) => s.title));
     if (lesson.formativeAssessments?.length) items.push("التقويم المرحلي الخاص بالدرس");
@@ -565,12 +565,12 @@ export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: Le
                   <div className="rounded-3xl border border-brand-200/70 bg-gradient-to-l from-brand-50/80 via-white to-gold-50/45 p-7 sm:p-8">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p className="text-[11px] font-extrabold tracking-wide text-brand-700">مصدر الإنجاز</p>
+                        <p className="text-[11px] font-extrabold tracking-wide text-brand-700">المادة الأصلية</p>
                         <h2 className="mt-1 flex items-center gap-2.5 font-display text-lg font-extrabold text-ink-900 sm:text-xl">
                           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-700">
                             <BookOpenCheck className="size-5" aria-hidden="true" />
                           </span>
-                          المادة المرجعية المعتمدة
+                          المصدر الأصلي كما هو مرفوع
                         </h2>
                       </div>
                       <span className="rounded-full bg-white px-3.5 py-2 text-[11px] font-extrabold text-brand-700 ring-1 ring-brand-200">{lesson.sourceMaterial.title}</span>
@@ -1070,7 +1070,9 @@ export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: Le
                     <BookMarked className="size-3" aria-hidden="true" />
                     عن المحتوى
                   </span>
-                  محتوى مؤلَّف من طرف الأستاذ وفق المحاور المنهجية للمقرر — مناسب للمراجعة والتحضير للفروض.
+                  {lesson.sourceMaterial
+                    ? "المرجع المعتمد هو رابط الملف الأصلي أعلاه كما رُفع في مجلد «دروس ملخصة»؛ لا تُعدّل الواجهة نص المصدر."
+                    : "محتوى مؤلَّف من طرف الأستاذ وفق المحاور المنهجية للمقرر — مناسب للمراجعة والتحضير للفروض."}
                 </p>
               </div>
             </Reveal>

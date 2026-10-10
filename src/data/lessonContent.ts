@@ -12,7 +12,6 @@ import { BAC2_BOOK_HISTORY } from "./lessons/bac2BookHistory";
 import { BAC2_BOOK_GEO } from "./lessons/bac2BookGeo";
 import { BAC2_ARTS_ADDITIONS } from "./lessons/bac2ArtsAdditions";
 import { getBac2ArtsSourceMaterial } from "./lessons/bac2ArtsSourceMaterials";
-import { enrichBac2ArtsContent } from "./lessons/bac2ArtsSourceProfiles";
 import { buildBac2ArtsFinalQuiz } from "./lessons/bac2ArtsFinalAssessment";
 import { TC_SCI_DIDACTIC_PLANS } from "./lessons/tcSciDidacticPlans";
 
@@ -555,9 +554,8 @@ LESSON_CONTENT["bac1-sci.history.3.0"].application = {
 
 const withBac2ArtsSource = (content: LessonContent, key: string): LessonContent => {
   if (!key.startsWith("bac2-arts.")) return content;
-  const enriched = enrichBac2ArtsContent(content, key);
   const sourceMaterial = getBac2ArtsSourceMaterial(key);
-  return sourceMaterial ? { ...enriched, sourceMaterial } : enriched;
+  return sourceMaterial ? { ...content, sourceMaterial } : content;
 };
 
 /** هل يتوفر محتوى للدرس بالمفتاح المعطى؟ */

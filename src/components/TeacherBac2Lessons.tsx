@@ -214,12 +214,12 @@ export default function TeacherBac2Lessons({ go }: TeacherBac2LessonsProps) {
                               <h4 className="font-display text-sm font-extrabold leading-relaxed text-ink-900">{lesson.title}</h4>
                               <div className="mt-2 flex flex-wrap gap-1.5">
                                 {lesson.tag && <span className="rounded-full bg-gold-50 px-2.5 py-1 text-[10px] font-extrabold text-gold-700 ring-1 ring-gold-200">{lesson.tag}</span>}
-                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-extrabold text-emerald-700"><CheckCircle2 className="size-3" aria-hidden="true" /> محتوى مكتمل</span>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-extrabold text-brand-700"><ShieldCheck className="size-3" aria-hidden="true" /> مرتبط بالمصدر</span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-extrabold text-emerald-700"><CheckCircle2 className="size-3" aria-hidden="true" /> المصدر الأصلي متاح</span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-extrabold text-brand-700"><ShieldCheck className="size-3" aria-hidden="true" /> دون إعادة صياغة للمصدر</span>
                               </div>
                             </div>
                           </div>
-                          <p className="mt-3 border-s-2 border-gold-300 ps-3 text-xs leading-relaxed text-ink-600">{lesson.content.coreQuestion}</p>
+                          <p className="mt-3 border-s-2 border-gold-300 ps-3 text-xs leading-relaxed text-ink-600">{source?.title ?? "المادة الأصلية من مجلد دروس ملخصة"} — افتح زر المصدر لقراءة النص كما هو.</p>
                           <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                             {[
                               { icon: ListChecks, label: "التقويم النهائي", value: `${finalCount} سؤالًا` },
