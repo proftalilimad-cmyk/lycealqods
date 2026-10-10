@@ -52,6 +52,15 @@ const geographyUnitTwo = source(
   [{ label: "فتح PDF المجزوءة الثانية للجغرافيا", path: geographySecond }],
 );
 
+/* عناوين ملفية خاصة بالمسلك لا تظهر حرفيًا ضمن ملفات المجزوءات المرفوعة. */
+const curriculumOnlyLessons = new Set([
+  "bac2-arts.history.0.3",
+  "bac2-arts.history.1.4",
+  "bac2-arts.history.2.6",
+  "bac2-arts.geography.1.0",
+  "bac2-arts.geography.1.4",
+]);
+
 /**
  * يعيد المادة المرجعية لكل واحد من دروس الثانية باكالوريا آداب وعلوم إنسانية.
  * يعتمد التقسيم على رقم المجزوءة في معرف المنهج، لذلك لا يمكن أن يسقط درس
@@ -66,9 +75,13 @@ export function getBac2ArtsSourceMaterial(
   const subject = match[2];
   const unit = Number(match[3]);
 
-  if (subject === "history") {
-    return unit < 2 ? historyUnitOne : historyUnitTwo;
-  }
+  const material = subject === "history"
+    ? unit < 2 ? historyUnitOne : historyUnitTwo
+    : unit < 2 ? geographyUnitOne : geographyUnitTwo;
 
-  return unit < 2 ? geographyUnitOne : geographyUnitTwo;
+  if (!curriculumOnlyLessons.has(lessonId)) return material;
+  return {
+    ...material,
+    note: "هذا عنوان ملفي خاص بالمسلك لا يرد حرفيًا في PDF المجزوءة. أُنجزت له بطاقة مستقلة من الإطار المرجعي ومضامين الدرس، مع إبقاء ملف المجزوءة مرجعًا سياقيًا للمجزوءة كاملة.",
+  };
 }
