@@ -270,7 +270,7 @@ export interface LessonApplication {
 export interface LessonSourceMaterial {
   title: string;
   note: string;
-  files: { label: string; url: string }[];
+  files: { label: string; url: string; localUrl?: string; kind?: "pdf" | "pages" }[];
 }
 
 /**
@@ -329,6 +329,6 @@ export interface LessonContent {
   references?: { name: string; url: string }[];
   /** صفحة الكتاب/الملخص المدرسي الذي بُني عليه الدرس (صورة داخل public/) */
   bookPage?: { src: string; book: string; page: number; caption?: string };
-  /** روابط المادة المرجعية التي بُني عليها الدرس، خاصة بدروس الثانية باكالوريا آداب */
+  /** روابط المادة الأصلية التي بُني عليها درس الثانية باكالوريا */
   sourceMaterial?: LessonSourceMaterial;
 }

@@ -247,7 +247,7 @@ export default function TeacherBac2Lessons({ go }: TeacherBac2LessonsProps) {
                             </button>
                           )}
                           {source?.files[0] && (
-                            <a href={source.files[0].url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2.5 text-[11px] font-extrabold text-white transition-transform hover:-translate-y-0.5">
+                            <a href={source.files[0].localUrl ?? source.files[0].url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2.5 text-[11px] font-extrabold text-white transition-transform hover:-translate-y-0.5">
                               <ArrowLeft className="size-3.5" aria-hidden="true" /> الأصل كما هو
                             </a>
                           )}

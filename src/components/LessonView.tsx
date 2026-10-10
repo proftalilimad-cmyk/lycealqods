@@ -415,6 +415,7 @@ export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: Le
   const [openDocId, setOpenDocId] = useState<number | null>(null);
   const [showModel, setShowModel] = useState(false);
   const deck = useMemo(() => getDeckForLesson(lesson.id), [lesson.id]);
+  const originalPdf = lesson.sourceMaterial?.files.find((file) => file.kind === "pdf" && file.localUrl);
   const toc = useMemo(() => {
     const items = ["أهداف الدرس", "تمهيد وإشكالية"];
     if (lesson.sourceMaterial) items.push("المصدر الأصلي كما هو مرفوع");
@@ -580,7 +581,7 @@ export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: Le
                       {lesson.sourceMaterial.files.map((file) => (
                         <a
                           key={file.url}
-                          href={file.url}
+                          href={file.localUrl ?? file.url}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-3.5 py-2.5 text-xs font-extrabold text-brand-700 transition-all hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-sm"
@@ -591,6 +592,18 @@ export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: Le
                         </a>
                       ))}
                     </div>
+                    {originalPdf?.localUrl && (
+                      <details className="mt-4 overflow-hidden rounded-2xl border border-brand-200 bg-white">
+                        <summary className="cursor-pointer px-4 py-3 text-xs font-extrabold text-brand-700 hover:bg-brand-50">
+                          عرض PDF الأصلي داخل الموقع دون تعديل
+                        </summary>
+                        <iframe
+                          src={originalPdf.localUrl}
+                          title="المصدر الأصلي للدرس"
+                          className="h-[720px] w-full border-t border-brand-100 bg-paper-warm"
+                        />
+                      </details>
+                    )}
                   </div>
                 </Reveal>
               </div>

@@ -11,7 +11,7 @@ import { BAC2_SCI_GEO } from "./lessons/bac2SciGeo";
 import { BAC2_BOOK_HISTORY } from "./lessons/bac2BookHistory";
 import { BAC2_BOOK_GEO } from "./lessons/bac2BookGeo";
 import { BAC2_ARTS_ADDITIONS } from "./lessons/bac2ArtsAdditions";
-import { getBac2ArtsSourceMaterial } from "./lessons/bac2ArtsSourceMaterials";
+import { getBac2SourceMaterial } from "./lessons/bac2ArtsSourceMaterials";
 import { buildBac2ArtsFinalQuiz } from "./lessons/bac2ArtsFinalAssessment";
 import { TC_SCI_DIDACTIC_PLANS } from "./lessons/tcSciDidacticPlans";
 
@@ -552,9 +552,9 @@ LESSON_CONTENT["bac1-sci.history.3.0"].application = {
   ],
 };
 
-const withBac2ArtsSource = (content: LessonContent, key: string): LessonContent => {
-  if (!key.startsWith("bac2-arts.")) return content;
-  const sourceMaterial = getBac2ArtsSourceMaterial(key);
+const withBac2Source = (content: LessonContent, key: string): LessonContent => {
+  if (!key.startsWith("bac2-arts.") && !key.startsWith("bac2-sci.")) return content;
+  const sourceMaterial = getBac2SourceMaterial(key);
   return sourceMaterial ? { ...content, sourceMaterial } : content;
 };
 
@@ -565,13 +565,13 @@ export function hasLessonContent(key: string): boolean {
 
 export function getLessonContent(key: string): LessonContent | undefined {
   const direct = LESSON_CONTENT[key];
-  if (direct) return withBac2ArtsFormativeAssessments(withBac2ArtsSource(direct, key), key);
+  if (direct) return withBac2ArtsFormativeAssessments(withBac2Source(direct, key), key);
   const alias = ALIASES[key];
   if (!alias) return undefined;
   const base = LESSON_CONTENT[alias.key];
   if (!base) return undefined;
   const content = alias.title ? { ...base, id: key, title: alias.title } : { ...base, id: key };
-  return withBac2ArtsFormativeAssessments(withBac2ArtsSource(content, key), key);
+  return withBac2ArtsFormativeAssessments(withBac2Source(content, key), key);
 }
 
 /** توليد مفتاح الدرس من موقعه في بنية المقرر */
