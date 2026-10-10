@@ -235,8 +235,8 @@ export default function TeacherBac2Lessons({ go }: TeacherBac2LessonsProps) {
                           </div>
                         </div>
                         <div className="flex shrink-0 flex-wrap gap-2 xl:max-w-[275px] xl:justify-end">
-                          <button type="button" onClick={() => go({ view: "lesson", id: lesson.key })} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2.5 text-[11px] font-extrabold text-white transition-transform hover:-translate-y-0.5">
-                            <BookOpenCheck className="size-3.5" aria-hidden="true" /> فتح الدرس
+                          <button type="button" onClick={() => go({ view: "lesson", id: lesson.key })} className="inline-flex items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50 px-3.5 py-2.5 text-[11px] font-extrabold text-brand-700 transition-transform hover:-translate-y-0.5">
+                            <BookOpenCheck className="size-3.5" aria-hidden="true" /> بطاقة الدرس
                           </button>
                           <button type="button" onClick={() => go({ view: "lesson", id: lesson.key, focus: "final" })} className="inline-flex items-center gap-1.5 rounded-xl border border-gold-300 bg-gold-50 px-3.5 py-2.5 text-[11px] font-extrabold text-gold-700 transition-transform hover:-translate-y-0.5">
                             <ListChecks className="size-3.5" aria-hidden="true" /> التقويم النهائي
@@ -247,8 +247,8 @@ export default function TeacherBac2Lessons({ go }: TeacherBac2LessonsProps) {
                             </button>
                           )}
                           {source?.files[0] && (
-                            <a href={source.files[0].url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl border border-ink-900/10 bg-white px-3.5 py-2.5 text-[11px] font-extrabold text-ink-600 transition-transform hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-700">
-                              <ArrowLeft className="size-3.5" aria-hidden="true" /> المصدر
+                            <a href={source.files[0].url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2.5 text-[11px] font-extrabold text-white transition-transform hover:-translate-y-0.5">
+                              <ArrowLeft className="size-3.5" aria-hidden="true" /> الأصل كما هو
                             </a>
                           )}
                         </div>
