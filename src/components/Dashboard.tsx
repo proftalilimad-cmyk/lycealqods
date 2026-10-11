@@ -924,6 +924,9 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
    لوحة الأستاذ — فضاء خاص محمي باسم مستعمل وكلمة مرور
    ============================================================
    تبويبات:
+     analysis  → التحليل التربوي التركيبي
+     competencies → مصفوفة الكفايات والقدرات
+     matrix → مصفوفة الرائز
      results  → نتائج التقويم التشخيصي
      bac2-lessons → فهرس دروس الثانية باكالوريا آداب ومصادرها وتقويماتها
      reports  → تقرير التقويم التشخيصي الموجه للمفتش وحفظه المركزي
@@ -938,6 +941,7 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
 
 const TABS = [
   { id: "analysis", label: "التحليل التربوي", hint: "لوحة تركيبية، مؤشرات، أولويات الدعم", icon: BarChart3 },
+  { id: "competencies", label: "مصفوفة الكفايات والقدرات", hint: "إدارة التفعيل والترتيب والأوزان", icon: Settings2 },
   { id: "matrix", label: "مصفوفة الرائز", hint: "ربط الأسئلة بالقدرات والكفايات", icon: ListChecks },
   { id: "results", label: "نتائج التقويم التشخيصي", hint: "الحضور، النتائج، التقارير والتصدير", icon: ChartColumn },
   { id: "bac2-lessons", label: "دروس الثانية باك", hint: "32 درسًا آداب — المحتوى، التقويم والجذاذات", icon: BookOpenCheck },
@@ -1071,6 +1075,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
         {/* محتوى التبويب */}
         <div className="mt-7">
           {active === "analysis" && <DiagnosticAnalysisPanel initialView="analysis" />}
+          {active === "competencies" && <DiagnosticAnalysisPanel initialView="manage" />}
           {active === "matrix" && <DiagnosticAnalysisPanel initialView="matrix" />}
           {active === "results" && <TestResultsPanel go={go} />}
           {active === "bac2-lessons" && <TeacherBac2Lessons go={go} />}

@@ -244,6 +244,7 @@ export function supportPriority(percent: number, thresholds = DEFAULT_THRESHOLDS
 }
 
 export interface DiagnosticAnalysisFilters {
+  schoolYear: string;
   level: string;
   branch: string;
   className: string;
@@ -256,6 +257,7 @@ export interface DiagnosticAnalysisFilters {
 }
 
 export const EMPTY_ANALYSIS_FILTERS: DiagnosticAnalysisFilters = {
+  schoolYear: "all",
   level: "all",
   branch: "all",
   className: "all",
@@ -347,6 +349,16 @@ export interface DiagnosticAnalysis {
 
 const safePercent = (got: number, max: number): number => (max > 0 && Number.isFinite(got) && Number.isFinite(max) ? Math.round((got / max) * 1000) / 10 : 0);
 const safeNumber = (value: number): number => Number.isFinite(value) ? value : 0;
+
+export function academicYearForSubmission(submission: Pick<Submission, "date" | "schoolYear">): string {
+  if (submission.schoolYear?.trim()) return submission.schoolYear.trim();
+  const stamp = Date.parse(submission.date || "");
+  if (!Number.isFinite(stamp)) return "غير محددة";
+  const date = new Date(stamp);
+  const start = date.getMonth() >= 8 ? date.getFullYear() : date.getFullYear() - 1;
+  return `${start}-${start + 1}`;
+}
+
 const inDateRange = (date: string, from: string, to: string): boolean => {
   const stamp = Date.parse(date || "");
   if (!Number.isFinite(stamp)) return !from && !to;
@@ -361,6 +373,7 @@ function matchingBank(submission: Submission): TestBankDef | undefined {
 
 function filteredSubmission(submission: Submission, filters: DiagnosticAnalysisFilters): boolean {
   const bank = matchingBank(submission);
+  if (filters.schoolYear !== "all" && academicYearForSubmission(submission) !== filters.schoolYear) return false;
   if (filters.level !== "all" && submission.bankLevel !== filters.level && bank?.level !== filters.level) return false;
   if (filters.branch !== "all" && submission.bankLabel !== filters.branch && submission.bankId !== filters.branch && bank?.branch !== filters.branch) return false;
   if (filters.className !== "all" && submission.className !== filters.className) return false;

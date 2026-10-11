@@ -102,6 +102,8 @@ export interface Submission {
   bankLabel?: string;
   /** المستوى الدراسي لبنك الأسئلة (الجذع المشترك / الأولى باك / الثانية باك) */
   bankLevel?: string;
+  /** السنة الدراسية، إن كانت مضمنة في السجل المركزي. */
+  schoolYear?: string;
   /** معرف المستوى الذي حمله QR Code (jad3-moshtarak / 1bac / 2bac) */
   diagnosticLevel?: string;
   /** معرف الموعد/الحصة التنظيمي، إن كان القسم مرتبطًا بموعد محفوظ */
