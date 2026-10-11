@@ -22,6 +22,9 @@ interface BaseQuestion {
   skill: Skill;
   points: number;
   title: string;
+  /** تصنيف تحليلي اختياري؛ تُدار قيمته من مصفوفة الرائز ولا يفترض إطارًا رسميًا. */
+  abilityId?: string;
+  competencyId?: string;
   explanation?: string;
 }
 

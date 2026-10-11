@@ -50,6 +50,7 @@ import Jadadat from "./Jadadat";
 import InspectorReports from "./InspectorReports";
 import InspectorDiagnosticDemo from "./InspectorDiagnosticDemo";
 import TeacherBac2Lessons from "./TeacherBac2Lessons";
+import DiagnosticAnalysisPanel from "./DiagnosticAnalysisPanel";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -936,6 +937,8 @@ function TestResultsPanel({ go }: { go: (route: Route) => void }) {
    ============================================================ */
 
 const TABS = [
+  { id: "analysis", label: "التحليل التربوي", hint: "لوحة تركيبية، مؤشرات، أولويات الدعم", icon: BarChart3 },
+  { id: "matrix", label: "مصفوفة الرائز", hint: "ربط الأسئلة بالقدرات والكفايات", icon: ListChecks },
   { id: "results", label: "نتائج التقويم التشخيصي", hint: "الحضور، النتائج، التقارير والتصدير", icon: ChartColumn },
   { id: "bac2-lessons", label: "دروس الثانية باك", hint: "32 درسًا آداب — المحتوى، التقويم والجذاذات", icon: BookOpenCheck },
   { id: "reports", label: "تقارير موجهة للمفتش", hint: "تحليل رسمي موجه للمفتش، معاينة، PDF وحفظ مركزي", icon: FileBarChart },
@@ -973,7 +976,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
   /* البوابة: لا شيء من اللوحة يُعرض قبل الدخول */
   if (!unlocked) return <TeacherLogin go={go} onUnlock={() => setUnlocked(true)} />;
 
-  const active: DashboardTab = isDashboardTab(tab) ? tab : "results";
+  const active: DashboardTab = isDashboardTab(tab) ? tab : "analysis";
 
   const signOut = () => {
     lock();
@@ -1036,7 +1039,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
 
         {/* التبويبات */}
         <nav className="mt-5 rounded-3xl border border-ink-900/8 bg-white/80 p-2 shadow-[0_18px_45px_-32px_rgba(4,36,26,0.3)]" role="tablist" aria-label="أقسام لوحة الأستاذ" data-no-print>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-7">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {TABS.map((t) => {
             const on = active === t.id;
             return (
@@ -1067,6 +1070,8 @@ export default function Dashboard({ tab, go }: DashboardProps) {
 
         {/* محتوى التبويب */}
         <div className="mt-7">
+          {active === "analysis" && <DiagnosticAnalysisPanel initialView="analysis" />}
+          {active === "matrix" && <DiagnosticAnalysisPanel initialView="matrix" />}
           {active === "results" && <TestResultsPanel go={go} />}
           {active === "bac2-lessons" && <TeacherBac2Lessons go={go} />}
           {active === "reports" && <InspectorReports />}

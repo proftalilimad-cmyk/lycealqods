@@ -140,7 +140,7 @@ export default function App() {
         {route.view === "about" && <About />}
         {route.view === "diagnostic" && <Diagnostic level={route.level} className={route.className} go={go} />}
         {route.view === "test" && <TestFlow initialBank={route.bank} onHome={() => go({ view: "home" })} />}
-        {route.view === "dashboard" && <Dashboard key={route.tab ?? "results"} tab={route.tab} go={go} />}
+        {route.view === "dashboard" && <Dashboard key={route.tab ?? "analysis"} tab={route.tab} go={go} />}
         {route.view === "lessons" && <Lessons key={route.level ?? "default"} go={go} initialLevel={route.level} />}
         {route.view === "jadadat" && (
           <Jadadat key={`${route.level ?? "all"}-${route.id ?? "catalog"}`} go={go} detailId={route.id} initialLevel={route.level} />
