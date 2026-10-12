@@ -68,7 +68,6 @@ interface ActivityQuestion {
 interface ActivityMaterial {
   concept: string;
   objective: string;
-  teacherPrompt: string;
   studentTask: string;
   observation: string;
   questions: ActivityQuestion[];
@@ -228,7 +227,6 @@ function planActivity(
     objective:
       clean(lesson.objectives[sectionIndex]) ||
       `استخراج المعطيات المرتبطة بمحور «${sectionTitle}» وتحويلها إلى استنتاج يجيب عن إشكالية الدرس.`,
-    teacherPrompt: "يعرض الأستاذ الوثيقة دون تقديم تفسير جاهز، ويطلب وصفها أولًا ثم يوجه النقاش من الملاحظة إلى الاستنتاج.",
     studentTask: clean(plan?.task) || `ألاحظ الوثيقة، أحدد عناصرها، أستخرج المعطيات الدالة، ثم أصوغ فرضية واستنتاجًا مرتبطًا بمحور «${sectionTitle}».`,
     observation: focus,
     questions: tasks,
@@ -314,7 +312,6 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
       activity: {
         concept: findTargetConcept(lesson, lesson.title, lesson.title),
         objective: lesson.objectives[0] ?? "استخراج المعطيات الدالة من المورد البصري المرتبط بالدرس.",
-        teacherPrompt: "يعرض الأستاذ الصفحة دون شرح مسبق، ويطلب من المتعلمين تحديد نوع الوثائق والعناصر البارزة قبل ربطها بمحور الدرس.",
         studentTask: "ألاحظ الصفحة، أحدد الوثائق أو الخرائط أو الجداول الظاهرة فيها، ثم أختار عنصرين يساعدان على فهم إشكالية الدرس.",
         observation: originalVisual.caption,
         questions: [
@@ -351,7 +348,6 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
       activity: {
         concept: "توظيف مكتسبات الدرس في إنتاج منظم",
         objective: "تركيب المعرفة الأساسية في جواب مستقل يجيب عن إشكالية الدرس.",
-        teacherPrompt: "يمنح الأستاذ وقتًا للتفكير والكتابة، ثم يجمع بعض الأجوبة ويقود تصحيحًا جماعيًا.",
         studentTask: lesson.application.prompt,
         observation: lesson.application.guide.join("؛ "),
         questions: [{ q: lesson.application.prompt, answer: lesson.application.model.join("؛ ") }],
@@ -586,7 +582,7 @@ function VisualFigures({ visuals }: { visuals: VisualMaterial[] }) {
 }
 
 function ActivityBody({ activity, showAnswers }: { activity: ActivityMaterial; showAnswers: boolean }) {
-  return <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"><div><VisualFigures visuals={activity.visuals} /><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1"><InfoCard label="طبيعة الوثيقة" text={activity.nature} /><InfoCard label="العنوان / المؤلف / التاريخ" text={`${activity.title} · ${activity.author} · ${activity.date}`} /><InfoCard label="المصدر" text={activity.source} /></div></div><div className="space-y-3"><InfoCard label="المفهوم المستهدف" text={activity.concept} tone="brand" /><InfoCard label="الهدف التعلمي" text={activity.objective} tone="brand" /><InfoCard label="دور الأستاذ" text={activity.teacherPrompt} tone="gold" /><InfoCard label="مهمة المتعلم" text={activity.studentTask} tone="sky" /><InfoCard label="الملاحظة والتحليل" text={activity.observation} /><div className="rounded-2xl border border-ink-900/8 bg-white p-4"><p className="text-[11px] font-black text-brand-700">أسئلة موجهة للمتعلمين</p><div className="mt-3 space-y-3">{activity.questions.map((question, index) => <div key={`${index}-${question.q}`} className="rounded-xl bg-paper-warm/70 p-3"><p className="text-sm font-extrabold leading-relaxed text-ink-900">{index + 1}. {question.q}</p>{showAnswers ? <p className="mt-2 border-t border-ink-900/10 pt-2 text-xs leading-relaxed text-emerald-800"><strong>الإجابة المنتظرة:</strong> {question.answer}</p> : <p className="mt-2 text-[11px] font-bold text-ink-400">يناقش المتعلمون الفرضيات قبل إظهار الإجابة.</p>}</div>)}</div></div><div className="rounded-2xl border-s-4 border-gold-400 bg-gold-50 p-4"><p className="text-[11px] font-black text-gold-800">الاستنتاج</p>{showAnswers && activity.expectedConclusion ? <p className="mt-2 text-sm font-bold leading-[1.9] text-ink-800">{activity.expectedConclusion}</p> : <p className="mt-2 text-sm font-bold text-gold-800">يُصاغ الاستنتاج جماعيًا انطلاقًا من الأدلة أعلاه.</p>}</div></div></div>;
+  return <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"><div><VisualFigures visuals={activity.visuals} /><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1"><InfoCard label="طبيعة الوثيقة" text={activity.nature} /><InfoCard label="العنوان / المؤلف / التاريخ" text={`${activity.title} · ${activity.author} · ${activity.date}`} /><InfoCard label="المصدر" text={activity.source} /></div></div><div className="space-y-3"><InfoCard label="المفهوم المستهدف" text={activity.concept} tone="brand" /><InfoCard label="الهدف التعلمي" text={activity.objective} tone="brand" /><InfoCard label="مهمة المتعلم" text={activity.studentTask} tone="sky" /><InfoCard label="الملاحظة والتحليل" text={activity.observation} /><div className="rounded-2xl border border-ink-900/8 bg-white p-4"><p className="text-[11px] font-black text-brand-700">أسئلة موجهة للمتعلمين</p><div className="mt-3 space-y-3">{activity.questions.map((question, index) => <div key={`${index}-${question.q}`} className="rounded-xl bg-paper-warm/70 p-3"><p className="text-sm font-extrabold leading-relaxed text-ink-900">{index + 1}. {question.q}</p>{showAnswers ? <p className="mt-2 border-t border-ink-900/10 pt-2 text-xs leading-relaxed text-emerald-800"><strong>الإجابة المنتظرة:</strong> {question.answer}</p> : <p className="mt-2 text-[11px] font-bold text-ink-400">يناقش المتعلمون الفرضيات قبل إظهار الإجابة.</p>}</div>)}</div></div><div className="rounded-2xl border-s-4 border-gold-400 bg-gold-50 p-4"><p className="text-[11px] font-black text-gold-800">الاستنتاج</p>{showAnswers && activity.expectedConclusion ? <p className="mt-2 text-sm font-bold leading-[1.9] text-ink-800">{activity.expectedConclusion}</p> : <p className="mt-2 text-sm font-bold text-gold-800">يُصاغ الاستنتاج جماعيًا انطلاقًا من الأدلة أعلاه.</p>}</div></div></div>;
 }
 
 function DocumentBody({ doc, showAnswers }: { doc: PresentationDocument; showAnswers: boolean }) {
