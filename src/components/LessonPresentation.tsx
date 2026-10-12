@@ -21,6 +21,7 @@ import {
 import type { LessonBlock, LessonContent } from "../types";
 import type { ResolvedLesson } from "../data/lessonContent";
 import { buildPresentationPrompt } from "../data/presentationPrompt";
+import { getDeckForLesson, pageUrl } from "../data/decks";
 import { routeToPath, type Route } from "../routes";
 import Reveal from "./Reveal";
 
@@ -42,6 +43,7 @@ interface PresentationSlide {
   doc?: { label: string; text: string; questions: { q: string; pts: number; answer: string }[] };
   schema?: { title?: string; rows: { label: string; value: string }[] };
   image?: { src: string; caption?: string };
+  images?: { src: string; caption?: string }[];
   timeline?: { date: string; event: string }[];
 }
 
@@ -101,7 +103,14 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
     slides.push({ kind: "document", title: `تحليل الوثيقة ${index + 1}`, eyebrow: "وثيقة مرتبطة بالدرس", doc });
   });
   if (lesson.schema?.rows.length) slides.push({ kind: "schema", title: lesson.schema.title ?? "الخطاطة التركيبية", eyebrow: "تنظيم وتركيب المعرفة", schema: lesson.schema });
-  if (lesson.bookPage?.src) slides.push({ kind: "image", title: "مورد بصري من الدرس", eyebrow: lesson.bookPage.caption ?? lesson.bookPage.book, image: { src: lesson.bookPage.src, caption: lesson.bookPage.caption ?? `صفحة ${lesson.bookPage.page}` } });
+  const deck = getDeckForLesson(lesson.id);
+  const visualMaterials: { src: string; caption?: string }[] = [];
+  if (lesson.bookPage?.src) visualMaterials.push({ src: lesson.bookPage.src, caption: lesson.bookPage.caption ?? `صفحة ${lesson.bookPage.page}` });
+  deck?.slides.slice(0, 3).forEach((deckSlide) => {
+    const src = pageUrl(deckSlide.page, deck.pageBase);
+    if (!visualMaterials.some((item) => item.src === src)) visualMaterials.push({ src, caption: `${deck.title} — ص ${deckSlide.page}` });
+  });
+  if (visualMaterials.length) slides.push({ kind: "image", title: "الموارد البصرية للدرس", eyebrow: "صور مرتبطة بالكتاب والدرس فقط", image: visualMaterials[0], images: visualMaterials.slice(0, 4) });
   chunks(lesson.timeline, 6).forEach((group, index) => slides.push({ kind: "timeline", title: index === 0 ? "الخط الزمني" : "الخط الزمني — تابع", eyebrow: "تواريخ وأحداث وردت في الدرس", timeline: group }));
   chunks(lesson.summary, 4).forEach((group, index) => slides.push({ kind: "summary", title: index === 0 ? "الخلاصة المركزة" : "الخلاصة — تابع", eyebrow: "أثر كتابي قابل للنسخ", items: group }));
   if (lesson.quiz.length) slides.push({ kind: "assessment", title: "التقويم الختامي", eyebrow: "أسئلة مأخوذة من تقويم الدرس", items: lesson.quiz.map((item, index) => `${index + 1}. ${item.q}`) });
@@ -161,9 +170,20 @@ export async function downloadLessonPowerPoint(lesson: LessonContent, meta: Pres
         const rows = [item.table.head, ...item.table.rows].map((row) => row.map((cell) => ({ text: cell })));
         output.addTable(rows, { x: 0.45, y: 1.35, w: 12.4, h: 5.55, fontFace: "Arial", fontSize: 10, color: "24332D", border: { type: "solid", color: "C9DDD3", pt: 0.6 }, fill: { color: "FFFFFF" }, margin: 0.06, valign: "middle" });
       } else if (item.kind === "image" && item.image) {
-        const image = await imageDataUrl(item.image.src);
-        if (image) output.addImage({ data: image, x: 2.1, y: 1.45, w: 9.1, h: 4.85 });
-        output.addText(image ? (item.image.caption ?? "مورد بصري من الدرس") : `مورد بصري مرتبط بالدرس\\n\\n${item.image.caption ?? ""}`, { x: 1.1, y: image ? 6.45 : 2.15, w: 11.2, h: image ? 0.35 : 2.2, fontFace: "Arial", fontSize: image ? 11 : 22, bold: true, color: "07553E", align: "center", valign: "middle", rtlMode: true });
+        const visuals = item.images ?? [item.image];
+        const loaded = (await Promise.all(visuals.map(async (visual) => ({ visual, data: await imageDataUrl(visual.src) })))).filter((entry): entry is { visual: { src: string; caption?: string }; data: string } => Boolean(entry.data));
+        if (loaded.length) {
+          loaded.forEach((entry, visualIndex) => {
+            const column = visualIndex % 2;
+            const row = Math.floor(visualIndex / 2);
+            const x = column === 0 ? 0.55 : 6.8;
+            const y = 1.4 + row * 2.85;
+            output.addImage({ data: entry.data, x, y, w: 5.95, h: 2.35 });
+            output.addText(entry.visual.caption ?? "مورد بصري من الدرس", { x, y: y + 2.38, w: 5.95, h: 0.25, fontFace: "Arial", fontSize: 8, color: "5B6C64", align: "center", rtlMode: true, margin: 0 });
+          });
+        } else {
+          output.addText(`مورد بصري مرتبط بالدرس\\n\\n${item.image.caption ?? ""}`, { x: 1.1, y: 2.15, w: 11.2, h: 2.2, fontFace: "Arial", fontSize: 22, bold: true, color: "07553E", align: "center", valign: "middle", rtlMode: true });
+        }
       } else {
         output.addText(pptParagraphs(item), { x: 0.75, y: 1.45, w: 11.85, h: 5.45, fontFace: "Arial", fontSize: item.kind === "document" ? 14 : 17, color: "24332D", align: "right", valign: "top", breakLine: false, rtlMode: true, margin: 0.12, bullet: undefined });
       }
@@ -224,7 +244,10 @@ function SlideBody({ slide, lesson, meta, showAnswers }: { slide: PresentationSl
   if (slide.kind === "table" && slide.table) return <div className="overflow-x-auto rounded-2xl border border-ink-900/10"><table className="w-full min-w-[650px] border-collapse text-sm"><thead className="bg-brand-700 text-white"><tr>{slide.table.head.map((head) => <th key={head} className="border border-white/20 px-4 py-3 text-start font-extrabold">{head}</th>)}</tr></thead><tbody>{slide.table.rows.map((row, rowIndex) => <tr key={rowIndex} className={rowIndex % 2 ? "bg-paper-warm/60" : "bg-white"}>{row.map((cell, cellIndex) => <td key={`${rowIndex}-${cellIndex}`} className="border border-ink-900/8 px-4 py-3 align-top leading-relaxed text-ink-700">{cell}</td>)}</tr>)}</tbody></table></div>;
   if (slide.kind === "document" && slide.doc) return <div className="space-y-5"><div className="rounded-2xl border border-brand-200 bg-brand-50 p-5"><p className="font-display font-black text-brand-900">{slide.doc.label}</p><p className="mt-3 text-base leading-[2] text-ink-800">{slide.doc.text}</p><p className="mt-3 text-xs font-bold text-ink-500">طبيعة الوثيقة ومصدرها وتاريخها: لا تُحدد إلا بالقدر الوارد في بطاقة الوثيقة أعلاه.</p></div>{slide.doc.questions.length > 0 && <div className="grid gap-3 sm:grid-cols-2">{slide.doc.questions.map((question, index) => <div key={`${index}-${question.q}`} className="rounded-2xl bg-paper-warm p-4"><p className="text-sm font-extrabold text-ink-900">{index + 1}. {question.q}</p>{showAnswers && <p className="mt-3 border-t border-ink-900/10 pt-3 text-xs leading-relaxed text-emerald-800"><strong>الإجابة المتوقعة:</strong> {question.answer}</p>}</div>)}</div>}</div>;
   if (slide.kind === "schema" && slide.schema) return <div className="grid gap-3 sm:grid-cols-2">{slide.schema.rows.map((row) => <div key={`${row.label}-${row.value}`} className="rounded-2xl border border-brand-100 bg-brand-50/60 p-5"><p className="text-xs font-extrabold text-brand-700">{row.label}</p><p className="mt-2 text-base font-bold leading-relaxed text-ink-800">{row.value}</p></div>)}</div>;
-  if (slide.kind === "image" && slide.image) return <figure className="overflow-hidden rounded-3xl border border-ink-900/10 bg-paper-warm"><img src={slide.image.src} alt={slide.image.caption ?? "مورد بصري من الدرس"} className="mx-auto max-h-[480px] w-auto object-contain" /><figcaption className="p-3 text-center text-xs font-bold text-ink-500">{slide.image.caption}</figcaption></figure>;
+  if (slide.kind === "image" && slide.image) {
+    const visuals = slide.images ?? [slide.image];
+    return <div className="grid gap-3 sm:grid-cols-2">{visuals.map((visual) => <figure key={visual.src} className="overflow-hidden rounded-3xl border border-ink-900/10 bg-paper-warm"><img src={visual.src} alt={visual.caption ?? "مورد بصري من الدرس"} className="mx-auto max-h-[360px] w-full object-contain" /><figcaption className="p-3 text-center text-xs font-bold text-ink-500">{visual.caption}</figcaption></figure>)}</div>;
+  }
   if (slide.kind === "timeline" && slide.timeline) return <div className="relative space-y-4 before:absolute before:bottom-3 before:start-[19px] before:top-3 before:w-0.5 before:bg-brand-200">{slide.timeline.map((item) => <div key={`${item.date}-${item.event}`} className="relative flex gap-4"><span className="mt-1.5 grid size-4 shrink-0 place-items-center rounded-full bg-gold-500 ring-4 ring-gold-100" /><div className="flex-1 rounded-2xl bg-paper-warm p-4"><p className="font-display font-black text-brand-800">{item.date}</p><p className="mt-1 text-sm leading-relaxed text-ink-700">{item.event}</p></div></div>)}</div>;
   return null;
 }
