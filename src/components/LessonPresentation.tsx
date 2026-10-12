@@ -255,10 +255,21 @@ function documentFromLessonDoc(doc: LessonDoc, lesson: LessonContent, visual?: V
   };
 }
 
+function visualSlideFromActivity(activity: ActivityMaterial): PresentationSlide | undefined {
+  const visuals = uniqueVisuals(activity.visuals);
+  if (!visuals.length) return undefined;
+  return {
+    kind: "image",
+    title: activity.title,
+    eyebrow: "مورد بصري مرتبط بالدرس",
+    image: visuals[0],
+    images: visuals,
+  };
+}
+
 /**
- * يبني العرض من محتوى الدرس الأصلي، ثم يربط كل صفحة/وثيقة ببطاقة ديداكتيكية:
- * المفهوم المستهدف ← الهدف ← مهمة المتعلم ← الملاحظة ← الأسئلة ← الاستنتاج.
- * لا تُضاف معلومة خارجية إلى متن الدرس؛ والحقول غير المتوفرة تُوسم بوضوح.
+ * يبني العرض من محتوى الدرس الأصلي، مع إبقاء الصور والوثائق داخل المحور
+ * المرتبط بها مع إبقاء الشرائح مباشرة ومركزة على المتعلم.
  */
 export function buildLessonPresentation(lesson: LessonContent): PresentationSlide[] {
   const slides: PresentationSlide[] = [
@@ -282,14 +293,17 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
     slides.push({ kind: "section", title: section.title, eyebrow: `المحور ${sectionIndex + 1} — نبني التعلم انطلاقًا من الدليل` });
     blocksToSlides(section.title, section.blocks, slides);
     const activity = planActivity(lesson, section.title, sectionIndex, deck, deck?.slides[sectionIndex]);
-    if (activity) slides.push({ kind: "activity", title: activity.title, activity });
+    const visualSlide = activity ? visualSlideFromActivity(activity) : undefined;
+    if (visualSlide) slides.push(visualSlide);
   });
 
-  // إذا كان العرض المرتبط بالكتاب يتضمن أنشطة أكثر من عدد محاور الدرس، لا تُهمل أي وثيقة.
+  // إذا كان العرض المرتبط بالكتاب يتضمن موارد أكثر من عدد المحاور،
+  // تُعرض الصفحات البصرية الإضافية دون بطاقات شرح أو دور للأستاذ.
   const remainingDeckSlides = deck?.slides.slice(lesson.sections.length) ?? [];
   remainingDeckSlides.forEach((deckSlide) => {
     const activity = planActivity(lesson, deckSlide.title, lesson.sections.length, deck, deckSlide);
-    if (activity) slides.push({ kind: "activity", title: activity.title, eyebrow: "نشاط مرتبط بالدرس", activity });
+    const visualSlide = activity ? visualSlideFromActivity(activity) : undefined;
+    if (visualSlide) slides.push(visualSlide);
   });
 
   const originalVisual = lessonVisual(lesson);
@@ -302,37 +316,14 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
     });
   });
 
-  // بعض الدروس تملك صفحة كتاب أصلية دون Deck أو بطاقة وثيقة منفصلة؛
-  // نربط الصفحة بنشاط ملاحظة صريح بدل عرضها كصورة زخرفية أو إهمالها.
+  // بعض الدروس تملك صفحة كتاب أصلية دون Deck؛ تُعرض كصورة مرتبطة بالدرس فقط.
   if (originalVisual && !deck) {
     slides.push({
-      kind: "activity",
-      title: "قراءة الصفحة الأصلية المرتبطة بالدرس",
-      eyebrow: "مورد بصري — الملاحظة قبل الشرح",
-      activity: {
-        concept: findTargetConcept(lesson, lesson.title, lesson.title),
-        objective: lesson.objectives[0] ?? "استخراج المعطيات الدالة من المورد البصري المرتبط بالدرس.",
-        studentTask: "ألاحظ الصفحة، أحدد الوثائق أو الخرائط أو الجداول الظاهرة فيها، ثم أختار عنصرين يساعدان على فهم إشكالية الدرس.",
-        observation: originalVisual.caption,
-        questions: [
-          {
-            q: "ما طبيعة المورد البصري؟ وما العناصر التي يمكن ملاحظتها قبل قراءة الشرح؟",
-            answer: "يصف المتعلم ما يظهر في الصفحة فقط، ثم يربط العناصر التي لاحظها بموضوع الدرس دون إضافة معلومات من خارج المصدر.",
-          },
-          {
-            q: "كيف يمكن توظيف هذه الصفحة للإجابة تدريجيًا عن إشكالية الدرس؟",
-            answer: `ينتقي المتعلم المعطيات الدالة من الصفحة ويستعملها لبناء جواب جزئي عن الإشكالية: ${lesson.coreQuestion}`,
-          },
-        ],
-        expectedConclusion: `تُستعمل الصفحة الأصلية بوصفها دليلًا بصريًا لبناء جواب تدريجي عن إشكالية الدرس: ${lesson.coreQuestion}`,
-        source: originalVisual.source,
-        nature: "صفحة أصلية مصوّرة من مادة الدرس",
-        title: originalVisual.caption,
-        author: UNKNOWN,
-        date: UNKNOWN,
-        context: `صفحة مرتبطة مباشرة بدرس «${lesson.title}»`,
-        visuals: [originalVisual],
-      },
+      kind: "image",
+      title: "الصفحة الأصلية المرتبطة بالدرس",
+      eyebrow: "مورد بصري من الدرس",
+      image: originalVisual,
+      images: [originalVisual],
     });
   }
 
@@ -342,23 +333,13 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
 
   if (lesson.application) {
     slides.push({
-      kind: "activity",
+      kind: "callout",
       title: lesson.application.title,
       eyebrow: `توظيف وتركيب — ${lesson.application.duration}`,
-      activity: {
-        concept: "توظيف مكتسبات الدرس في إنتاج منظم",
-        objective: "تركيب المعرفة الأساسية في جواب مستقل يجيب عن إشكالية الدرس.",
-        studentTask: lesson.application.prompt,
-        observation: lesson.application.guide.join("؛ "),
-        questions: [{ q: lesson.application.prompt, answer: lesson.application.model.join("؛ ") }],
-        expectedConclusion: lesson.application.model.join("؛ "),
-        source: "تمرين تطبيقي مرفق بالدرس",
-        nature: "مهمة تركيبية",
-        title: lesson.application.title,
-        author: UNKNOWN,
-        date: UNKNOWN,
-        context: lesson.coreQuestion,
-        visuals: [],
+      callout: {
+        tone: "info",
+        label: "مهمة للمتعلم",
+        text: `${lesson.application.prompt}\n\nخطوات الإنجاز: ${lesson.application.guide.join("؛ ")}`,
       },
     });
   }
@@ -603,7 +584,7 @@ function SlideBody({ slide, lesson, meta, showAnswers }: { slide: PresentationSl
   if (slide.kind === "activity" && slide.activity) return <ActivityBody activity={slide.activity} showAnswers={showAnswers} />;
   if (slide.kind === "document" && slide.doc) return <DocumentBody doc={slide.doc} showAnswers={showAnswers} />;
   if (slide.kind === "schema" && slide.schema) return <div className="grid gap-3 sm:grid-cols-2">{slide.schema.rows.map((row) => <div key={`${row.label}-${row.value}`} className="rounded-2xl border border-brand-100 bg-brand-50/60 p-5"><p className="text-xs font-extrabold text-brand-700">{row.label}</p><p className="mt-2 text-base font-bold leading-relaxed text-ink-800">{row.value}</p></div>)}</div>;
-  if (slide.kind === "image") return <div className="rounded-3xl border-2 border-dashed border-gold-300 bg-gold-50 p-8 text-center"><ImageIcon className="mx-auto size-10 text-gold-600" /><p className="mt-4 text-base font-bold leading-relaxed text-gold-900">{slide.paragraphs?.[0] ?? "لا يوجد مورد بصري موثق"}</p></div>;
+  if (slide.kind === "image") return slide.images?.length || slide.image ? <VisualFigures visuals={slide.images ?? (slide.image ? [slide.image] : [])} /> : <div className="rounded-3xl border-2 border-dashed border-gold-300 bg-gold-50 p-8 text-center"><ImageIcon className="mx-auto size-10 text-gold-600" /><p className="mt-4 text-base font-bold leading-relaxed text-gold-900">{slide.paragraphs?.[0] ?? "لا يوجد مورد بصري موثق"}</p></div>;
   if (slide.kind === "timeline" && slide.timeline) return <div className="relative space-y-4 before:absolute before:bottom-3 before:start-[19px] before:top-3 before:w-0.5 before:bg-brand-200">{slide.timeline.map((item) => <div key={`${item.date}-${item.event}`} className="relative flex gap-4"><span className="mt-1.5 grid size-4 shrink-0 place-items-center rounded-full bg-gold-500 ring-4 ring-gold-100" /><div className="flex-1 rounded-2xl bg-paper-warm p-4"><p className="font-display font-black text-brand-800">{item.date}</p><p className="mt-1 text-sm leading-relaxed text-ink-700">{item.event}</p></div></div>)}</div>;
   return null;
 }
