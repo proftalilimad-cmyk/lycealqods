@@ -237,7 +237,7 @@ export default function TeacherBac2Lessons({ go }: TeacherBac2LessonsProps) {
                         </div>
                         <div className="flex shrink-0 flex-wrap gap-2 xl:max-w-[275px] xl:justify-end">
                           <button type="button" onClick={() => go({ view: "presentation", id: lesson.key })} className="inline-flex items-center gap-1.5 rounded-xl border border-gold-300 bg-gold-50 px-3.5 py-2.5 text-[11px] font-extrabold text-gold-700 transition-transform hover:-translate-y-0.5">
-                            <MonitorPlay className="size-3.5" aria-hidden="true" /> العرض
+                            <MonitorPlay className="size-3.5" aria-hidden="true" /> العرض / PowerPoint
                           </button>
                           <button type="button" onClick={() => go({ view: "lesson", id: lesson.key })} className="inline-flex items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50 px-3.5 py-2.5 text-[11px] font-extrabold text-brand-700 transition-transform hover:-translate-y-0.5">
                             <BookOpenCheck className="size-3.5" aria-hidden="true" /> بطاقة الدرس

@@ -81,18 +81,30 @@ function LessonRow({ lesson, index, ready, onOpen, onAssessment, deckId, onDeck,
         </div>
       </div>
       <span className="flex shrink-0 flex-wrap items-center gap-2">
-        {ready && (onDeck || onPresentation) && (
+        {ready && onDeck && (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              if (deckId && onDeck) onDeck();
-              else onPresentation?.();
+              onDeck();
             }}
             className="inline-flex items-center gap-1.5 rounded-xl border border-gold-300 bg-gold-50 px-3.5 py-2 text-[11px] font-extrabold text-gold-700 transition-all hover:-translate-y-0.5 hover:border-gold-500 hover:bg-gold-100"
           >
             <MonitorPlay className="size-3.5" aria-hidden="true" />
-            {deckId ? "العرض التفاعلي" : "العرض"}
+            العرض التفاعلي
+          </button>
+        )}
+        {ready && onPresentation && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPresentation();
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-700 px-3.5 py-2 text-[11px] font-extrabold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-800"
+          >
+            <MonitorPlay className="size-3.5" aria-hidden="true" />
+            PowerPoint
           </button>
         )}
         {ready && onAssessment && (

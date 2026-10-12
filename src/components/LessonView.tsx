@@ -453,7 +453,7 @@ export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: Le
               العودة إلى دروس {breadcrumb.level}
             </button>
             <div className="flex flex-wrap items-center gap-2">
-              {deck ? (
+              {deck && (
                 <button
                   type="button"
                   onClick={() => go({ view: "decks", id: deck.id })}
@@ -462,16 +462,15 @@ export default function LessonView({ lesson, focus, breadcrumb, onBack, go }: Le
                   <MonitorPlay className="size-4" aria-hidden="true" />
                   العرض التفاعلي (الكتاب المدرسي ص {deck.pages[0]}–{deck.pages[1]})
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => go({ view: "presentation", id: lesson.id })}
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-gold-500 to-gold-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-md shadow-gold-600/25 transition-all hover:-translate-y-0.5"
-                >
-                  <MonitorPlay className="size-4" aria-hidden="true" />
-                  العرض
-                </button>
               )}
+              <button
+                type="button"
+                onClick={() => go({ view: "presentation", id: lesson.id })}
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-md shadow-brand-700/25 transition-all hover:-translate-y-0.5"
+              >
+                <MonitorPlay className="size-4" aria-hidden="true" />
+                PowerPoint
+              </button>
               <CopyLinkButton route={{ view: "lesson", id: lesson.id }} ariaLabel={`نسخ رابط درس ${lesson.title}`} />
               <button
                 type="button"
