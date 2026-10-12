@@ -487,7 +487,14 @@ function addPptText(output: any, text: string, options: Record<string, unknown> 
 }
 
 function addPptVisualCaptions(output: any, loaded: { visual: VisualMaterial; data: string }[], x: number, y: number, w: number, h: number): void {
-  loaded.slice(0, 2).forEach((entry, index) => {
+  const selected = loaded.slice(0, 2);
+  if (selected.length === 1) {
+    const entry = selected[0];
+    output.addImage({ data: entry.data, x, y, w, h: h - 0.5 });
+    output.addText(`${entry.visual.caption}\nالمصدر: ${entry.visual.source}`, { x, y: y + h - 0.42, w, h: 0.38, fontFace: "Arial", fontSize: 8, color: "5B6C64", align: "center", rtlMode: true, margin: 0 });
+    return;
+  }
+  selected.forEach((entry, index) => {
     const itemY = y + index * (h / 2);
     output.addImage({ data: entry.data, x, y: itemY, w, h: h / 2 - 0.18 });
     output.addText(`${entry.visual.caption}\nالمصدر: ${entry.visual.source}`, { x, y: itemY + h / 2 - 0.12, w, h: 0.35, fontFace: "Arial", fontSize: 7, color: "5B6C64", align: "center", rtlMode: true, margin: 0 });
