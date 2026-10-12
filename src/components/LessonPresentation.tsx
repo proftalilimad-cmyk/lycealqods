@@ -399,13 +399,12 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
 function activityPlainText(activity: ActivityMaterial): string {
   const questions = activity.questions.map((item, index) => `${index + 1}. ${item.q}`).join("\n");
   return [
-    `المفهوم المستهدف: ${activity.concept}`,
-    `الهدف التعلمي: ${activity.objective}`,
-    `دور الأستاذ: ${activity.teacherPrompt}`,
-    `مهمة المتعلم: ${activity.studentTask}`,
-    `الملاحظة والتحليل: ${activity.observation}`,
-    `الأسئلة:\n${questions}`,
-    activity.expectedConclusion ? `الاستنتاج المنتظر: ${activity.expectedConclusion}` : "استنتاج المتعلمين: …",
+    `ما أتعلمه من النشاط: ${activity.concept}`,
+    `هدفي: ${activity.objective}`,
+    `مهمتي: ${activity.studentTask}`,
+    `ما ألاحظ وأحلل: ${activity.observation}`,
+    `أسئلة أجيب عنها:\n${questions}`,
+    "خلاصتي: ................................................................................",
     `المصدر: ${activity.source}`,
   ].join("\n\n");
 }
@@ -418,8 +417,8 @@ function documentPlainText(doc: PresentationDocument): string {
     `التاريخ: ${doc.date}`,
     `السياق: ${doc.context}`,
     doc.text,
-    `الأسئلة:\n${doc.questions.map((item, index) => `${index + 1}. ${item.q}`).join("\n")}`,
-    `الخلاصة: ${doc.conclusion}`,
+    `أسئلة أجيب عنها:\n${doc.questions.map((item, index) => `${index + 1}. ${item.q}`).join("\n")}`,
+    "خلاصتي من الوثيقة: ................................................................................",
   ].join("\n\n");
 }
 
