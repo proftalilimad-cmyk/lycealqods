@@ -18,7 +18,7 @@ const SUBJECT_ICONS: Record<string, typeof History> = {
   citizenship: Scale,
 };
 
-function LessonRow({ lesson, index, ready, onOpen, onAssessment, deckId, onDeck }: { lesson: LessonItem; index: number; ready: boolean; onOpen: () => void; onAssessment?: () => void; deckId?: string; onDeck?: () => void }) {
+function LessonRow({ lesson, index, ready, onOpen, onAssessment, deckId, onDeck, onPresentation }: { lesson: LessonItem; index: number; ready: boolean; onOpen: () => void; onAssessment?: () => void; deckId?: string; onDeck?: () => void; onPresentation?: () => void }) {
   if (lesson.soon) {
     return (
       <li className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
@@ -31,9 +31,14 @@ function LessonRow({ lesson, index, ready, onOpen, onAssessment, deckId, onDeck 
             <p className="mt-0.5 text-[11px] font-semibold text-gold-700">سيتم إضافة الدرس لاحقًا</p>
           </div>
         </div>
-        <span className="rounded-full border border-dashed border-brand-300 bg-brand-50/60 px-3.5 py-1.5 text-[10px] font-extrabold text-brand-700">
-          قيد الإعداد
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-dashed border-brand-300 bg-brand-50/60 px-3.5 py-1.5 text-[10px] font-extrabold text-brand-700">
+            قيد الإعداد
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-gold-300 bg-gold-50/60 px-3.5 py-1.5 text-[10px] font-extrabold text-gold-700">
+            <MonitorPlay className="size-3" aria-hidden="true" /> العرض قيد إعداد المحتوى
+          </span>
+        </div>
       </li>
     );
   }
@@ -66,27 +71,28 @@ function LessonRow({ lesson, index, ready, onOpen, onAssessment, deckId, onDeck 
               <BookOpen className="size-3" aria-hidden="true" />
               {ready ? "المحتوى كامل: أهداف + محاور + مفاهيم + اختبر فهمك" : "المحتوى التفصيلي يُضاف تباعًا على المنصة"}
             </span>
-            {deckId && (
+            {ready && (
               <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-[10px] font-extrabold text-brand-700 ring-1 ring-brand-200">
                 <MonitorPlay className="size-3" aria-hidden="true" />
-                عرض تفاعلي من الكتاب المدرسي
+                {deckId ? "عرض تفاعلي من الكتاب المدرسي" : "عرض تدريسي من محتوى الدرس"}
               </span>
             )}
           </div>
         </div>
       </div>
       <span className="flex shrink-0 flex-wrap items-center gap-2">
-        {deckId && onDeck && (
+        {ready && (onDeck || onPresentation) && (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onDeck();
+              if (deckId && onDeck) onDeck();
+              else onPresentation?.();
             }}
             className="inline-flex items-center gap-1.5 rounded-xl border border-gold-300 bg-gold-50 px-3.5 py-2 text-[11px] font-extrabold text-gold-700 transition-all hover:-translate-y-0.5 hover:border-gold-500 hover:bg-gold-100"
           >
             <MonitorPlay className="size-3.5" aria-hidden="true" />
-            العرض التفاعلي
+            {deckId ? "العرض التفاعلي" : "العرض"}
           </button>
         )}
         {ready && onAssessment && (
@@ -114,9 +120,15 @@ function LessonRow({ lesson, index, ready, onOpen, onAssessment, deckId, onDeck 
             اقرأ الدرس ←
           </button>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-1.5 text-[10px] font-extrabold text-brand-700 ring-1 ring-brand-200">
-            <BadgeCheck className="size-3.5" aria-hidden="true" />
-            مدرج بالمقرر الرسمي
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-1.5 text-[10px] font-extrabold text-brand-700 ring-1 ring-brand-200">
+              <BadgeCheck className="size-3.5" aria-hidden="true" />
+              مدرج بالمقرر الرسمي
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gold-300 bg-gold-50/60 px-3.5 py-1.5 text-[10px] font-extrabold text-gold-700" title="يُفتح العرض بعد نشر المحتوى التفصيلي للدرس">
+              <MonitorPlay className="size-3.5" aria-hidden="true" />
+              العرض قيد إعداد المحتوى
+            </span>
           </span>
         )}
       </span>
@@ -309,6 +321,7 @@ export default function Lessons({ go, initialLevel }: LessonsProps) {
                           onAssessment={branch.id === "bac2-arts" ? () => go({ view: "lesson", id: key, focus: "final" }) : undefined}
                           deckId={deck?.id}
                           onDeck={deck ? () => go({ view: "decks", id: deck.id }) : undefined}
+                          onPresentation={() => go({ view: "presentation", id: key })}
                         />
                       );
                     })}

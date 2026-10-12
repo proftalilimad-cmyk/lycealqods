@@ -11,6 +11,7 @@ export type Route =
   | { view: "methods"; id?: string }
   | { view: "apps"; id?: string; level?: string }
   | { view: "lesson"; id: string; focus?: "final" }
+  | { view: "presentation"; id: string }
   | { view: "resources"; type?: string; open?: string }
   | { view: "decks"; id?: string; subject?: string };
 
@@ -44,6 +45,7 @@ export const NAV_LINKS: { label: string; route: Route }[] = [
      #/jadadat                فهرس الجذاذات
      #/jadadat/<id>           جذاذة درس كاملة
      #/lesson/<id>            درس معيّن (bac1-sci.geography.0.0 …)
+     #/presentation/<id>      العرض التدريسي المبني على محتوى درس معيّن
      #/methods                المنهجيات
      #/methods/<id>           منهجية معيّنة
      #/apps                   التطبيقات
@@ -70,6 +72,7 @@ export const VIEW_LABELS: Record<Route["view"], string> = {
   lessons: "الدروس",
   jadadat: "الجذاذات",
   lesson: "الدرس",
+  presentation: "العرض التدريسي",
   methods: "المنهجيات",
   apps: "التطبيقات",
   resources: "الموارد",
@@ -86,6 +89,7 @@ const SEGMENTS: Record<string, Route["view"]> = {
   lessons: "lessons",
   jadadat: "jadadat",
   lesson: "lesson",
+  presentation: "presentation",
   methods: "methods",
   apps: "apps",
   resources: "resources",
@@ -126,6 +130,8 @@ export function routeToPath(route: Route): string {
       return route.level ? `/jadadat?level=${encodeSegment(route.level)}` : "/jadadat";
     case "lesson":
       return route.focus === "final" ? `/lesson/${encodeSegment(route.id)}?focus=final` : `/lesson/${encodeSegment(route.id)}`;
+    case "presentation":
+      return `/presentation/${encodeSegment(route.id)}`;
     case "methods":
       return route.id ? `/methods/${encodeSegment(route.id)}` : "/methods";
     case "apps": {
@@ -177,6 +183,8 @@ export function routeFromPath(rawPath: string): Route {
       const focus = query.get("focus");
       return parts[1] ? { view: "lesson", id: parts[1], ...(focus === "final" ? { focus: "final" as const } : {}) } : { view: "lessons" };
     }
+    case "presentation":
+      return parts[1] ? { view: "presentation", id: parts[1] } : { view: "lessons" };
     case "methods":
       return parts[1] ? { view: "methods", id: parts[1] } : { view: "methods" };
     case "apps": {

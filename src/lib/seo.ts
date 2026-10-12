@@ -121,6 +121,7 @@ function breadcrumbsFor(route: Route, context: SeoContext): SeoBreadcrumb[] {
     case "lessons":
       return [home, { name: "دروس الاجتماعيات", url: urlFor({ view: "lessons" }) }, ...(route.level ? [{ name: levelLabel(route.level), url: urlFor(route) }] : [])];
     case "lesson":
+    case "presentation":
       return [
         home,
         { name: "دروس الاجتماعيات", url: urlFor({ view: "lessons" }) },
@@ -163,7 +164,7 @@ function breadcrumbsFor(route: Route, context: SeoContext): SeoBreadcrumb[] {
 }
 
 function pageType(route: Route): "WebPage" | "CollectionPage" | "LearningResource" {
-  if (route.view === "lesson" || route.view === "jadadat" && route.id) return "LearningResource";
+  if (route.view === "lesson" || route.view === "presentation" || route.view === "jadadat" && route.id) return "LearningResource";
   if (["lessons", "jadadat", "methods", "apps", "resources", "decks", "diagnostic"].includes(route.view)) return "CollectionPage";
   return "WebPage";
 }
@@ -302,6 +303,7 @@ export function getSeoMetadata(route: Route, context: SeoContext = {}): SeoMetad
       keywords = commonKeywords(["دروس الاجتماعيات", "دروس التاريخ", "دروس الجغرافيا", levelLabel(route.level)]);
       break;
     case "lesson":
+    case "presentation":
       if (context.lesson) {
         title = `${context.lesson.title} | ${context.lesson.subject} — ${context.lesson.level} | الأستاذ عماد طليل`;
         description = `درس ${context.lesson.subject} بعنوان «${context.lesson.title}» لفائدة ${context.lesson.level}، ضمن وحدة ${context.lesson.unit} بمادة الاجتماعيات.`;

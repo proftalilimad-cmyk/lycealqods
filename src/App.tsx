@@ -13,6 +13,7 @@ import Applications from "./components/Applications";
 import Resources from "./components/Resources";
 import SearchOverlay from "./components/SearchOverlay";
 import LessonView from "./components/LessonView";
+import LessonPresentation from "./components/LessonPresentation";
 import Decks from "./components/decks/Decks";
 import DeckPlayer from "./components/decks/DeckPlayer";
 import { getDeck } from "./data/decks";
@@ -58,7 +59,7 @@ export default function App() {
   );
 
   const resolvedLesson = useMemo(
-    () => (route.view === "lesson" ? resolveLesson(route.id) : undefined),
+    () => (route.view === "lesson" || route.view === "presentation" ? resolveLesson(route.id) : undefined),
     [route]
   );
   const resolvedDeck = useMemo(
@@ -174,6 +175,11 @@ export default function App() {
                 go={go}
               />
             );
+          })()}
+        {route.view === "presentation" &&
+          (() => {
+            if (!resolvedLesson) return <Lessons go={go} />;
+            return <LessonPresentation key={route.id} lesson={resolvedLesson} go={go} />;
           })()}
         {route.view === "decks" &&
           (() => {
