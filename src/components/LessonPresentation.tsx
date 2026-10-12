@@ -119,6 +119,23 @@ function pptParagraphs(slide: PresentationSlide): string {
   return "";
 }
 
+async function imageDataUrl(src: string): Promise<string | undefined> {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const response = await fetch(new URL(src, window.location.origin));
+    if (!response.ok) return undefined;
+    const blob = await response.blob();
+    return await new Promise<string | undefined>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : undefined);
+      reader.onerror = () => resolve(undefined);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return undefined;
+  }
+}
+
 /** ينشئ ملف PowerPoint حقيقيًا من الشرائح نفسها، مع إبقاء مصدر المعرفة هو محتوى الدرس. */
 export async function downloadLessonPowerPoint(lesson: LessonContent, meta: PresentationMeta): Promise<void> {
   const { default: PptxGenJS } = await import("pptxgenjs");
@@ -131,7 +148,7 @@ export async function downloadLessonPowerPoint(lesson: LessonContent, meta: Pres
   pptx.title = lesson.title;
   const slides = buildLessonPresentation(lesson);
 
-  slides.forEach((item, index) => {
+  for (const [index, item] of slides.entries()) {
     const output = pptx.addSlide();
     output.background = { color: item.kind === "title" ? "063828" : "FFFFFF" };
     if (item.kind === "title") {
@@ -144,15 +161,16 @@ export async function downloadLessonPowerPoint(lesson: LessonContent, meta: Pres
         const rows = [item.table.head, ...item.table.rows].map((row) => row.map((cell) => ({ text: cell })));
         output.addTable(rows, { x: 0.45, y: 1.35, w: 12.4, h: 5.55, fontFace: "Arial", fontSize: 10, color: "24332D", border: { type: "solid", color: "C9DDD3", pt: 0.6 }, fill: { color: "FFFFFF" }, margin: 0.06, valign: "middle" });
       } else if (item.kind === "image" && item.image) {
-        output.addText(`مورد بصري مرتبط بالدرس\\n\\n${item.image.caption ?? ""}`, { x: 1.1, y: 2.15, w: 11.2, h: 2.2, fontFace: "Arial", fontSize: 22, bold: true, color: "07553E", align: "center", valign: "middle", rtlMode: true });
-        output.addText("يُستعمل المصدر البصري الوارد في صفحة الدرس عند العرض داخل الموقع.", { x: 1.2, y: 5.1, w: 11, h: 0.55, fontFace: "Arial", fontSize: 12, color: "5B6C64", align: "center", rtlMode: true });
+        const image = await imageDataUrl(item.image.src);
+        if (image) output.addImage({ data: image, x: 2.1, y: 1.45, w: 9.1, h: 4.85 });
+        output.addText(image ? (item.image.caption ?? "مورد بصري من الدرس") : `مورد بصري مرتبط بالدرس\\n\\n${item.image.caption ?? ""}`, { x: 1.1, y: image ? 6.45 : 2.15, w: 11.2, h: image ? 0.35 : 2.2, fontFace: "Arial", fontSize: image ? 11 : 22, bold: true, color: "07553E", align: "center", valign: "middle", rtlMode: true });
       } else {
         output.addText(pptParagraphs(item), { x: 0.75, y: 1.45, w: 11.85, h: 5.45, fontFace: "Arial", fontSize: item.kind === "document" ? 14 : 17, color: "24332D", align: "right", valign: "top", breakLine: false, rtlMode: true, margin: 0.12, bullet: undefined });
       }
     }
     output.addText(`${index + 1} / ${slides.length}`, { x: 11.75, y: 7.08, w: 1, h: 0.2, fontFace: "Arial", fontSize: 8, color: item.kind === "title" ? "CFE7DC" : "7A8C83", align: "right", rtlMode: true, margin: 0 });
     output.addNotes(`هذا العرض مبني فقط على محتوى الدرس «${lesson.title}» والوثائق المرتبطة به داخل الموقع.`);
-  });
+  }
 
   const filePart = lesson.id.replace(/[^a-zA-Z0-9.-]+/g, "-").replace(/^-|-$/g, "") || "lesson";
   await pptx.writeFile({ fileName: `presentation-${filePart}.pptx`, compression: true });
