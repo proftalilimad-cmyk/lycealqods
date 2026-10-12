@@ -222,7 +222,7 @@ function planActivity(
   const source = deck && deckSlide ? deckSource(deck, deckSlide.page) : plan?.support || "محتوى المحور والوثائق التابعة له داخل الدرس";
   const visuals = deck && deckSlide ? deckVisuals(deck, deckSlide) : [];
   const conceptText = `${sectionTitle} ${deckSlide?.title ?? ""} ${focus}`;
-  const expectedConclusion = clean(deckSlide?.keys?.join("؛ ")) || clean(plan?.product) || clean(formative?.expected);
+  const expectedConclusion = clean(deckSlide?.keys?.join("؛ ")) || clean(plan?.product) || clean(formative?.expected) || `يربط المتعلم عناصر الوثيقة التي لاحظها بمحور «${sectionTitle}»، ثم يصوغ استنتاجًا جزئيًا يساعد على الإجابة عن إشكالية الدرس.`;
   return {
     concept: findTargetConcept(lesson, conceptText, sectionTitle),
     objective:
@@ -300,7 +300,7 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
       kind: "document",
       title: `تحليل الوثيقة ${index + 1}`,
       eyebrow: "وثيقة من محتوى الدرس — لا تُعرض للزينة",
-      doc: documentFromLessonDoc(doc, lesson, index === 0 && !deck ? originalVisual : undefined),
+      doc: documentFromLessonDoc(doc, lesson),
     });
   });
 

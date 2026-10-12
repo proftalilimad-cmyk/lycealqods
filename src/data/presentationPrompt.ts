@@ -1,124 +1,89 @@
 import type { LessonContent } from "../types";
 
 /**
- * تعليمات موحّدة لإنشاء عرض تدريسي من محتوى الدرس فقط.
- * تُعرض للمدرس وتُنسخ عند الحاجة؛ لا تستدعي خدمة خارجية ولا تنشئ محتوى جديدًا داخل الموقع.
+ * تعليمات العرض التي يمكن للأستاذ نسخها عند إعداد عرض خارجي.
+ * تحافظ على الدرس الأصلي، وتحوّل كل مورد بصري إلى مرحلة لبناء التعلم.
  */
-export const CLASSROOM_PRESENTATION_PROMPT = `Create a professional educational presentation based ONLY on the lesson content available on this website:
+export const CLASSROOM_PRESENTATION_PROMPT = `أنشئ عرضًا تدريسيًا مهنيًا باللغة العربية وباتجاه RTL انطلاقًا من الدرس المختار الموجود في هذا الموقع:
 
-[ضع رابط موقعك هنا]
+[ضع رابط الدرس هنا]
 
-The website is an educational platform for Moroccan secondary-school History and Geography (Social Studies), created for teachers and students.
+المصدر الأول والمرجع الملزم:
+- استعمل الدرس المختار والوثائق التابعة له كما هي في الموقع.
+- حافظ على العنوان، المستوى، المسلك، المادة، التمهيد، الإشكالية، المحاور، الأنشطة، المفاهيم، المعطيات، الخلاصة والتقويم.
+- لا تستبدل الدرس بدرس عام من الإنترنت، ولا تغيّر تاريخًا أو رقمًا أو مفهومًا أو معطى جغرافيًا.
+- لا تنشئ حقيقة أو وثيقة أو مصدرًا غير موجود. إذا تعذر التحقق من مورد بصري، اترك مكانًا معلّمًا بوضوح بدل اختراع صورة.
 
-TASK:
-Browse the website and identify the selected lesson/course, then transform its content into a complete classroom presentation.
+أولًا: تحليل الدرس قبل بناء الشرائح
+- حدد المفاهيم والظواهر والأحداث والعمليات التي يصعب فهمها دون دعم بصري.
+- ميّز بين التاريخ والجغرافيا، واحترم المستوى والمسلك: جذع مشترك، الأولى باكالوريا، الثانية باكالوريا.
+- اربط كل مورد بصري بمحور محدد وإشكالية الدرس، ولا تضف صورًا للزينة.
 
-IMPORTANT:
-- Use ONLY the information contained in the selected lesson and its associated documents.
-- Do not invent historical facts, dates, statistics, concepts, sources or examples.
-- Preserve the scientific accuracy and the original meaning of the lesson.
-- Adapt the content for classroom projection, not for reading a long article.
-- Do not simply copy the entire webpage.
-- Condense the content into clear educational slides.
-- Keep the terminology appropriate for the Moroccan secondary-school curriculum.
-- Clearly distinguish between History and Geography.
-- Respect the level and stream indicated on the website.
+ثانيًا: إدماج الصور والوثائق في بناء التعلمات
+لكل صورة أو خريطة أو جدول أو مبيان أو وثيقة، أدرجها داخل الشريحة الخاصة بالنشاط، ثم بيّن بوضوح:
+1. المفهوم المستهدف: ماذا ينبغي أن يفهم المتعلم؟
+2. الهدف التعلمي: ما التعلم الذي سيتحقق؟
+3. دور الأستاذ: كيف يقدم الوثيقة دون كشف الاستنتاج مسبقًا؟
+4. مهمة المتعلم: ماذا يلاحظ أو يستخرج أو يقارن؟
+5. الملاحظة والتحليل: ما العناصر الدالة التي ينبغي الانتباه إليها؟
+6. السؤال الموجه: سؤال أو أسئلة تقود البحث والاستدلال.
+7. الإجابة المنتظرة: تُكشف بعد وقت التفكير والمناقشة، لا في البداية.
+8. الاستنتاج: جملة قصيرة تصل الوثيقة بمحور الدرس وإشكاليته.
 
-PRESENTATION STRUCTURE:
+تسلسل بناء التعلم في كل نشاط:
+ملاحظة الوثيقة دون تفسير جاهز ← وصف وتحديد طبيعتها ← تساؤل وفرضيات ← تحليل الأدلة ← تفسير ومناقشة ← استنتاج ← ربط بالإشكالية.
+اعرض أسئلة المتعلمين أولًا، واجعل الإجابات والخلاصة قابلة للإظهار تدريجيًا.
 
-1. TITLE
-   - Lesson title
-   - Subject
-   - Level/stream
-   - Educational platform/teacher name if available
+ثالثًا: نوع المورد حسب المادة
+- التاريخ: صور أصلية موثوقة، خرائط تاريخية، وثائق أرشيفية، ملصقات أو رسوم سياسية، بورتريهات، خطوط زمنية، خرائط مقارنة للتغيرات الترابية.
+- الجغرافيا: خرائط موضوعاتية، صور مجالية، صور أقمار صناعية، مبيانات وجداول، توزيعات سكانية واقتصادية، خرائط التدفقات، رسوم تفسيرية وخرائط مقارنة.
+- استعمل صور صفحات الكتاب والوثائق المرتبطة بالدرس أولًا. ويمكن استعمال مورد خارجي فقط إذا كان صحيحًا ومرتبطًا مباشرة بالدرس ومذكور المصدر.
 
-2. LEARNING OBJECTIVES
-   - 3 to 5 precise learning objectives.
+رابعًا: بطاقة الوثيقة
+لكل وثيقة مهمة اذكر، بالقدر المتوفر فعلًا:
+- العنوان والنوع/الطبيعة
+- المؤلف أو الجهة
+- التاريخ
+- المجال الجغرافي عند الحاجة
+- المصدر والرابط إذا كان متاحًا
+- السياق
+- عناصر الملاحظة
+- أسئلة المتعلمين
+- الإجابات المنتظرة
+- خلاصة تربطها بالإشكالية
+إذا لم يرد عنصر في المصدر فاكتب: «غير محدد في المصدر»، ولا تخمّن.
 
-3. INTRODUCTION
-   - Short contextual introduction.
-   - Introduce the historical/geographical context.
-   - Present the central problematic/question.
+خامسًا: بنية العرض
+1. العنوان + المادة + المستوى + المسلك.
+2. أهداف التعلم.
+3. وضعية تمهيدية أو سياق الدرس.
+4. الإشكالية المركزية.
+5. المفاهيم الأساسية.
+6. محاور الدرس بالترتيب الأصلي.
+7. لكل محور: مورد بصري/وثيقة كبيرة، مهمة المتعلم، الملاحظة، الأسئلة، الإجابات المنتظرة، الاستنتاج.
+8. الخطاطة أو الخط الزمني أو الجدول التركيبي الوارد في الدرس.
+9. خلاصة مركزة / trace écrite قابلة للنسخ.
+10. تقويم ختامي من 3 إلى 5 أسئلة: معرفة، فهم، تحليل وثيقة، تركيب.
 
-4. KEY CONCEPTS
-   - Important concepts and definitions from the lesson.
-   - Keep definitions short and easy for students.
+سادسًا: شروط التصميم
+- خط عربي كبير واضح، RTL، تباين قوي ومظهر أكاديمي حديث.
+- صورة أو خريطة كبيرة قابلة للملاحظة في القسم، لا صورة صغيرة أو زخرفية.
+- عنوان واضح للوثيقة، وسيلة إيضاح/مفتاح عند وجود خريطة، تاريخ ومصدر عند توفرهما.
+- نص قليل في كل شريحة، مع فصل بصري بين «دور الأستاذ» و«مهمة المتعلم» و«الإجابة المنتظرة».
+- لا تنسخ صفحة الدرس كاملة؛ كثّفها دون حذف بنيتها أو تغيير معناها.
+- لا تستعمل مؤثرات كثيرة أو زخارف لا تخدم التعلم.
 
-5. LESSON DEVELOPMENT
-   Organize the lesson according to its original structure:
-   - Major learning section
-   - Minor activity/axis
-   - Documents
-   - Questions
-   - Analysis
-   - Conclusions
-
-6. DOCUMENT ANALYSIS
-   For every important document:
-   - Identify its nature.
-   - Source/author if available.
-   - Date if available.
-   - Context.
-   - Main information.
-   - Questions for students.
-   - Expected answers.
-   - Short conclusion.
-
-7. VISUAL MATERIAL
-   Use relevant:
-   - Historical photographs
-   - Maps
-   - Statistical graphs
-   - Timelines
-   - Diagrams
-   - Geographic maps
-
-   Visuals must directly support the lesson.
-   Do not add decorative images that have no pedagogical purpose.
-
-8. SYNTHESIS
-   Create a clear conceptual diagram showing:
-   causes → manifestations/development → consequences/results
-   or another structure appropriate to the lesson.
-
-9. STUDENT TRACE / SUMMARY
-   Produce a concise "trace écrite" that students can copy into their notebooks.
-   It must contain the essential knowledge of the lesson without unnecessary details.
-
-10. FINAL ASSESSMENT
-   Add 3–5 questions checking:
-   - knowledge
-   - understanding
-   - document analysis
-   - synthesis
-
-DESIGN:
-- Academic and modern classroom design.
-- Clean layout.
-- Large readable Arabic typography.
-- Very little text per slide.
-- Use visual hierarchy.
-- Highlight key concepts and dates.
-- Use maps, diagrams and timelines when appropriate.
-- Avoid overcrowded slides.
-- Avoid excessive animations.
-- Maintain a coherent visual identity throughout the presentation.
-
-LANGUAGE:
-Arabic.
-
-OUTPUT:
-Create a complete presentation suitable for classroom teaching.
-Target approximately 15–25 slides depending on the length and complexity of the lesson.
-
-The presentation must function as a teaching aid:
-the teacher explains, students observe documents, answer questions, analyze evidence and construct the conclusion.`;
+النتيجة المطلوبة:
+عرض كامل جاهز للتدريس يساعد الأستاذ على تقديم المشكلة، وعرض الدليل، وتنظيم الملاحظة، وتوجيه التحليل، وجمع الفرضيات، وبناء الاستنتاج والخلاصة مع المتعلمين.`;
 
 export function buildPresentationPrompt(lesson: LessonContent, lessonUrl: string): string {
-  return `${CLASSROOM_PRESENTATION_PROMPT.replace("[ضع رابط موقعك هنا]", lessonUrl)}
+  return `${CLASSROOM_PRESENTATION_PROMPT.replace("[ضع رابط الدرس هنا]", lessonUrl)}
 
-SELECTED LESSON CONTEXT:
-- Lesson: ${lesson.title}
-- Duration: ${lesson.duration}
-- The URL above is the only source to browse. Do not use external sources.`;
+معطيات الدرس المختار:
+- العنوان: ${lesson.title}
+- المدة: ${lesson.duration}
+- عدد المحاور: ${lesson.sections.length}
+- عدد الوثائق المرفقة: ${lesson.docs?.length ?? 0}
+
+لا تستعمل رابطًا أو مادة أخرى بدل رابط الدرس المختار أعلاه.`;
 }
