@@ -149,7 +149,8 @@ function lessonVisual(lesson: LessonContent): VisualMaterial | undefined {
 }
 
 function deckSource(deck: Deck, page: number): string {
-  return `${deck.bookTitle ?? "الكتاب المدرسي المرتبط بالدرس"} — الصفحة ${page}`;
+  const label = deck.bookTitle ?? deck.bookId ?? `العرض المرتبط بالدرس «${deck.title}»`;
+  return `${label} — الصفحة ${page}`;
 }
 
 function deckVisuals(deck: Deck, slide: DeckSlide): VisualMaterial[] {
