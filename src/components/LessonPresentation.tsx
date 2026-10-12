@@ -515,7 +515,7 @@ export async function downloadLessonPowerPoint(lesson: LessonContent, meta: Pres
       output.addText(item.title, { x: 0.7, y: 1.55, w: 12, h: 1.3, fontFace: "Arial", fontSize: 29, bold: true, color: "FFFFFF", align: "center", valign: "middle", rtlMode: true, margin: 0.1 });
       output.addText(`${meta.subjectLabel} · ${meta.levelLabel} · ${meta.branchLabel}\n${lesson.duration}`, { x: 1.1, y: 3.25, w: 11.2, h: 0.75, fontFace: "Arial", fontSize: 16, color: "F6D98B", align: "center", valign: "middle", rtlMode: true });
     } else {
-      addPptMetadata(output, item.title, item.eyebrow);
+      addPptMetadata(output, item.title, item.kind === "activity" ? undefined : item.eyebrow);
       if (item.kind === "table" && item.table) {
         const rows = [item.table.head, ...item.table.rows].map((row) => row.map((cell) => ({ text: cell })));
         output.addTable(rows, { x: 0.45, y: 1.35, w: 12.4, h: 5.55, fontFace: "Arial", fontSize: 10, color: "24332D", border: { type: "solid", color: "C9DDD3", pt: 0.6 }, fill: { color: "FFFFFF" }, margin: 0.06, valign: "middle" });
