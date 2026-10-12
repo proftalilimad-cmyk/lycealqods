@@ -25,6 +25,7 @@ interface TeacherBac2LessonsProps {
 }
 
 type SubjectFilter = "all" | "history" | "geography";
+type TeacherBranchId = "bac2-arts" | "bac2-book";
 
 type TeacherLesson = {
   key: string;
@@ -39,17 +40,20 @@ type TeacherLesson = {
   content: NonNullable<ReturnType<typeof getLessonContent>>;
 };
 
-const bac2ArtsBranch = LEVELS.find((level) => level.id === "bac2")?.branches.find((branch) => branch.id === "bac2-arts");
+function getTeacherBranch(branchId: TeacherBranchId) {
+  return LEVELS.find((level) => level.id === "bac2")?.branches.find((branch) => branch.id === branchId);
+}
 
-function getTeacherLessons(): TeacherLesson[] {
-  if (!bac2ArtsBranch) return [];
-  return bac2ArtsBranch.subjects.flatMap((subject) => {
+function getTeacherLessons(branchId: TeacherBranchId): TeacherLesson[] {
+  const branch = getTeacherBranch(branchId);
+  if (!branch) return [];
+  return branch.subjects.flatMap((subject) => {
     if (subject.id !== "history" && subject.id !== "geography") return [];
     const subjectId = subject.id as "history" | "geography";
-    return (bac2ArtsBranch.units[subjectId] ?? []).flatMap((unit, unitIndex) =>
+    return (branch.units[subjectId] ?? []).flatMap((unit, unitIndex) =>
       unit.lessons.flatMap((lesson, lessonIndex) => {
         if (lesson.soon) return [];
-        const key = lessonKey(bac2ArtsBranch.id, subjectId, unitIndex, lessonIndex);
+        const key = lessonKey(branch.id, subjectId, unitIndex, lessonIndex);
         const content = getLessonContent(key);
         if (!content) return [];
         return [{
@@ -76,9 +80,11 @@ const subjectLabel = (subject: SubjectFilter): string => {
 };
 
 export default function TeacherBac2Lessons({ go }: TeacherBac2LessonsProps) {
+  const [branchId, setBranchId] = useState<TeacherBranchId>("bac2-arts");
   const [subject, setSubject] = useState<SubjectFilter>("all");
   const [query, setQuery] = useState("");
-  const lessons = useMemo(() => getTeacherLessons(), []);
+  const branch = getTeacherBranch(branchId);
+  const lessons = useMemo(() => getTeacherLessons(branchId), [branchId]);
   const normalizedQuery = query.trim().toLocaleLowerCase("ar");
 
   const filtered = useMemo(
@@ -115,15 +121,15 @@ export default function TeacherBac2Lessons({ go }: TeacherBac2LessonsProps) {
                 <BookOpenCheck className="size-4" aria-hidden="true" />
                 مكتبة الدروس داخل لوحة الأستاذ
               </span>
-              <h2 className="mt-4 font-display text-2xl font-black sm:text-3xl">دروس الثانية باكالوريا آداب وعلوم إنسانية</h2>
+              <h2 className="mt-4 font-display text-2xl font-black sm:text-3xl">{branch?.label ?? "دروس الثانية باكالوريا"}</h2>
               <p className="mt-3 max-w-3xl text-sm leading-loose text-white/75">
-                فهرس عملي للأستاذ لمراجعة الدروس المنجزة من مادة «دروس ملخصة»، وفتح المحتوى الكامل أو التقويم النهائي أو الجذاذة مباشرة من اللوحة.
+                فهرس خاص بالأستاذ لمراجعة الدروس المنجزة، وفتح المحتوى الكامل أو العرض أو التقويم النهائي أو الجذاذة مباشرة من اللوحة.
               </p>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/10 p-4 text-end">
               <p className="text-[10px] font-bold text-white/60">المصدر</p>
-              <p className="mt-1 text-sm font-extrabold text-gold-200">مجزوءتا التاريخ والجغرافيا</p>
-              <p className="mt-1 text-[11px] text-white/65">مع بطاقات مستقلة للملفات الخاصة بالمسلك</p>
+              <p className="mt-1 text-sm font-extrabold text-gold-200">{branch?.program ?? "مجزوءتا التاريخ والجغرافيا"}</p>
+              <p className="mt-1 text-[11px] text-white/65">هذا الفهرس ظاهر للأستاذ فقط داخل الجلسة المحمية</p>
             </div>
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -156,6 +162,12 @@ export default function TeacherBac2Lessons({ go }: TeacherBac2LessonsProps) {
             <span className="rounded-full bg-brand-50 px-3 py-1.5 text-[11px] font-extrabold text-brand-700 ring-1 ring-brand-200">
               يظهر {filtered.length} من {lessons.length} درسًا
             </span>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {(["bac2-arts", "bac2-book"] as TeacherBranchId[]).map((item) => {
+              const itemBranch = getTeacherBranch(item);
+              return <button key={item} type="button" onClick={() => { setBranchId(item); setSubject("all"); setQuery(""); }} className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-extrabold transition-all ${branchId === item ? "border-gold-400 bg-gold-100 text-gold-800 ring-2 ring-gold-300" : "border-ink-900/10 bg-white text-ink-600 hover:border-gold-300 hover:text-gold-700"}`}><ShieldCheck className="size-4" aria-hidden="true" />{itemBranch?.label ?? item}</button>;
+            })}
           </div>
           <div className="mt-5 flex flex-col gap-3 lg:flex-row">
             <label className="relative min-w-0 flex-1">

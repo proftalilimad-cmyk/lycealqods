@@ -97,6 +97,7 @@ function generatedLessonPdfs(): ResourceItem[] {
   const out: ResourceItem[] = [];
   for (const lv of LEVELS) {
     for (const br of lv.branches) {
+      if (br.visibility === "teacher") continue;
       for (const subj of br.subjects) {
         const units = br.units[subj.id] ?? [];
         units.forEach((unit, ui) => {

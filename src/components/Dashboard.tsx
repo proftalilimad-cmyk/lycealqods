@@ -944,7 +944,7 @@ const TABS = [
   { id: "competencies", label: "مصفوفة الكفايات والقدرات", hint: "إدارة التفعيل والترتيب والأوزان", icon: Settings2 },
   { id: "matrix", label: "مصفوفة الرائز", hint: "ربط الأسئلة بالقدرات والكفايات", icon: ListChecks },
   { id: "results", label: "نتائج التقويم التشخيصي", hint: "الحضور، النتائج، التقارير والتصدير", icon: ChartColumn },
-  { id: "bac2-lessons", label: "دروس الثانية باك", hint: "32 درسًا آداب — المحتوى، التقويم والجذاذات", icon: BookOpenCheck },
+  { id: "bac2-lessons", label: "دروس الثانية باك", hint: "المختصر وآداب — المحتوى، العروض، التقويم والجذاذات", icon: BookOpenCheck },
   { id: "reports", label: "تقارير موجهة للمفتش", hint: "تحليل رسمي موجه للمفتش، معاينة، PDF وحفظ مركزي", icon: FileBarChart },
   { id: "inspector-demo", label: "التقويم التشخيصي التجريبي", hint: "DEMO / TEST — عرض ومحاكاة معزولة", icon: FlaskConical },
   { id: "jadadat", label: "الجذاذات", hint: "إعداد الدروس والأنشطة والتقويم", icon: FileText },
@@ -1081,7 +1081,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
           {active === "bac2-lessons" && <TeacherBac2Lessons go={go} />}
           {active === "reports" && <InspectorReports />}
           {active === "inspector-demo" && <InspectorDiagnosticDemo />}
-          {active === "jadadat" && <Jadadat go={go} embedded />}
+          {active === "jadadat" && <Jadadat go={go} embedded teacherOnly />}
           {active === "security" && <TeacherSecurity />}
           {active === "settings" && <SupabaseSettings />}
         </div>

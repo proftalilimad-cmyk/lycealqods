@@ -22,9 +22,25 @@ import { METHODOLOGIES } from "./data/methodologies";
 import { getResource } from "./data/resources";
 import { resolveLesson } from "./data/lessonContent";
 import { getJadada } from "./lib/jadadatLessons";
+import { isUnlocked } from "./lib/teacherAuth";
 import SeoHead from "./components/SeoHead";
 import { getSeoMetadata } from "./lib/seo";
 import { VIEW_LABELS, locationToRoute, routeToHash, type Route } from "./routes";
+
+function TeacherOnlyLessonGate({ go }: { go: (route: Route) => void }) {
+  return (
+    <section className="pt-32 pb-20 md:pt-36" dir="rtl">
+      <div className="mx-auto max-w-xl px-5 text-center">
+        <div className="rounded-3xl border border-gold-300 bg-gold-50 p-8 shadow-sm">
+          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-gold-700">🔒</span>
+          <h1 className="mt-4 font-display text-2xl font-black text-ink-900">محتوى مخصص للأستاذ</h1>
+          <p className="mt-3 text-sm leading-relaxed text-ink-600">الثانية باكالوريا — كتاب «المختصر» متاح داخل لوحة الأستاذ فقط.</p>
+          <button type="button" onClick={() => go({ view: "dashboard", tab: "bac2-lessons" })} className="mt-5 rounded-xl bg-brand-700 px-5 py-3 text-xs font-extrabold text-white">الانتقال إلى لوحة الأستاذ</button>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function App() {
   const [route, setRoute] = useState<Route>(() => locationToRoute(window.location));
@@ -160,6 +176,7 @@ export default function App() {
         {route.view === "lesson" &&
           (() => {
             if (!resolvedLesson) return <Lessons go={go} />;
+            if (resolvedLesson.branch.visibility === "teacher" && !isUnlocked()) return <TeacherOnlyLessonGate go={go} />;
             return (
               <LessonView
                 key={`${route.id}-${route.focus ?? "top"}`}
@@ -179,6 +196,7 @@ export default function App() {
         {route.view === "presentation" &&
           (() => {
             if (!resolvedLesson) return <Lessons go={go} />;
+            if (resolvedLesson.branch.visibility === "teacher" && !isUnlocked()) return <TeacherOnlyLessonGate go={go} />;
             return <LessonPresentation key={route.id} lesson={resolvedLesson} go={go} />;
           })()}
         {route.view === "decks" &&

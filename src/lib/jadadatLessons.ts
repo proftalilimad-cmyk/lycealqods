@@ -715,12 +715,16 @@ export function getJadada(key: string): JadadaFiche | null {
 /* ------------------------------------------------------------------ */
 
 let catalogCache: JadadaEntry[] | null = null;
+let teacherCatalogCache: JadadaEntry[] | null = null;
 
-export function getJadadatCatalog(): JadadaEntry[] {
-  if (catalogCache) return catalogCache;
+export function getJadadatCatalog(options: { includeTeacherOnly?: boolean } = {}): JadadaEntry[] {
+  const includeTeacherOnly = options.includeTeacherOnly === true;
+  const cached = includeTeacherOnly ? teacherCatalogCache : catalogCache;
+  if (cached) return cached;
   const entries: JadadaEntry[] = [];
   for (const level of LEVELS as CurriculumLevel[]) {
     for (const branch of level.branches) {
+      if (branch.visibility === "teacher" && !includeTeacherOnly) continue;
       for (const subjectId of Object.keys(branch.units)) {
         const subjectLabel =
           branch.subjects.find((s) => s.id === subjectId)?.label ?? SUBJECT_LABEL[subjectId] ?? subjectId;
@@ -762,12 +766,13 @@ export function getJadadatCatalog(): JadadaEntry[] {
       }
     }
   }
-  catalogCache = entries;
+  if (includeTeacherOnly) teacherCatalogCache = entries;
+  else catalogCache = entries;
   return entries;
 }
 
-export function getJadadatStats() {
-  const entries = getJadadatCatalog();
+export function getJadadatStats(options: { includeTeacherOnly?: boolean } = {}) {
+  const entries = getJadadatCatalog(options);
   const byLevel: Record<string, number> = {};
   const bySubject: Record<string, number> = {};
   const byBranch: Record<string, number> = {};

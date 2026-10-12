@@ -212,6 +212,8 @@ export interface CurriculumUnit {
 export interface CurriculumBranch {
   id: string;
   label: string;
+  /** الفروع المعلَّمة بالأستاذ فقط لا تظهر في فهرس التلميذ العام. */
+  visibility?: "public" | "teacher";
   note?: string;
   program?: string;
   /** نص مصدر قائمة الدروس (اختياري) — يعوّض النص الافتراضي في صفحة الدروس */

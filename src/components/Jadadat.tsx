@@ -40,6 +40,8 @@ interface JadadatProps {
   detailId?: string;
   initialLevel?: string;
   embedded?: boolean;
+  /** تظهر الفروع المعلّمة للأستاذ فقط داخل لوحة الأستاذ. */
+  teacherOnly?: boolean;
 }
 
 const SUBJECT_ICONS: Record<string, typeof History> = {
@@ -163,9 +165,9 @@ function FilterSelect({ label, value, onChange, children, disabled = false }: { 
   );
 }
 
-function JadadatCatalog({ go, initialLevel, onOpen }: { go: (route: Route) => void; initialLevel?: string; onOpen: (key: string) => void }) {
-  const catalog = useMemo(() => getJadadatCatalog(), []);
-  const stats = useMemo(() => getJadadatStats(), []);
+function JadadatCatalog({ go, initialLevel, onOpen, teacherOnly = false }: { go: (route: Route) => void; initialLevel?: string; onOpen: (key: string) => void; teacherOnly?: boolean }) {
+  const catalog = useMemo(() => getJadadatCatalog({ includeTeacherOnly: teacherOnly }), [teacherOnly]);
+  const stats = useMemo(() => getJadadatStats({ includeTeacherOnly: teacherOnly }), [teacherOnly]);
   const [levelId, setLevelId] = useState(initialLevel && stats.levels.some((l) => l.id === initialLevel) ? initialLevel : ALL);
   const [branchId, setBranchId] = useState(ALL);
   const [subjectId, setSubjectId] = useState(ALL);
@@ -350,11 +352,26 @@ function JadadaDetail({ fiche, go, onBack }: { fiche: JadadaFiche; go: (route: R
   );
 }
 
-export default function Jadadat({ go, detailId, initialLevel, embedded = false }: JadadatProps) {
+export default function Jadadat({ go, detailId, initialLevel, embedded = false, teacherOnly = false }: JadadatProps) {
   const [localDetailId, setLocalDetailId] = useState<string>();
   const activeDetailId = detailId ?? localDetailId;
   const fiche = activeDetailId ? getJadada(activeDetailId) : null;
-  const stats = useMemo(() => getJadadatStats(), []);
+  const stats = useMemo(() => getJadadatStats({ includeTeacherOnly: teacherOnly }), [teacherOnly]);
+
+  if (activeDetailId && fiche && fiche.branchId === "bac2-book" && !teacherOnly) {
+    return (
+      <section className="pt-32 pb-20 md:pt-36">
+        <div className="mx-auto max-w-xl px-5 text-center">
+          <div className="rounded-3xl border border-gold-300 bg-gold-50 p-8 shadow-sm">
+            <BookOpenCheck className="mx-auto size-10 text-gold-700" aria-hidden="true" />
+            <h1 className="mt-4 font-display text-xl font-black text-ink-900">هذا المحتوى داخل لوحة الأستاذ</h1>
+            <p className="mt-3 text-sm leading-relaxed text-ink-600">جذاذات الثانية باكالوريا — كتاب «المختصر» مخصصة للأستاذ وتُفتح من الجلسة المحمية.</p>
+            <button type="button" onClick={() => go({ view: "dashboard", tab: "bac2-lessons" })} className="mt-5 rounded-xl bg-brand-700 px-5 py-3 text-xs font-extrabold text-white">الانتقال إلى لوحة الأستاذ</button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (activeDetailId && fiche) {
     return (
@@ -421,6 +438,7 @@ export default function Jadadat({ go, detailId, initialLevel, embedded = false }
         <JadadatCatalog
           go={go}
           initialLevel={initialLevel}
+          teacherOnly={teacherOnly}
           onOpen={(key) => setLocalDetailId(key)}
         />
       </div>

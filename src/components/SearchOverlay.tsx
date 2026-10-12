@@ -29,7 +29,7 @@ const STATIC_PAGES: SearchResult[] = [
   { id: "p-test", group: "صفحات", title: "التقويم التشخيصي في الاجتماعيات — الجذع المشترك", hint: "20 سؤالًا · 60 دقيقة · /20", action: { view: "diagnostic" } },
   { id: "p-about", group: "صفحات", title: "نبذة عن الأستاذ عماد طليل", hint: "أستاذ الاجتماعيات — ثانوية القدس القنيطرة", action: { view: "about" } },
   { id: "p-dash", group: "صفحات", title: "لوحة الأستاذ (دخول محمي)", hint: "نتائج التقويم التشخيصي — باسم مستعمل وكلمة مرور", action: { view: "dashboard", tab: "results" } },
-  { id: "p-dash-bac2", group: "صفحات", title: "دروس الثانية باكالوريا — لوحة الأستاذ", hint: "32 درسًا آداب · المحتوى والتقويمات والجذاذات والمصادر", action: { view: "dashboard", tab: "bac2-lessons" } },
+  { id: "p-dash-bac2", group: "صفحات", title: "دروس الثانية باكالوريا — لوحة الأستاذ", hint: "آداب وكتاب المختصر · المحتوى والعروض والتقويمات والجذاذات", action: { view: "dashboard", tab: "bac2-lessons" } },
   { id: "p-dash-sec", group: "صفحات", title: "الدخول والأمان — لوحة الأستاذ", hint: "تغيير اسم المستعمل وكلمة المرور", action: { view: "dashboard", tab: "security" } },
   { id: "p-res", group: "صفحات", title: "الموارد التعليمية", hint: "ملفات وخرائط وجداول ومبيانات", action: { view: "resources" } },
   { id: "p-jadadat", group: "صفحات", title: "الجذاذات — جذاذات الاجتماعيات", hint: "161 جذاذة مبنية على الدروس المنشورة · إعداد وإنجاز الأستاذ عماد طليل", action: { view: "jadadat" } },
@@ -93,6 +93,7 @@ export default function SearchOverlay({ open, onClose, go }: SearchOverlayProps)
 
     for (const lv of LEVELS) {
       for (const br of lv.branches) {
+        if (br.visibility === "teacher") continue;
         for (const [subj, unitArr] of Object.entries(br.units)) {
           unitArr.forEach((u, i) => {
             const realLessons = u.lessons.filter((ls) => !ls.soon);
@@ -164,6 +165,7 @@ export default function SearchOverlay({ open, onClose, go }: SearchOverlayProps)
     }
 
     for (const [lessonId, content] of Object.entries(LESSON_CONTENT)) {
+      if (lessonId.startsWith("bac2-book.")) continue;
       const sectionsText = content.sections
         .map(
           (s) =>

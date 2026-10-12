@@ -160,22 +160,26 @@ function LessonRow({ lesson, index, ready, onOpen, onAssessment, deckId, onDeck,
 export default function Lessons({ go, initialLevel }: LessonsProps) {
   const [levelId, setLevelId] = useState(initialLevel ?? "tc");
   const level = LEVELS.find((l) => l.id === levelId) ?? LEVELS[0];
-  const [branchId, setBranchId] = useState(level.branches[0].id);
-  const branch = level.branches.find((b) => b.id === branchId) ?? level.branches[0];
+  const publicBranches = level.branches.filter((branchItem) => branchItem.visibility !== "teacher");
+  const firstPublicBranch = publicBranches[0] ?? level.branches[0];
+  const [branchId, setBranchId] = useState(firstPublicBranch.id);
+  const branch = publicBranches.find((b) => b.id === branchId) ?? firstPublicBranch;
   const [subjectId, setSubjectId] = useState(branch.subjects[0].id);
   const activeSubject = branch.subjects.find((s) => s.id === subjectId) ?? branch.subjects[0];
   const units = branch.units[activeSubject.id] ?? [];
 
   const switchLevel = (id: string) => {
     const lv = LEVELS.find((l) => l.id === id) ?? LEVELS[0];
+    const nextBranches = lv.branches.filter((branchItem) => branchItem.visibility !== "teacher");
+    const nextBranch = nextBranches[0] ?? lv.branches[0];
     setLevelId(id);
-    setBranchId(lv.branches[0].id);
-    setSubjectId(lv.branches[0].subjects[0].id);
+    setBranchId(nextBranch.id);
+    setSubjectId(nextBranch.subjects[0].id);
   };
 
   const switchBranch = (id: string) => {
-    const br = level.branches.find((b) => b.id === id) ?? level.branches[0];
-    setBranchId(id);
+    const br = publicBranches.find((b) => b.id === id) ?? firstPublicBranch;
+    setBranchId(br.id);
     setSubjectId(br.subjects[0].id);
   };
 
@@ -219,7 +223,7 @@ export default function Lessons({ go, initialLevel }: LessonsProps) {
         {/* تبويبات المسلك */}
         <Reveal delay={160}>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
-            {level.branches.map((b) => (
+            {publicBranches.map((b) => (
               <button
                 key={b.id}
                 type="button"
