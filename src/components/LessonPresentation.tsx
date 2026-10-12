@@ -282,14 +282,14 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
     slides.push({ kind: "section", title: section.title, eyebrow: `المحور ${sectionIndex + 1} — نبني التعلم انطلاقًا من الدليل` });
     blocksToSlides(section.title, section.blocks, slides);
     const activity = planActivity(lesson, section.title, sectionIndex, deck, deck?.slides[sectionIndex]);
-    if (activity) slides.push({ kind: "activity", title: activity.title, eyebrow: "وثيقة ديداكتيكية — من الملاحظة إلى الاستنتاج", activity });
+    if (activity) slides.push({ kind: "activity", title: activity.title, activity });
   });
 
   // إذا كان العرض المرتبط بالكتاب يتضمن أنشطة أكثر من عدد محاور الدرس، لا تُهمل أي وثيقة.
   const remainingDeckSlides = deck?.slides.slice(lesson.sections.length) ?? [];
   remainingDeckSlides.forEach((deckSlide) => {
     const activity = planActivity(lesson, deckSlide.title, lesson.sections.length, deck, deckSlide);
-    if (activity) slides.push({ kind: "activity", title: activity.title, eyebrow: "وثيقة ديداكتيكية إضافية مرتبطة بالدرس", activity });
+    if (activity) slides.push({ kind: "activity", title: activity.title, eyebrow: "نشاط مرتبط بالدرس", activity });
   });
 
   const originalVisual = lessonVisual(lesson);
