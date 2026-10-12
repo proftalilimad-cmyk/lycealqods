@@ -50,8 +50,7 @@ type SlideKind =
   | "timeline"
   | "summary"
   | "assessment"
-  | "tips"
-  | "references";
+  | "tips";
 
 interface VisualMaterial {
   src: string;
@@ -384,12 +383,6 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
     slides.push({ kind: "assessment", title: "التقويم الختامي", eyebrow: "3 إلى 5 أسئلة للتحقق من بناء التعلم", items: lesson.quiz.slice(0, 5).map((item, index) => `${index + 1}. ${item.q}`) });
   }
 
-  const references = [
-    ...(lesson.references ?? []).map((reference) => `${reference.name}: ${reference.url}`),
-    ...(lesson.sourceMaterial?.files ?? []).map((file) => `${file.label}: ${file.url}`),
-  ];
-  if (references.length) slides.push({ kind: "references", title: "المراجع والمصادر", eyebrow: "مصادر مذكورة في بيانات الدرس", items: references });
-
   // دروس بلا Deck أو صفحة كتاب: نصرّح بغياب الوثيقة البصرية بدل اختراع صورة.
   if (!allLessonVisuals(lesson, deck).length) {
     slides.splice(4, 0, {
@@ -604,7 +597,7 @@ function DocumentBody({ doc, showAnswers }: { doc: PresentationDocument; showAns
 function SlideBody({ slide, lesson, meta, showAnswers }: { slide: PresentationSlide; lesson: LessonContent; meta: PresentationMeta; showAnswers: boolean }) {
   if (slide.kind === "title") return <div className="flex min-h-[420px] flex-col items-center justify-center text-center"><div className="grid size-20 place-items-center rounded-3xl bg-gold-400/15 text-gold-200"><MonitorPlay className="size-10" /></div><h2 className="mt-8 max-w-4xl font-display text-3xl font-black leading-[1.45] text-white sm:text-5xl">{slide.title}</h2><p className="mt-5 text-base font-bold text-white/70">{meta.subjectLabel} · {meta.levelLabel} · {meta.branchLabel}</p><p className="mt-2 text-sm text-gold-200">{lesson.duration}</p></div>;
   if (slide.kind === "section") return <div className="flex min-h-[280px] flex-col items-center justify-center text-center"><span className="grid size-16 place-items-center rounded-2xl bg-brand-100 text-brand-700"><SlideIcon kind={slide.kind} /></span><h2 className="mt-7 max-w-4xl font-display text-3xl font-black leading-relaxed text-ink-900 sm:text-4xl">{slide.title}</h2><div className="mt-6 h-1 w-24 rounded-full bg-gold-400" /></div>;
-  if (slide.kind === "objectives" || slide.kind === "concepts" || slide.kind === "list" || slide.kind === "summary" || slide.kind === "assessment" || slide.kind === "tips" || slide.kind === "references") return <div className="space-y-4">{slide.items?.map((item, index) => <div key={`${index}-${item}`} className={`flex items-start gap-4 rounded-2xl p-4 ${slide.kind === "summary" ? "border border-brand-100 bg-brand-50/70" : "bg-paper-warm/70"}`}><span className="grid size-8 shrink-0 place-items-center rounded-xl bg-brand-700 text-xs font-black text-white">{index + 1}</span><p className="text-base leading-loose text-ink-800 break-words">{item}</p></div>)}</div>;
+  if (slide.kind === "objectives" || slide.kind === "concepts" || slide.kind === "list" || slide.kind === "summary" || slide.kind === "assessment" || slide.kind === "tips") return <div className="space-y-4">{slide.items?.map((item, index) => <div key={`${index}-${item}`} className={`flex items-start gap-4 rounded-2xl p-4 ${slide.kind === "summary" ? "border border-brand-100 bg-brand-50/70" : "bg-paper-warm/70"}`}><span className="grid size-8 shrink-0 place-items-center rounded-xl bg-brand-700 text-xs font-black text-white">{index + 1}</span><p className="text-base leading-loose text-ink-800 break-words">{item}</p></div>)}</div>;
   if (slide.kind === "context" || slide.kind === "paragraph") return <div className="space-y-5">{slide.paragraphs?.map((paragraph, index) => <div key={`${index}-${paragraph}`} className="rounded-2xl bg-paper-warm/70 p-5"><p className="text-base leading-[2] text-ink-800">{paragraph}</p></div>)}</div>;
   if (slide.kind === "problem") return <div className="flex min-h-[300px] items-center justify-center rounded-3xl border-s-8 border-gold-400 bg-gold-50 p-8 text-center"><p className="max-w-4xl font-display text-2xl font-black leading-[2] text-ink-900 sm:text-3xl">{slide.paragraphs?.[0]}</p></div>;
   if (slide.kind === "callout" && slide.callout) {
