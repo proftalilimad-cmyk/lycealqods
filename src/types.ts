@@ -280,6 +280,20 @@ export interface LessonSourceMaterial {
   files: { label: string; url: string; localUrl?: string; kind?: "pdf" | "pages" }[];
 }
 
+/** مورد بصري خارجي موثق، يُستعمل فقط عندما تكون هويته ومصدره قابلين للتحقق. */
+export interface LessonExternalVisual {
+  src: string;
+  title: string;
+  sourceName: string;
+  sourceUrl: string;
+  sectionIndex?: number;
+  author?: string;
+  date?: string;
+  license?: string;
+  concept?: string;
+  guidingQuestion?: string;
+}
+
 /**
  * تخطيط موجز لأنشطة الدرس كما ترد في الجذاذة/الكتاب المدرسي.
  * يميز بين المهمة التي ينجزها المتعلم والمنتوج الكتابي الناتج عنها،
@@ -336,6 +350,8 @@ export interface LessonContent {
   references?: { name: string; url: string }[];
   /** صفحة الكتاب/الملخص المدرسي الذي بُني عليه الدرس (صورة داخل public/) */
   bookPage?: { src: string; book: string; page: number; caption?: string };
+  /** صور/خرائط خارجية موثقة محليًا مع رابط المصدر الأصلي وبيانات الاستخدام. */
+  externalVisuals?: LessonExternalVisual[];
   /** روابط المادة الأصلية التي بُني عليها درس الثانية باكالوريا */
   sourceMaterial?: LessonSourceMaterial;
 }

@@ -504,6 +504,33 @@ LESSON_CONTENT["tc-sci.history.0.0"].application = {
   ],
 };
 
+LESSON_CONTENT["tc-sci.history.0.0"].externalVisuals = [
+  {
+    src: "/images/presentation/tc-sci-history-0-0/printing-towns-incunabula.png",
+    title: "انتشار المطابع في أوربا خلال القرن 15م",
+    sourceName: "Wikimedia Commons — File:Printing towns incunabula.svg",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Printing_towns_incunabula.svg",
+    sectionIndex: 1,
+    author: "NordNordWest؛ اعتمادًا على Incunabula Short Title Catalogue التابع للمكتبة البريطانية",
+    date: "الخريطة: 30 غشت 2011؛ المعطيات: 2 مارس 2011",
+    license: "CC BY-SA 3.0 DE — https://creativecommons.org/licenses/by-sa/3.0/de/deed.en؛ نسب NordNordWest/Wikipedia والمشاركة بالمثل",
+    concept: "انتشار الطباعة ودورها في تداول الكتب والأفكار",
+    guidingQuestion: "ما توزيع المدن التي ظهرت فيها المطابع؟ وماذا يوحي ذلك عن انتشار الأفكار؟",
+  },
+  {
+    src: "/images/presentation/tc-sci-history-0-0/leonardo-belle-ferronniere.jpg",
+    title: "La Belle Ferronnière — بورتريه من فن عصر النهضة",
+    sourceName: "Wikimedia Commons — File:Leonardo da Vinci (attrib)- la Belle Ferroniere.jpg",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Leonardo_da_Vinci_(attrib)-_la_Belle_Ferroniere.jpg",
+    sectionIndex: 2,
+    author: "ليوناردو دا فينشي (منسوبًا إليه)؛ مصدر الصورة: The Yorck Project (2002)",
+    date: "حوالي 1490–1498؛ محفوظة في متحف اللوفر، INV 778",
+    license: "ملكية عامة؛ Public Domain Mark 1.0 — https://creativecommons.org/publicdomain/mark/1.0/",
+    concept: "الاهتمام بالإنسان وتقنيات البورتريه في فن النهضة",
+    guidingQuestion: "ما العناصر التي تبرز حضور الإنسان في هذا البورتريه؟ وما الذي يمكن ملاحظته في الضوء والملامح؟",
+  },
+];
+
 LESSON_CONTENT["bac1-sci.history.3.0"].docs = [
   {
     label: "وثيقة 1: مقتطف مُصاغ من معاهدة فاس (30 مارس 1912)",

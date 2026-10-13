@@ -56,6 +56,13 @@ interface VisualMaterial {
   src: string;
   caption: string;
   source: string;
+  sourceUrl?: string;
+  author?: string;
+  date?: string;
+  license?: string;
+  concept?: string;
+  guidingQuestion?: string;
+  sectionIndex?: number;
   page?: number;
 }
 
@@ -146,6 +153,21 @@ function lessonVisual(lesson: LessonContent): VisualMaterial | undefined {
   };
 }
 
+function externalLessonVisuals(lesson: LessonContent): VisualMaterial[] {
+  return (lesson.externalVisuals ?? []).map((visual) => ({
+    src: visual.src,
+    caption: visual.title,
+    source: visual.sourceName,
+    sourceUrl: visual.sourceUrl,
+    author: visual.author,
+    date: visual.date,
+    license: visual.license,
+    concept: visual.concept,
+    guidingQuestion: visual.guidingQuestion,
+    sectionIndex: visual.sectionIndex,
+  }));
+}
+
 function deckSource(deck: Deck, page: number): string {
   const label = deck.bookTitle ?? deck.bookId ?? `العرض المرتبط بالدرس «${deck.title}»`;
   return `${label} — الصفحة ${page}`;
@@ -165,6 +187,7 @@ function allLessonVisuals(lesson: LessonContent, deck?: Deck): VisualMaterial[] 
   const visuals: VisualMaterial[] = [];
   const original = lessonVisual(lesson);
   if (original) visuals.push(original);
+  visuals.push(...externalLessonVisuals(lesson));
   deck?.slides.slice(0, 6).forEach((slide) => visuals.push(...deckVisuals(deck, slide)));
   return uniqueVisuals(visuals);
 }
@@ -203,10 +226,11 @@ function planActivity(
   sectionIndex: number,
   deck: Deck | undefined,
   deckSlide: DeckSlide | undefined,
+  supportingVisuals: VisualMaterial[] = [],
 ): ActivityMaterial | undefined {
   const plan = lesson.didacticPlan?.activities.find((item) => item.sectionIndex === sectionIndex);
   const formative = lesson.formativeAssessments?.find((item) => item.sectionIndex === sectionIndex);
-  if (!deckSlide && !plan && !formative) return undefined;
+  if (!deckSlide && !plan && !formative && !supportingVisuals.length) return undefined;
 
   const focus = clean(deckSlide?.focus) || clean(plan?.support) || `المقطع: ${sectionTitle}`;
   const tasks: ActivityQuestion[] = deckSlide?.tasks?.map((task) => ({ q: task.q, answer: task.a })) ?? [];
@@ -218,24 +242,36 @@ function planActivity(
     });
   }
 
-  const source = deck && deckSlide ? deckSource(deck, deckSlide.page) : plan?.support || "محتوى المحور والوثائق التابعة له داخل الدرس";
-  const visuals = deck && deckSlide ? deckVisuals(deck, deckSlide) : [];
-  const conceptText = `${sectionTitle} ${deckSlide?.title ?? ""} ${focus}`;
+  const externalVisual = supportingVisuals[0];
+  if (externalVisual?.guidingQuestion && !tasks.some((task) => task.q === externalVisual.guidingQuestion)) {
+    tasks.push({
+      q: externalVisual.guidingQuestion,
+      answer: `يستخرج المتعلم المعطيات البصرية الدالة من المورد، ثم يربطها بمحور «${sectionTitle}» وبإشكالية الدرس دون تجاوز ما تثبته الوثيقة.`,
+    });
+  }
+  const sourceParts = [
+    deck && deckSlide ? deckSource(deck, deckSlide.page) : plan?.support || "محتوى المحور والوثائق التابعة له داخل الدرس",
+    ...supportingVisuals.map((visual) => `${visual.source} — ${visual.sourceUrl}`),
+  ];
+  const source = sourceParts.join("؛ ");
+  // أعطِ المورد الخارجي الموثق الأولوية في العرض والتصدير، ثم أضف صفحة الكتاب إن وجدت.
+  const visuals = uniqueVisuals([...supportingVisuals, ...(deck && deckSlide ? deckVisuals(deck, deckSlide) : [])]);
+  const conceptText = `${sectionTitle} ${deckSlide?.title ?? ""} ${focus} ${externalVisual?.concept ?? ""}`;
   const expectedConclusion = clean(deckSlide?.keys?.join("؛ ")) || clean(plan?.product) || clean(formative?.expected) || `يربط المتعلم عناصر الوثيقة التي لاحظها بمحور «${sectionTitle}»، ثم يصوغ استنتاجًا جزئيًا يساعد على الإجابة عن إشكالية الدرس.`;
   return {
-    concept: findTargetConcept(lesson, conceptText, sectionTitle),
+    concept: findTargetConcept(lesson, conceptText, externalVisual?.concept ?? sectionTitle),
     objective:
       clean(lesson.objectives[sectionIndex]) ||
       `استخراج المعطيات المرتبطة بمحور «${sectionTitle}» وتحويلها إلى استنتاج يجيب عن إشكالية الدرس.`,
     studentTask: clean(plan?.task) || `ألاحظ الوثيقة، أحدد عناصرها، أستخرج المعطيات الدالة، ثم أصوغ فرضية واستنتاجًا مرتبطًا بمحور «${sectionTitle}».`,
-    observation: focus,
+    observation: [focus, externalVisual?.guidingQuestion ? `سؤال الانطلاق من المورد: ${externalVisual.guidingQuestion}` : ""].filter(Boolean).join(" — "),
     questions: tasks,
     expectedConclusion,
     source,
-    nature: deckSlide ? "صفحة مصوّرة من الكتاب المدرسي تتضمن وثائق الدرس" : "نشاط/وثيقة كما وردت في بنية الدرس",
-    title: deckSlide?.title ?? sectionTitle,
-    author: UNKNOWN,
-    date: UNKNOWN,
+    nature: externalVisual ? "وثيقة بصرية خارجية موثقة مرتبطة بمحور الدرس" : deckSlide ? "صفحة مصوّرة من الكتاب المدرسي تتضمن وثائق الدرس" : "نشاط/وثيقة كما وردت في بنية الدرس",
+    title: externalVisual?.caption ?? deckSlide?.title ?? sectionTitle,
+    author: externalVisual?.author ?? UNKNOWN,
+    date: externalVisual?.date ?? UNKNOWN,
     context: focus,
     visuals,
   };
@@ -278,11 +314,22 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
   });
 
   const deck = getDeckForLesson(lesson.id);
+  const externalVisuals = externalLessonVisuals(lesson);
   lesson.sections.forEach((section, sectionIndex) => {
     slides.push({ kind: "section", title: section.title, eyebrow: `المحور ${sectionIndex + 1} — نبني التعلم انطلاقًا من الدليل` });
     blocksToSlides(section.title, section.blocks, slides);
-    const activity = planActivity(lesson, section.title, sectionIndex, deck, deck?.slides[sectionIndex]);
+    const sectionVisuals = externalVisuals.filter((visual) => visual.sectionIndex === sectionIndex);
+    const activity = planActivity(lesson, section.title, sectionIndex, deck, deck?.slides[sectionIndex], sectionVisuals);
     if (activity) slides.push({ kind: "activity", title: activity.title, activity });
+    if (sectionVisuals.length && !activity) {
+      slides.push({
+        kind: "image",
+        title: "وثائق بصرية مرتبطة بالمحور",
+        eyebrow: "مورد خارجي موثق — المصدر مذكور بجانب الصورة",
+        image: sectionVisuals[0],
+        images: sectionVisuals,
+      });
+    }
   });
 
   // إذا كان العرض المرتبط بالكتاب يتضمن أنشطة أكثر من عدد محاور الدرس، لا تُهمل أي وثيقة.
@@ -475,18 +522,29 @@ function addPptText(output: any, text: string, options: Record<string, unknown> 
   });
 }
 
+function visualCitation(visual: VisualMaterial): string {
+  return [
+    visual.caption,
+    `المصدر: ${visual.source}`,
+    visual.author ? `المؤلف/الفنان: ${visual.author}` : "",
+    visual.date ? `التاريخ: ${visual.date}` : "",
+    visual.license ? `الرخصة: ${visual.license}` : "",
+    visual.sourceUrl ? `الرابط الأصلي: ${visual.sourceUrl}` : "",
+  ].filter(Boolean).join("\n");
+}
+
 function addPptVisualCaptions(output: any, loaded: { visual: VisualMaterial; data: string }[], x: number, y: number, w: number, h: number): void {
   const selected = loaded.slice(0, 2);
   if (selected.length === 1) {
     const entry = selected[0];
-    output.addImage({ data: entry.data, x, y, w, h: h - 0.5 });
-    output.addText(`${entry.visual.caption}\nالمصدر: ${entry.visual.source}`, { x, y: y + h - 0.42, w, h: 0.38, fontFace: "Arial", fontSize: 8, color: "5B6C64", align: "center", rtlMode: true, margin: 0 });
+    output.addImage({ data: entry.data, x, y, w, h: h - 0.82 });
+    output.addText(visualCitation(entry.visual), { x, y: y + h - 0.78, w, h: 0.7, fontFace: "Arial", fontSize: 6.5, color: "5B6C64", align: "center", rtlMode: true, margin: 0, fit: "shrink", hyperlink: entry.visual.sourceUrl ? { url: entry.visual.sourceUrl } : undefined });
     return;
   }
   selected.forEach((entry, index) => {
     const itemY = y + index * (h / 2);
-    output.addImage({ data: entry.data, x, y: itemY, w, h: h / 2 - 0.18 });
-    output.addText(`${entry.visual.caption}\nالمصدر: ${entry.visual.source}`, { x, y: itemY + h / 2 - 0.12, w, h: 0.35, fontFace: "Arial", fontSize: 7, color: "5B6C64", align: "center", rtlMode: true, margin: 0 });
+    output.addImage({ data: entry.data, x, y: itemY, w, h: h / 2 - 0.5 });
+    output.addText(visualCitation(entry.visual), { x, y: itemY + h / 2 - 0.46, w, h: 0.42, fontFace: "Arial", fontSize: 5.5, color: "5B6C64", align: "center", rtlMode: true, margin: 0, fit: "shrink", hyperlink: entry.visual.sourceUrl ? { url: entry.visual.sourceUrl } : undefined });
   });
 }
 
@@ -578,7 +636,10 @@ function InfoCard({ label, text, tone = "paper" }: { label: string; text: string
 
 function VisualFigures({ visuals }: { visuals: VisualMaterial[] }) {
   if (!visuals.length) return <div className="rounded-2xl border-2 border-dashed border-gold-300 bg-gold-50 p-5 text-center"><ImageIcon className="mx-auto size-8 text-gold-600" /><p className="mt-3 text-sm font-extrabold text-gold-900">لا توجد صورة موثقة متاحة لهذا النشاط</p><p className="mt-1 text-xs leading-relaxed text-gold-800">يُترك المورد فارغًا إلى حين التحقق من صورة أو خريطة أو مبيان مناسب؛ لم تُخترع وثيقة بديلة.</p></div>;
-  return <div className="space-y-3">{visuals.map((visual) => <figure key={visual.src} className="overflow-hidden rounded-2xl border border-ink-900/10 bg-paper-warm"><img src={visual.src} alt={visual.caption} className="mx-auto max-h-[330px] w-full object-contain" /><figcaption className="p-3 text-center text-xs font-bold leading-relaxed text-ink-500">{visual.caption}<br /><span className="font-semibold text-ink-400">المصدر: {visual.source}</span></figcaption></figure>)}</div>;
+  return <div className="space-y-3">{visuals.map((visual) => {
+    const details = [visual.author, visual.date, visual.license].filter(Boolean).join(" · ");
+    return <figure key={visual.src} className="overflow-hidden rounded-2xl border border-ink-900/10 bg-paper-warm"><img src={visual.src} alt={visual.caption} className="mx-auto max-h-[330px] w-full object-contain" /><figcaption className="p-3 text-center text-xs font-bold leading-relaxed text-ink-500"><span>{visual.caption}</span><br /><span className="font-semibold text-ink-400">المصدر: {visual.source}</span>{visual.sourceUrl ? <><br /><a href={visual.sourceUrl} target="_blank" rel="noreferrer" className="break-all font-semibold text-brand-700 underline">الرابط الأصلي</a></> : null}{details ? <><br /><span className="font-semibold text-ink-400">{details}</span></> : null}{visual.concept ? <><br /><span className="font-semibold text-brand-700">المحور: {visual.concept}</span></> : null}</figcaption></figure>;
+  })}</div>;
 }
 
 function ActivityBody({ activity, showAnswers }: { activity: ActivityMaterial; showAnswers: boolean }) {
@@ -603,7 +664,7 @@ function SlideBody({ slide, lesson, meta, showAnswers }: { slide: PresentationSl
   if (slide.kind === "activity" && slide.activity) return <ActivityBody activity={slide.activity} showAnswers={showAnswers} />;
   if (slide.kind === "document" && slide.doc) return <DocumentBody doc={slide.doc} showAnswers={showAnswers} />;
   if (slide.kind === "schema" && slide.schema) return <div className="grid gap-3 sm:grid-cols-2">{slide.schema.rows.map((row) => <div key={`${row.label}-${row.value}`} className="rounded-2xl border border-brand-100 bg-brand-50/60 p-5"><p className="text-xs font-extrabold text-brand-700">{row.label}</p><p className="mt-2 text-base font-bold leading-relaxed text-ink-800">{row.value}</p></div>)}</div>;
-  if (slide.kind === "image") return <div className="rounded-3xl border-2 border-dashed border-gold-300 bg-gold-50 p-8 text-center"><ImageIcon className="mx-auto size-10 text-gold-600" /><p className="mt-4 text-base font-bold leading-relaxed text-gold-900">{slide.paragraphs?.[0] ?? "لا يوجد مورد بصري موثق"}</p></div>;
+  if (slide.kind === "image") return <div className="space-y-5"><VisualFigures visuals={slide.images ?? (slide.image ? [slide.image] : [])} />{slide.paragraphs?.length ? <div className="rounded-2xl border-2 border-dashed border-gold-300 bg-gold-50 p-5 text-center"><p className="text-base font-bold leading-relaxed text-gold-900">{slide.paragraphs[0]}</p></div> : null}</div>;
   if (slide.kind === "timeline" && slide.timeline) return <div className="relative space-y-4 before:absolute before:bottom-3 before:start-[19px] before:top-3 before:w-0.5 before:bg-brand-200">{slide.timeline.map((item) => <div key={`${item.date}-${item.event}`} className="relative flex gap-4"><span className="mt-1.5 grid size-4 shrink-0 place-items-center rounded-full bg-gold-500 ring-4 ring-gold-100" /><div className="flex-1 rounded-2xl bg-paper-warm p-4"><p className="font-display font-black text-brand-800">{item.date}</p><p className="mt-1 text-sm leading-relaxed text-ink-700">{item.event}</p></div></div>)}</div>;
   return null;
 }
