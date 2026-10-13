@@ -50,6 +50,7 @@ import Jadadat from "./Jadadat";
 import InspectorReports from "./InspectorReports";
 import InspectorDiagnosticDemo from "./InspectorDiagnosticDemo";
 import TeacherBac2Lessons from "./TeacherBac2Lessons";
+import TeacherPresentations from "./TeacherPresentations";
 import DiagnosticAnalysisPanel from "./DiagnosticAnalysisPanel";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -945,6 +946,7 @@ const TABS = [
   { id: "matrix", label: "مصفوفة الرائز", hint: "ربط الأسئلة بالقدرات والكفايات", icon: ListChecks },
   { id: "results", label: "نتائج التقويم التشخيصي", hint: "الحضور، النتائج، التقارير والتصدير", icon: ChartColumn },
   { id: "bac2-lessons", label: "دروس الثانية باك", hint: "المختصر وآداب — المحتوى، العروض، التقويم والجذاذات", icon: BookOpenCheck },
+  { id: "presentations", label: "مكتبة PowerPoint", hint: "عروض الدروس حسب المستوى — تحميل فردي أو ZIP لـ Keynote", icon: Archive },
   { id: "reports", label: "تقارير موجهة للمفتش", hint: "تحليل رسمي موجه للمفتش، معاينة، PDF وحفظ مركزي", icon: FileBarChart },
   { id: "inspector-demo", label: "التقويم التشخيصي التجريبي", hint: "DEMO / TEST — عرض ومحاكاة معزولة", icon: FlaskConical },
   { id: "jadadat", label: "الجذاذات", hint: "إعداد الدروس والأنشطة والتقويم", icon: FileText },
@@ -1079,6 +1081,7 @@ export default function Dashboard({ tab, go }: DashboardProps) {
           {active === "matrix" && <DiagnosticAnalysisPanel initialView="matrix" />}
           {active === "results" && <TestResultsPanel go={go} />}
           {active === "bac2-lessons" && <TeacherBac2Lessons go={go} />}
+          {active === "presentations" && <TeacherPresentations go={go} />}
           {active === "reports" && <InspectorReports />}
           {active === "inspector-demo" && <InspectorDiagnosticDemo />}
           {active === "jadadat" && <Jadadat go={go} embedded teacherOnly />}

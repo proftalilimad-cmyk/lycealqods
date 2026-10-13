@@ -30,6 +30,7 @@ const STATIC_PAGES: SearchResult[] = [
   { id: "p-about", group: "صفحات", title: "نبذة عن الأستاذ عماد طليل", hint: "أستاذ الاجتماعيات — ثانوية القدس القنيطرة", action: { view: "about" } },
   { id: "p-dash", group: "صفحات", title: "لوحة الأستاذ (دخول محمي)", hint: "نتائج التقويم التشخيصي — باسم مستعمل وكلمة مرور", action: { view: "dashboard", tab: "results" } },
   { id: "p-dash-bac2", group: "صفحات", title: "دروس الثانية باكالوريا — لوحة الأستاذ", hint: "آداب وكتاب المختصر · المحتوى والعروض والتقويمات والجذاذات", action: { view: "dashboard", tab: "bac2-lessons" } },
+  { id: "p-dash-ppt", group: "صفحات", title: "مكتبة PowerPoint — لوحة الأستاذ", hint: "عروض الدروس حسب المستوى · تحميل فردي أو ZIP قابل للفتح في Keynote", action: { view: "dashboard", tab: "presentations" } },
   { id: "p-dash-sec", group: "صفحات", title: "الدخول والأمان — لوحة الأستاذ", hint: "تغيير اسم المستعمل وكلمة المرور", action: { view: "dashboard", tab: "security" } },
   { id: "p-res", group: "صفحات", title: "الموارد التعليمية", hint: "ملفات وخرائط وجداول ومبيانات", action: { view: "resources" } },
   { id: "p-jadadat", group: "صفحات", title: "الجذاذات — جذاذات الاجتماعيات", hint: "161 جذاذة مبنية على الدروس المنشورة · إعداد وإنجاز الأستاذ عماد طليل", action: { view: "jadadat" } },

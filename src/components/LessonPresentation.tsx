@@ -565,8 +565,8 @@ function addPptVisualCaptions(output: any, loaded: { visual: VisualMaterial; dat
   });
 }
 
-/** ينشئ ملف PowerPoint حقيقيًا من الشرائح، مع إدماج الوثيقة داخل نشاطها لا كرابط فقط. */
-export async function downloadLessonPowerPoint(lesson: LessonContent, meta: PresentationMeta): Promise<void> {
+/** يبني ملف PowerPoint حقيقيًا من الشرائح، مع إدماج الوثيقة داخل نشاطها لا كرابط فقط. */
+export async function createLessonPowerPointBlob(lesson: LessonContent, meta: PresentationMeta): Promise<Blob> {
   if (typeof window !== "undefined" && !isUnlocked()) throw new Error("تحميل PowerPoint متاح للأستاذ فقط.");
   const { default: PptxGenJS } = await import("pptxgenjs");
   const pptx = new PptxGenJS();
@@ -618,8 +618,23 @@ export async function downloadLessonPowerPoint(lesson: LessonContent, meta: Pres
     output.addNotes(`${note}هذا العرض مبني على محتوى الدرس الأصلي والوثائق المرتبطة به داخل المشروع. لا تُعدّ الحقول غير المحددة مصدرًا جديدًا.`);
   }
 
-  const filePart = lesson.id.replace(/[^a-zA-Z0-9.-]+/g, "-").replace(/^-|-$/g, "") || "lesson";
-  await pptx.writeFile({ fileName: `presentation-${filePart}.pptx`, compression: true });
+  const output = await pptx.write({ outputType: "blob", compression: true });
+  return output instanceof Blob ? output : new Blob([output as BlobPart], { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
+}
+
+function presentationFilePart(lesson: LessonContent): string {
+  return lesson.id.replace(/[^a-zA-Z0-9.-]+/g, "-").replace(/^-|-$/g, "") || "lesson";
+}
+
+/** ينزّل ملف PowerPoint القابل للتحرير مباشرة من المتصفح. */
+export async function downloadLessonPowerPoint(lesson: LessonContent, meta: PresentationMeta): Promise<void> {
+  const blob = await createLessonPowerPointBlob(lesson, meta);
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `presentation-${presentationFilePart(lesson)}.pptx`;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function SlideIcon({ kind }: { kind: SlideKind }) {
