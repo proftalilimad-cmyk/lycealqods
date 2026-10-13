@@ -73,6 +73,7 @@ interface ActivityQuestion {
 }
 
 interface ActivityMaterial {
+  teacherGuidance?: string;
   concept: string;
   objective: string;
   studentTask: string;
@@ -123,6 +124,7 @@ interface PresentationMeta {
 }
 
 const UNKNOWN = "غير محدد في المحتوى المنشور";
+const LEARNING_SEQUENCE = ["الملاحظة", "التساؤل", "التحليل", "التفسير", "الاستنتاج", "الخلاصة"];
 
 function chunks<T>(items: T[], size: number): T[][] {
   const result: T[][] = [];
@@ -201,7 +203,7 @@ function blocksToSlides(sectionTitle: string, blocks: LessonBlock[], slides: Pre
   const paragraphs: string[] = [];
   const flushParagraphs = () => {
     if (paragraphs.length === 0) return;
-    slides.push({ kind: "paragraph", title: sectionTitle, eyebrow: "المعرفة الأساس في الدرس", paragraphs: paragraphs.splice(0, paragraphs.length) });
+    slides.push({ kind: "paragraph", title: sectionTitle, eyebrow: "التفسير وبناء المعرفة بعد نشاط الملاحظة", paragraphs: paragraphs.splice(0, paragraphs.length) });
   };
   blocks.forEach((block) => {
     if (block.type === "p") {
@@ -210,11 +212,11 @@ function blocksToSlides(sectionTitle: string, blocks: LessonBlock[], slides: Pre
     }
     flushParagraphs();
     if (block.type === "ul") {
-      slides.push({ kind: "list", title: block.title ?? sectionTitle, eyebrow: "أفكار أساسية مستخرجة من الدرس", items: block.items });
+      slides.push({ kind: "list", title: block.title ?? sectionTitle, eyebrow: "التفسير وبناء المعرفة انطلاقًا من نشاط المحور", items: block.items });
     } else if (block.type === "table") {
-      slides.push({ kind: "table", title: sectionTitle, eyebrow: "تنظيم المعطيات الواردة في الدرس", table: { head: block.head, rows: block.rows } });
+      slides.push({ kind: "table", title: sectionTitle, eyebrow: "التفسير وتنظيم المعطيات بعد تحليل الوثيقة", table: { head: block.head, rows: block.rows } });
     } else {
-      slides.push({ kind: "callout", title: block.label, eyebrow: sectionTitle, callout: block });
+      slides.push({ kind: "callout", title: block.label, eyebrow: `${sectionTitle} — التفسير وبناء المعرفة`, callout: block });
     }
   });
   flushParagraphs();
@@ -259,6 +261,7 @@ function planActivity(
   const conceptText = `${sectionTitle} ${deckSlide?.title ?? ""} ${focus} ${externalVisual?.concept ?? ""}`;
   const expectedConclusion = clean(deckSlide?.keys?.join("؛ ")) || clean(plan?.product) || clean(formative?.expected) || `يربط المتعلم عناصر الوثيقة التي لاحظها بمحور «${sectionTitle}»، ثم يصوغ استنتاجًا جزئيًا يساعد على الإجابة عن إشكالية الدرس.`;
   return {
+    teacherGuidance: `يوجّه الأستاذ المتعلمين إلى وصف طبيعة الوثيقة ومصدرها أولًا، ثم تنظيم الملاحظات في فرضيات وأسئلة، وتأجيل التصحيح والاستنتاج إلى ما بعد المناقشة الجماعية.`,
     concept: findTargetConcept(lesson, conceptText, externalVisual?.concept ?? sectionTitle),
     objective:
       clean(lesson.objectives[sectionIndex]) ||
@@ -299,9 +302,9 @@ function documentFromLessonDoc(doc: LessonDoc, lesson: LessonContent, visual?: V
 export function buildLessonPresentation(lesson: LessonContent): PresentationSlide[] {
   const slides: PresentationSlide[] = [
     { kind: "title", title: lesson.title, eyebrow: "عرض تدريسي مبني على الدرس الأصلي" },
-    { kind: "objectives", title: "أهداف التعلم", eyebrow: "كما وردت في الدرس", items: lesson.objectives },
-    { kind: "context", title: "الوضعية التمهيدية", eyebrow: "ملاحظة أولية قبل بناء المعرفة", paragraphs: [lesson.intro] },
-    { kind: "problem", title: "الإشكالية المركزية", eyebrow: "السؤال الذي ينظم مراحل بناء التعلم", paragraphs: [lesson.coreQuestion] },
+    { kind: "context", title: "الوضعية التمهيدية", eyebrow: "الملاحظة والانطلاق من وضعية مشكلة", paragraphs: [lesson.intro] },
+    { kind: "problem", title: "الإشكالية المركزية", eyebrow: "التساؤل الذي ينظم مراحل بناء التعلم", paragraphs: [lesson.coreQuestion] },
+    { kind: "objectives", title: "أهداف التعلم", eyebrow: "ما سنبنيه عبر الملاحظة والتحليل والتركيب", items: lesson.objectives },
   ];
 
   chunks(lesson.glossary, 5).forEach((group, index) => {
@@ -316,11 +319,19 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
   const deck = getDeckForLesson(lesson.id);
   const externalVisuals = externalLessonVisuals(lesson);
   lesson.sections.forEach((section, sectionIndex) => {
-    slides.push({ kind: "section", title: section.title, eyebrow: `المحور ${sectionIndex + 1} — نبني التعلم انطلاقًا من الدليل` });
-    blocksToSlides(section.title, section.blocks, slides);
+    slides.push({ kind: "section", title: section.title, eyebrow: `المحور ${sectionIndex + 1} — نلاحظ ونتساءل قبل بناء المعرفة` });
     const sectionVisuals = externalVisuals.filter((visual) => visual.sectionIndex === sectionIndex);
     const activity = planActivity(lesson, section.title, sectionIndex, deck, deck?.slides[sectionIndex], sectionVisuals);
-    if (activity) slides.push({ kind: "activity", title: activity.title, activity });
+    if (activity) {
+      slides.push({
+        kind: "activity",
+        title: activity.title,
+        eyebrow: "الملاحظة ← التساؤل ← التحليل — لا نكشف الاستنتاج قبل المناقشة",
+        activity,
+      });
+    }
+    // لا يأتي الشرح قبل الدليل؛ تُعرض معارف المحور بعد النشاط حتى يبني المتعلم الفكرة من الملاحظة إلى التفسير.
+    blocksToSlides(section.title, section.blocks, slides);
     if (sectionVisuals.length && !activity) {
       slides.push({
         kind: "image",
@@ -336,7 +347,7 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
   const remainingDeckSlides = deck?.slides.slice(lesson.sections.length) ?? [];
   remainingDeckSlides.forEach((deckSlide) => {
     const activity = planActivity(lesson, deckSlide.title, lesson.sections.length, deck, deckSlide);
-    if (activity) slides.push({ kind: "activity", title: activity.title, eyebrow: "نشاط مرتبط بالدرس", activity });
+    if (activity) slides.push({ kind: "activity", title: activity.title, eyebrow: "نشاط مرتبط بالدرس — الملاحظة ← التساؤل ← التحليل ← الاستنتاج", activity });
   });
 
   const originalVisual = lessonVisual(lesson);
@@ -442,13 +453,19 @@ export function buildLessonPresentation(lesson: LessonContent): PresentationSlid
 function activityPlainText(activity: ActivityMaterial): string {
   const questions = activity.questions.map((item, index) => `${index + 1}. ${item.q}`).join("\n");
   return [
+    `توجيه الأستاذ: ${activity.teacherGuidance ?? "يوجّه المتعلمين إلى الملاحظة والوصف والفرضيات، ثم يؤجل الأجوبة إلى نهاية المناقشة."}`,
+    "مسار النشاط: الملاحظة ← التساؤل ← التحليل ← التفسير ← الاستنتاج ← الخلاصة",
+    `الوثيقة: ${activity.title}`,
+    `طبيعتها: ${activity.nature}`,
+    `المؤلف/الجهة: ${activity.author}`,
+    `التاريخ: ${activity.date}`,
     `ما أتعلمه من النشاط: ${activity.concept}`,
     `هدفي: ${activity.objective}`,
     `مهمتي: ${activity.studentTask}`,
     `ما ألاحظ وأحلل: ${activity.observation}`,
     `أسئلة أجيب عنها:\n${questions}`,
     "خلاصتي: ................................................................................",
-    `المصدر: ${activity.source}`,
+    `المصدر والرابط: ${activity.source}`,
   ].join("\n\n");
 }
 
@@ -568,7 +585,7 @@ export async function downloadLessonPowerPoint(lesson: LessonContent, meta: Pres
       output.addText(item.title, { x: 0.7, y: 1.55, w: 12, h: 1.3, fontFace: "Arial", fontSize: 29, bold: true, color: "FFFFFF", align: "center", valign: "middle", rtlMode: true, margin: 0.1 });
       output.addText(`${meta.subjectLabel} · ${meta.levelLabel} · ${meta.branchLabel}\n${lesson.duration}`, { x: 1.1, y: 3.25, w: 11.2, h: 0.75, fontFace: "Arial", fontSize: 16, color: "F6D98B", align: "center", valign: "middle", rtlMode: true });
     } else {
-      addPptMetadata(output, item.title, item.kind === "activity" ? undefined : item.eyebrow);
+      addPptMetadata(output, item.title, item.eyebrow);
       if (item.kind === "table" && item.table) {
         const rows = [item.table.head, ...item.table.rows].map((row) => row.map((cell) => ({ text: cell })));
         output.addTable(rows, { x: 0.45, y: 1.35, w: 12.4, h: 5.55, fontFace: "Arial", fontSize: 10, color: "24332D", border: { type: "solid", color: "C9DDD3", pt: 0.6 }, fill: { color: "FFFFFF" }, margin: 0.06, valign: "middle" });
@@ -634,6 +651,10 @@ function InfoCard({ label, text, tone = "paper" }: { label: string; text: string
   return <div className={`rounded-2xl border p-4 ${classes}`}><p className="text-[11px] font-black text-brand-700">{label}</p><p className="mt-2 text-sm leading-[1.9] text-ink-800">{text}</p></div>;
 }
 
+function LearningPath() {
+  return <div className="rounded-2xl border border-brand-200 bg-brand-50/70 p-4" aria-label="تسلسل بناء التعلمات"><p className="text-[11px] font-black text-brand-700">مسار بناء التعلمات</p><div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] font-extrabold text-ink-700">{LEARNING_SEQUENCE.map((phase, index) => <span key={phase} className="inline-flex items-center gap-1.5"><span className={`rounded-full px-2.5 py-1 ${index < 3 ? "bg-white text-brand-800" : "bg-gold-100 text-gold-900"}`}>{index + 1}. {phase}</span>{index < LEARNING_SEQUENCE.length - 1 ? <span className="text-brand-300" aria-hidden="true">←</span> : null}</span>)}</div></div>;
+}
+
 function VisualFigures({ visuals }: { visuals: VisualMaterial[] }) {
   if (!visuals.length) return <div className="rounded-2xl border-2 border-dashed border-gold-300 bg-gold-50 p-5 text-center"><ImageIcon className="mx-auto size-8 text-gold-600" /><p className="mt-3 text-sm font-extrabold text-gold-900">لا توجد صورة موثقة متاحة لهذا النشاط</p><p className="mt-1 text-xs leading-relaxed text-gold-800">يُترك المورد فارغًا إلى حين التحقق من صورة أو خريطة أو مبيان مناسب؛ لم تُخترع وثيقة بديلة.</p></div>;
   return <div className="space-y-3">{visuals.map((visual) => {
@@ -643,7 +664,43 @@ function VisualFigures({ visuals }: { visuals: VisualMaterial[] }) {
 }
 
 function ActivityBody({ activity, showAnswers }: { activity: ActivityMaterial; showAnswers: boolean }) {
-  return <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"><div><VisualFigures visuals={activity.visuals} /><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1"><InfoCard label="طبيعة الوثيقة" text={activity.nature} /><InfoCard label="العنوان / المؤلف / التاريخ" text={`${activity.title} · ${activity.author} · ${activity.date}`} /><InfoCard label="المصدر" text={activity.source} /></div></div><div className="space-y-3"><InfoCard label="المفهوم المستهدف" text={activity.concept} tone="brand" /><InfoCard label="الهدف التعلمي" text={activity.objective} tone="brand" /><InfoCard label="مهمة المتعلم" text={activity.studentTask} tone="sky" /><InfoCard label="الملاحظة والتحليل" text={activity.observation} /><div className="rounded-2xl border border-ink-900/8 bg-white p-4"><p className="text-[11px] font-black text-brand-700">أسئلة موجهة للمتعلمين</p><div className="mt-3 space-y-3">{activity.questions.map((question, index) => <div key={`${index}-${question.q}`} className="rounded-xl bg-paper-warm/70 p-3"><p className="text-sm font-extrabold leading-relaxed text-ink-900">{index + 1}. {question.q}</p>{showAnswers ? <p className="mt-2 border-t border-ink-900/10 pt-2 text-xs leading-relaxed text-emerald-800"><strong>الإجابة المنتظرة:</strong> {question.answer}</p> : <p className="mt-2 text-[11px] font-bold text-ink-400">يناقش المتعلمون الفرضيات قبل إظهار الإجابة.</p>}</div>)}</div></div><div className="rounded-2xl border-s-4 border-gold-400 bg-gold-50 p-4"><p className="text-[11px] font-black text-gold-800">الاستنتاج</p>{showAnswers && activity.expectedConclusion ? <p className="mt-2 text-sm font-bold leading-[1.9] text-ink-800">{activity.expectedConclusion}</p> : <p className="mt-2 text-sm font-bold text-gold-800">يُصاغ الاستنتاج جماعيًا انطلاقًا من الأدلة أعلاه.</p>}</div></div></div>;
+  return (
+    <div className="space-y-5">
+      <LearningPath />
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div>
+          <VisualFigures visuals={activity.visuals} />
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+            <InfoCard label="توجيه الأستاذ" text={activity.teacherGuidance ?? "يوجّه الأستاذ المتعلمين إلى الملاحظة والوصف وطرح الفرضيات، ثم يؤجل الأجوبة والخلاصة إلى نهاية المناقشة."} tone="gold" />
+            <InfoCard label="طبيعة الوثيقة" text={activity.nature} />
+            <InfoCard label="العنوان / المؤلف / التاريخ" text={`${activity.title} · ${activity.author} · ${activity.date}`} />
+            <InfoCard label="المصدر" text={activity.source} />
+          </div>
+        </div>
+        <div className="space-y-3">
+          <InfoCard label="المفهوم المستهدف" text={activity.concept} tone="brand" />
+          <InfoCard label="الهدف التعلمي" text={activity.objective} tone="brand" />
+          <InfoCard label="مهمة المتعلم" text={activity.studentTask} tone="sky" />
+          <InfoCard label="الملاحظة والتحليل" text={activity.observation} />
+          <div className="rounded-2xl border border-ink-900/8 bg-white p-4">
+            <p className="text-[11px] font-black text-brand-700">أسئلة موجهة للمتعلمين</p>
+            <div className="mt-3 space-y-3">
+              {activity.questions.map((question, index) => (
+                <div key={`${index}-${question.q}`} className="rounded-xl bg-paper-warm/70 p-3">
+                  <p className="text-sm font-extrabold leading-relaxed text-ink-900">{index + 1}. {question.q}</p>
+                  {showAnswers ? <p className="mt-2 border-t border-ink-900/10 pt-2 text-xs leading-relaxed text-emerald-800"><strong>الإجابة المنتظرة:</strong> {question.answer}</p> : <p className="mt-2 text-[11px] font-bold text-ink-400">يناقش المتعلمون الفرضيات قبل إظهار الإجابة.</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl border-s-4 border-gold-400 bg-gold-50 p-4">
+            <p className="text-[11px] font-black text-gold-800">الاستنتاج</p>
+            {showAnswers && activity.expectedConclusion ? <p className="mt-2 text-sm font-bold leading-[1.9] text-ink-800">{activity.expectedConclusion}</p> : <p className="mt-2 text-sm font-bold text-gold-800">يُصاغ الاستنتاج جماعيًا انطلاقًا من الأدلة أعلاه.</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function DocumentBody({ doc, showAnswers }: { doc: PresentationDocument; showAnswers: boolean }) {
