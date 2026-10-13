@@ -97,6 +97,7 @@ function generatedLessonPdfs(): ResourceItem[] {
   const out: ResourceItem[] = [];
   for (const lv of LEVELS) {
     for (const br of lv.branches) {
+      if (br.visibility === "teacher") continue;
       for (const subj of br.subjects) {
         const units = br.units[subj.id] ?? [];
         units.forEach((unit, ui) => {
@@ -641,8 +642,8 @@ function generatedDecks(): ResourceItem[] {
     type: "slides",
     title: `عرض تفاعلي: ${d.title}`,
     desc: `${d.slides.length} شرائح من الكتاب المدرسي (ص ${d.pages[0]}–${d.pages[1]}) · ${deckTaskCount(d)} مهمة على الوثائق · ${d.quiz.length} أسئلة ختامية.`,
-    level: "الأولى باكالوريا",
-    subject: d.subject,
+    level: d.bookLevel?.includes("الجذع") ? "الجذع المشترك" : "الأولى باكالوريا",
+    subject: d.subject === "التاريخ والجغرافيا" ? "مشترك" : d.subject,
     tags: ["عرض تفاعلي", "الكتاب المدرسي", d.module.split(":")[0].trim(), ...d.concepts.slice(0, 3)],
     lessonKey: d.lessonKey,
     action: { kind: "route", route: { view: "decks", id: d.id }, label: "ابدأ العرض" },

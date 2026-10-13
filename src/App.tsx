@@ -4,42 +4,62 @@ import Footer from "./components/Footer";
 import Home from "./components/Home";
 import About from "./components/About";
 import TestFlow from "./components/test/TestFlow";
-import Battle from "./components/battle/Battle";
+import Diagnostic from "./components/Diagnostic";
 import Dashboard from "./components/Dashboard";
 import Lessons from "./components/Lessons";
+import Jadadat from "./components/Jadadat";
 import Methodologies from "./components/Methodologies";
 import Applications from "./components/Applications";
 import Resources from "./components/Resources";
 import SearchOverlay from "./components/SearchOverlay";
 import LessonView from "./components/LessonView";
+import LessonPresentation from "./components/LessonPresentation";
 import Decks from "./components/decks/Decks";
 import DeckPlayer from "./components/decks/DeckPlayer";
 import { getDeck } from "./data/decks";
+import { APPLICATIONS } from "./data/applications";
+import { METHODOLOGIES } from "./data/methodologies";
+import { getResource } from "./data/resources";
 import { resolveLesson } from "./data/lessonContent";
-import { BASE_TITLE, VIEW_LABELS, hashToRoute, routeToHash, type Route } from "./routes";
+import { getJadada } from "./lib/jadadatLessons";
+import { isUnlocked } from "./lib/teacherAuth";
+import SeoHead from "./components/SeoHead";
+import { getSeoMetadata } from "./lib/seo";
+import { VIEW_LABELS, locationToRoute, routeToHash, type Route } from "./routes";
 
-/** عنوان الصفحة حسب الشاشة المعروضة (يظهر في تبويب المتصفح ونتائج البحث) */
-function useDocumentTitle(route: Route, detail?: string) {
-  useEffect(() => {
-    const label = detail ? `${detail} — ${VIEW_LABELS[route.view]}` : VIEW_LABELS[route.view];
-    document.title = route.view === "home" ? `${BASE_TITLE} | ثانوية القدس، القنيطرة` : `${label} | ${BASE_TITLE}`;
-  }, [route.view, detail]);
+function TeacherOnlyLessonGate({ go }: { go: (route: Route) => void }) {
+  return (
+    <section className="pt-32 pb-20 md:pt-36" dir="rtl">
+      <div className="mx-auto max-w-xl px-5 text-center">
+        <div className="rounded-3xl border border-gold-300 bg-gold-50 p-8 shadow-sm">
+          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-gold-700">🔒</span>
+          <h1 className="mt-4 font-display text-2xl font-black text-ink-900">محتوى مخصص للأستاذ</h1>
+          <p className="mt-3 text-sm leading-relaxed text-ink-600">الثانية باكالوريا — كتاب «المختصر» متاح داخل لوحة الأستاذ فقط.</p>
+          <button type="button" onClick={() => go({ view: "dashboard", tab: "bac2-lessons" })} className="mt-5 rounded-xl bg-brand-700 px-5 py-3 text-xs font-extrabold text-white">الانتقال إلى لوحة الأستاذ</button>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export default function App() {
-  const [route, setRoute] = useState<Route>(() => hashToRoute(window.location.hash));
+  const [route, setRoute] = useState<Route>(() => locationToRoute(window.location));
   const [searchOpen, setSearchOpen] = useState(false);
 
-  /* مزامنة الشاشة مع العنوان: زر الرجوع/التقدّم في المتصفح والروابط المفتوحة مباشرة.
-     الروابط الداخلية التي لا تبدأ بـ «#/» (مثل #main) لا تُغيّر الشاشة. */
+  /* مزامنة الشاشة مع العنوان: زر الرجوع/التقدّم والروابط النظيفة أو روابط hash المباشرة.
+     الهاش الداخلي #main الخاص برابط تجاوز المحتوى لا يغيّر الشاشة. */
   useEffect(() => {
-    const onHashChange = () => {
+    const onLocationChange = () => {
       const hash = window.location.hash;
       if (hash && !hash.startsWith("#/")) return;
-      setRoute(hashToRoute(hash));
+      setRoute(locationToRoute(window.location));
     };
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
+    window.addEventListener("hashchange", onLocationChange);
+    window.addEventListener("popstate", onLocationChange);
+    return () => {
+      window.removeEventListener("hashchange", onLocationChange);
+      window.removeEventListener("popstate", onLocationChange);
+    };
   }, []);
 
   const go = useCallback(
@@ -55,7 +75,7 @@ export default function App() {
   );
 
   const resolvedLesson = useMemo(
-    () => (route.view === "lesson" ? resolveLesson(route.id) : undefined),
+    () => (route.view === "lesson" || route.view === "presentation" ? resolveLesson(route.id) : undefined),
     [route]
   );
   const resolvedDeck = useMemo(
@@ -63,11 +83,61 @@ export default function App() {
     [route]
   );
   const detail = resolvedLesson?.content.title ?? resolvedDeck?.title;
-  useDocumentTitle(route, detail);
-  const detailLabel = detail ? `${detail} — ${VIEW_LABELS[route.view]}` : VIEW_LABELS[route.view];
+  const jadadaDetail = route.view === "jadadat" && route.id ? getJadada(route.id) : undefined;
+  const routeDetail = jadadaDetail?.title ?? detail;
+  const seoMetadata = useMemo(
+    () =>
+      getSeoMetadata(route, {
+        lesson: resolvedLesson
+          ? {
+              title: resolvedLesson.content.title,
+              level: resolvedLesson.level.label,
+              branch: resolvedLesson.branch.label,
+              subject: resolvedLesson.subjectLabel,
+              unit: resolvedLesson.unit.title,
+            }
+          : undefined,
+        deck: resolvedDeck
+          ? { title: resolvedDeck.title, subject: resolvedDeck.subject, level: resolvedDeck.bookLevel ?? "الأولى باكالوريا" }
+          : undefined,
+        jadada: jadadaDetail
+          ? {
+              title: jadadaDetail.title,
+              level: jadadaDetail.levelLabel,
+              branch: jadadaDetail.branchLabel,
+              subject: jadadaDetail.subjectLabel,
+            }
+          : undefined,
+        methodology:
+          route.view === "methods" && route.id
+            ? (() => {
+                const item = METHODOLOGIES.find((entry) => entry.id === route.id);
+                return item ? { title: item.title, description: item.intro } : undefined;
+              })()
+            : undefined,
+        application:
+          route.view === "apps" && route.id
+            ? (() => {
+                const item = APPLICATIONS.find((entry) => entry.id === route.id);
+                return item ? { title: item.title, description: `${item.level} · ${item.subject} · ${item.skillTag}` } : undefined;
+              })()
+            : undefined,
+        resource: route.view === "resources" && route.open
+          ? (() => {
+              const resource = getResource(route.open);
+              return resource
+                ? { title: resource.title, description: resource.desc, level: resource.level, subject: resource.subject }
+                : undefined;
+            })()
+          : undefined,
+      }),
+    [route, resolvedLesson, resolvedDeck, jadadaDetail],
+  );
+  const detailLabel = routeDetail ? `${routeDetail} — ${VIEW_LABELS[route.view]}` : VIEW_LABELS[route.view];
 
   return (
     <>
+      <SeoHead metadata={seoMetadata} />
       <a
         href="#main"
         className="skip-link"
@@ -81,14 +151,17 @@ export default function App() {
       >
         تخطَّ إلى المحتوى الرئيسي
       </a>
-      <Navbar route={route} go={go} onSearch={() => setSearchOpen(true)} />
+      <Navbar route={route} go={go} />
       <main id="main">
         {route.view === "home" && <Home go={go} onSearch={() => setSearchOpen(true)} />}
         {route.view === "about" && <About />}
+        {route.view === "diagnostic" && <Diagnostic level={route.level} className={route.className} go={go} />}
         {route.view === "test" && <TestFlow initialBank={route.bank} onHome={() => go({ view: "home" })} />}
-        {route.view === "battle" && <Battle key={route.bank ?? "all"} initialBank={route.bank} go={go} />}
-        {route.view === "dashboard" && <Dashboard />}
+        {route.view === "dashboard" && <Dashboard key={route.tab ?? "analysis"} tab={route.tab} go={go} />}
         {route.view === "lessons" && <Lessons key={route.level ?? "default"} go={go} initialLevel={route.level} />}
+        {route.view === "jadadat" && (
+          <Jadadat key={`${route.level ?? "all"}-${route.id ?? "catalog"}`} go={go} detailId={route.id} initialLevel={route.level} />
+        )}
         {route.view === "methods" && (
           <Methodologies key={route.id ?? "list"} detailId={route.id} onSelect={(id) => go({ view: "methods", id })} />
         )}
@@ -103,9 +176,11 @@ export default function App() {
         {route.view === "lesson" &&
           (() => {
             if (!resolvedLesson) return <Lessons go={go} />;
+            if (resolvedLesson.branch.visibility === "teacher" && !isUnlocked()) return <TeacherOnlyLessonGate go={go} />;
             return (
               <LessonView
-                key={route.id}
+                key={`${route.id}-${route.focus ?? "top"}`}
+                focus={route.focus}
                 lesson={resolvedLesson.content}
                 breadcrumb={{
                   level: resolvedLesson.level.label,
@@ -117,6 +192,12 @@ export default function App() {
                 go={go}
               />
             );
+          })()}
+        {route.view === "presentation" &&
+          (() => {
+            if (!resolvedLesson) return <Lessons go={go} />;
+            if (resolvedLesson.branch.visibility === "teacher" && !isUnlocked()) return <TeacherOnlyLessonGate go={go} />;
+            return <LessonPresentation key={route.id} lesson={resolvedLesson} go={go} />;
           })()}
         {route.view === "decks" &&
           (() => {

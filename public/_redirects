@@ -1,0 +1,4 @@
+# المسارات النظيفة تعمل مع تطبيق Vite ذي الصفحة الواحدة، مع الحفاظ على روابط #/ القديمة.
+/dashboard /index.html 200
+/dashboard/* /index.html 200
+/* /index.html 200

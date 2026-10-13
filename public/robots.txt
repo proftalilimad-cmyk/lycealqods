@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# المسارات الخاصة والإدارية لا تُفهرس
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /teacher
+Disallow: /teacher/
+Disallow: /results
+Disallow: /results/
+Disallow: /private
+Disallow: /private/
+
+# لا تمنع ملفات CSS أو JavaScript أو الصور اللازمة لعرض الصفحات.
+Sitemap: https://courstalil.netlify.app/sitemap.xml

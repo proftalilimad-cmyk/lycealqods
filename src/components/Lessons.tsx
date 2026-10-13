@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BadgeCheck, BookOpen, BookOpenCheck, ExternalLink, FileText, FlaskConical, Globe2, History, Hourglass, Landmark, MonitorPlay, Scale, Sparkles, Wrench } from "lucide-react";
+import { BadgeCheck, BookOpen, BookOpenCheck, FileText, FlaskConical, Globe2, History, Hourglass, Landmark, ListChecks, MonitorPlay, Scale, Sparkles, Wrench } from "lucide-react";
 import { LEVELS } from "../data/curriculum";
 import { hasLessonContent, lessonKey } from "../data/lessonContent";
 import { getDeckForLesson } from "../data/decks";
@@ -18,7 +18,7 @@ const SUBJECT_ICONS: Record<string, typeof History> = {
   citizenship: Scale,
 };
 
-function LessonRow({ lesson, index, ready, onOpen, deckId, onDeck }: { lesson: LessonItem; index: number; ready: boolean; onOpen: () => void; deckId?: string; onDeck?: () => void }) {
+function LessonRow({ lesson, index, ready, onOpen, onAssessment, deckId, onDeck, onPresentation }: { lesson: LessonItem; index: number; ready: boolean; onOpen: () => void; onAssessment?: () => void; deckId?: string; onDeck?: () => void; onPresentation?: () => void }) {
   if (lesson.soon) {
     return (
       <li className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
@@ -31,9 +31,14 @@ function LessonRow({ lesson, index, ready, onOpen, deckId, onDeck }: { lesson: L
             <p className="mt-0.5 text-[11px] font-semibold text-gold-700">سيتم إضافة الدرس لاحقًا</p>
           </div>
         </div>
-        <span className="rounded-full border border-dashed border-brand-300 bg-brand-50/60 px-3.5 py-1.5 text-[10px] font-extrabold text-brand-700">
-          قيد الإعداد
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-dashed border-brand-300 bg-brand-50/60 px-3.5 py-1.5 text-[10px] font-extrabold text-brand-700">
+            قيد الإعداد
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-gold-300 bg-gold-50/60 px-3.5 py-1.5 text-[10px] font-extrabold text-gold-700">
+            <MonitorPlay className="size-3" aria-hidden="true" /> العرض قيد إعداد المحتوى
+          </span>
+        </div>
       </li>
     );
   }
@@ -66,17 +71,17 @@ function LessonRow({ lesson, index, ready, onOpen, deckId, onDeck }: { lesson: L
               <BookOpen className="size-3" aria-hidden="true" />
               {ready ? "المحتوى كامل: أهداف + محاور + مفاهيم + اختبر فهمك" : "المحتوى التفصيلي يُضاف تباعًا على المنصة"}
             </span>
-            {deckId && (
+            {ready && (
               <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-[10px] font-extrabold text-brand-700 ring-1 ring-brand-200">
                 <MonitorPlay className="size-3" aria-hidden="true" />
-                عرض تفاعلي من الكتاب المدرسي
+                {deckId ? "عرض تفاعلي من الكتاب المدرسي" : "عرض تدريسي من محتوى الدرس"}
               </span>
             )}
           </div>
         </div>
       </div>
       <span className="flex shrink-0 flex-wrap items-center gap-2">
-        {deckId && onDeck && (
+        {ready && onDeck && (
           <button
             type="button"
             onClick={(e) => {
@@ -87,6 +92,32 @@ function LessonRow({ lesson, index, ready, onOpen, deckId, onDeck }: { lesson: L
           >
             <MonitorPlay className="size-3.5" aria-hidden="true" />
             العرض التفاعلي
+          </button>
+        )}
+        {ready && onPresentation && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPresentation();
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-700 px-3.5 py-2 text-[11px] font-extrabold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-800"
+          >
+            <MonitorPlay className="size-3.5" aria-hidden="true" />
+            PowerPoint
+          </button>
+        )}
+        {ready && onAssessment && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAssessment();
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gold-300 bg-gold-50 px-3.5 py-2 text-[11px] font-extrabold text-gold-700 transition-all hover:-translate-y-0.5 hover:border-gold-500 hover:bg-gold-100"
+          >
+            <ListChecks className="size-3.5" aria-hidden="true" />
+            التقويم النهائي
           </button>
         )}
         {ready ? (
@@ -101,9 +132,15 @@ function LessonRow({ lesson, index, ready, onOpen, deckId, onDeck }: { lesson: L
             اقرأ الدرس ←
           </button>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-1.5 text-[10px] font-extrabold text-brand-700 ring-1 ring-brand-200">
-            <BadgeCheck className="size-3.5" aria-hidden="true" />
-            مدرج بالمقرر الرسمي
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-1.5 text-[10px] font-extrabold text-brand-700 ring-1 ring-brand-200">
+              <BadgeCheck className="size-3.5" aria-hidden="true" />
+              مدرج بالمقرر الرسمي
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gold-300 bg-gold-50/60 px-3.5 py-1.5 text-[10px] font-extrabold text-gold-700" title="يُفتح العرض بعد نشر المحتوى التفصيلي للدرس">
+              <MonitorPlay className="size-3.5" aria-hidden="true" />
+              العرض قيد إعداد المحتوى
+            </span>
           </span>
         )}
       </span>
@@ -123,22 +160,26 @@ function LessonRow({ lesson, index, ready, onOpen, deckId, onDeck }: { lesson: L
 export default function Lessons({ go, initialLevel }: LessonsProps) {
   const [levelId, setLevelId] = useState(initialLevel ?? "tc");
   const level = LEVELS.find((l) => l.id === levelId) ?? LEVELS[0];
-  const [branchId, setBranchId] = useState(level.branches[0].id);
-  const branch = level.branches.find((b) => b.id === branchId) ?? level.branches[0];
+  const publicBranches = level.branches.filter((branchItem) => branchItem.visibility !== "teacher");
+  const firstPublicBranch = publicBranches[0] ?? level.branches[0];
+  const [branchId, setBranchId] = useState(firstPublicBranch.id);
+  const branch = publicBranches.find((b) => b.id === branchId) ?? firstPublicBranch;
   const [subjectId, setSubjectId] = useState(branch.subjects[0].id);
   const activeSubject = branch.subjects.find((s) => s.id === subjectId) ?? branch.subjects[0];
   const units = branch.units[activeSubject.id] ?? [];
 
   const switchLevel = (id: string) => {
     const lv = LEVELS.find((l) => l.id === id) ?? LEVELS[0];
+    const nextBranches = lv.branches.filter((branchItem) => branchItem.visibility !== "teacher");
+    const nextBranch = nextBranches[0] ?? lv.branches[0];
     setLevelId(id);
-    setBranchId(lv.branches[0].id);
-    setSubjectId(lv.branches[0].subjects[0].id);
+    setBranchId(nextBranch.id);
+    setSubjectId(nextBranch.subjects[0].id);
   };
 
   const switchBranch = (id: string) => {
-    const br = level.branches.find((b) => b.id === id) ?? level.branches[0];
-    setBranchId(id);
+    const br = publicBranches.find((b) => b.id === id) ?? firstPublicBranch;
+    setBranchId(br.id);
     setSubjectId(br.subjects[0].id);
   };
 
@@ -182,7 +223,7 @@ export default function Lessons({ go, initialLevel }: LessonsProps) {
         {/* تبويبات المسلك */}
         <Reveal delay={160}>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
-            {level.branches.map((b) => (
+            {publicBranches.map((b) => (
               <button
                 key={b.id}
                 type="button"
@@ -231,20 +272,17 @@ export default function Lessons({ go, initialLevel }: LessonsProps) {
                     <span>
                       <span className={`block text-sm font-extrabold ${active ? "text-brand-700" : "text-ink-900"}`}>{s.label}</span>
                       <span className="block text-[10px] text-ink-500">دروس {s.label} — {branch.label}</span>
+                      {branch.id === "bac2-arts" && (
+                        <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-gold-50 px-2 py-0.5 text-[9px] font-extrabold text-gold-700 ring-1 ring-gold-200">
+                          <ListChecks className="size-3" aria-hidden="true" />
+                          تقويم نهائي: 20 سؤالًا لكل درس
+                        </span>
+                      )}
                     </span>
                   </button>
                 );
               })}
 
-              {branch.program && (
-                <p className="rounded-2xl border border-dashed border-gold-400/70 bg-gold-50 p-4 text-[10px] font-semibold leading-relaxed text-gold-700">
-                  <span className="mb-1 flex items-center gap-1.5 font-extrabold">
-                    <ExternalLink className="size-3" aria-hidden="true" />
-                    مصدر قائمة الدروس
-                  </span>
-                  {branch.programNote ?? <>مقرر «{branch.program}» — وفق التنظيم المنشور على منصة قرايتي (9rayti.com).</>}
-                </p>
-              )}
             </div>
           </Reveal>
 
@@ -296,8 +334,10 @@ export default function Lessons({ go, initialLevel }: LessonsProps) {
                           index={li}
                           ready={ready}
                           onOpen={() => go({ view: "lesson", id: key })}
+                          onAssessment={branch.id === "bac2-arts" ? () => go({ view: "lesson", id: key, focus: "final" }) : undefined}
                           deckId={deck?.id}
                           onDeck={deck ? () => go({ view: "decks", id: deck.id }) : undefined}
+                          onPresentation={() => go({ view: "presentation", id: key })}
                         />
                       );
                     })}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import SmartText from "./SmartText";
 import { ArrowLeft, Award, BadgeCheck, CheckCircle2, ChevronDown, Clock3, Eye, FileText, FlaskConical, PenLine } from "lucide-react";
 import { APPLICATIONS } from "../data/applications";
 import Reveal from "./Reveal";
@@ -73,7 +74,7 @@ export default function Applications({ detailId, initialLevel, onSelect }: Appli
                     {detail.docs.map((d, i) => (
                       <div key={i} className="rounded-2xl border border-gold-300/60 bg-gold-50/70 p-5">
                         <p className="text-[11px] font-extrabold text-gold-700">{d.label}</p>
-                        <p className="mt-2.5 whitespace-pre-line text-sm leading-loose text-ink-700">{d.text}</p>
+                        <div className="mt-2.5"><SmartText text={d.text} className="text-sm leading-loose text-ink-700" /></div>
                       </div>
                     ))}
                   </div>

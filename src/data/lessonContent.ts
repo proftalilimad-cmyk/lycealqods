@@ -1,4 +1,4 @@
-import type { CurriculumBranch, CurriculumLevel, CurriculumUnit, LessonContent } from "../types";
+import type { CurriculumBranch, CurriculumLevel, CurriculumUnit, LessonContent, LessonFormativeAssessment } from "../types";
 import { LEVELS } from "./curriculum";
 import { TC_SCI_HISTORY } from "./lessons/tcSciHistory";
 import { TC_SCI_GEO } from "./lessons/tcSciGeo";
@@ -10,6 +10,10 @@ import { BAC2_SCI_HISTORY } from "./lessons/bac2SciHistory";
 import { BAC2_SCI_GEO } from "./lessons/bac2SciGeo";
 import { BAC2_BOOK_HISTORY } from "./lessons/bac2BookHistory";
 import { BAC2_BOOK_GEO } from "./lessons/bac2BookGeo";
+import { BAC2_ARTS_ADDITIONS } from "./lessons/bac2ArtsAdditions";
+import { getBac2SourceMaterial } from "./lessons/bac2ArtsSourceMaterials";
+import { buildBac2ArtsFinalQuiz } from "./lessons/bac2ArtsFinalAssessment";
+import { TC_SCI_DIDACTIC_PLANS } from "./lessons/tcSciDidacticPlans";
 
 /**
  * مكتبة محتوى الدروس.
@@ -250,7 +254,14 @@ export const LESSON_CONTENT: Record<string, LessonContent> = {
 };
 
 // دمج سجلات المحتوى المفصلة لكل المستويات والمسالك
-Object.assign(LESSON_CONTENT, TC_SCI_HISTORY, TC_SCI_GEO, TC_ARTS, BAC1_SCI_HISTORY, BAC1_SCI_GEO, BAC_ARTS_HISTORY, BAC2_SCI_HISTORY, BAC2_SCI_GEO, BAC2_BOOK_HISTORY, BAC2_BOOK_GEO);
+Object.assign(LESSON_CONTENT, TC_SCI_HISTORY, TC_SCI_GEO, TC_ARTS, BAC1_SCI_HISTORY, BAC1_SCI_GEO, BAC_ARTS_HISTORY, BAC2_SCI_HISTORY, BAC2_SCI_GEO, BAC2_BOOK_HISTORY, BAC2_BOOK_GEO, BAC2_ARTS_ADDITIONS);
+
+// إرفاق تخطيط أنشطة مصدره المجزوءتان الأولى والثانية بالجذع العلمي.
+// يبقى التخطيط منفصلًا عن متن الدرس حتى لا نكرر الدرس في الجذاذة، ويُستعمل
+// لإظهار النشاط والدعامة والمنتوج الكتابي المقابلين لكل مقطع.
+for (const [key, plan] of Object.entries(TC_SCI_DIDACTIC_PLANS)) {
+  if (LESSON_CONTENT[key]) LESSON_CONTENT[key].didacticPlan = plan;
+}
 
 /**
  * ربط المحتوى المشترك بين المسالك:
@@ -305,9 +316,124 @@ const ALIASES: Record<string, { key: string; title?: string }> = {
   "bac2-arts.geography.1.2": { key: "bac2-sci.geography.1.0" },
   "bac2-arts.geography.1.3": { key: "bac2-sci.geography.1.1" },
 
+  /* استكمال محتوى «في رحاب التاريخ» و«منار الجغرافيا» للثانية باكالوريا */
+  "bac2-arts.history.0.1": { key: "bac2-book.history.1.0", title: "أزمة العالم الرأسمالي الكبرى لسنة 1929" },
+  "bac2-arts.history.0.2": { key: "bac2-book.history.1.1", title: "الحرب العالمية الثانية (1939–1945)" },
+  "bac2-arts.history.2.6": { key: "bac2-sci.history.3.2", title: "ملف: الثورة العلمية والتكنولوجية" },
+  "bac2-arts.geography.0.3": { key: "bac2-sci.geography.0.2", title: "المجال العالمي والتحديات الكبرى (التحدي السكاني، والتحدي البيئي)" },
+  "bac2-arts.geography.1.0": { key: "bac2-book.geography.1.1", title: "العولمة والهوية الثقافية" },
+  "bac2-arts.geography.1.1": { key: "bac2-book.geography.1.1", title: "الاتحاد الأوروبي نحو اندماج شامل" },
+  "bac2-arts.geography.1.4": { key: "bac2-sci.geography.3.2", title: "ملف: المنظمة العالمية للتجارة" },
+  "bac2-arts.geography.2.0": { key: "bac2-book.geography.1.0", title: "الولايات المتحدة الأمريكية: قوة اقتصادية عظمى" },
+  "bac2-arts.geography.2.1": { key: "bac2-sci.geography.2.0", title: "فرنسا: قوة فلاحية وصناعية كبرى في الاتحاد الأوروبي" },
+  "bac2-arts.geography.2.2": { key: "bac2-sci.geography.2.1", title: "اليابان: قوة تجارية كبرى" },
+  "bac2-arts.geography.2.3": { key: "bac2-book.geography.1.2", title: "الصين: قوة اقتصادية صاعدة" },
+  "bac2-arts.geography.2.4": { key: "bac2-sci.geography.3.0", title: "البرازيل: نموذج اقتصادي واستمرار التفاوتات في التنمية البشرية" },
+  "bac2-arts.geography.2.5": { key: "bac2-sci.geography.3.1", title: "كوريا الجنوبية: نموذج لبلد حديث النمو الاقتصادي" },
+  "bac2-arts.geography.2.6": { key: "bac2-sci.geography.3.2", title: "ملف: الهند — أوجه متعددة للتنمية" },
+
   /* كتاب «المختصر» ← درس نظام الحماية (ص 11) المكتوب سلفًا وفق الكتاب */
   "bac2-book.history.1.2": { key: "bac2-sci.history.0.2" },
 };
+
+/**
+ * يبني تقويمًا مرحليًا عمليًا لكل درس من دروس الثانية باكالوريا آداب وعلوم
+ * إنسانية. لا يكرر التقويم العام الموجود في quiz؛ بل يقيس ناتج كل مقطع بعد
+ * الاشتغال عليه، ويستخرج المطلوب من بنية المقطع نفسه (تعريف، جدول، لائحة أو
+ * فقرة). بهذه الطريقة يحصل كل درس، بما في ذلك الدروس المحالة إلى محتوى مشترك،
+ * على تقويم خاص بمقاطع ذلك الدرس.
+ */
+function buildBac2ArtsFormativeAssessments(content: LessonContent, subjectId: "history" | "geography") {
+  const objectiveFocus = content.objectives.slice(0, 2).join("؛ ") || "ضبط المفاهيم وتحليل المعطيات وبناء خلاصة مركبة";
+  const quizAnchor = content.quiz[0];
+  const support = subjectId === "geography"
+    ? "شبكة الوصف والتفسير والتعميم، مع العودة إلى خريطة أو جدول أو صورة المقطع."
+    : "شبكة تحليل الوثيقة: التأطير، استخراج المعطيات، الربط، ثم تركيب جواب قصير.";
+  const assessments: LessonFormativeAssessment[] = [
+    {
+      phase: "launch",
+      sectionIndex: null,
+      title: "تقويم الانطلاق واستحضار المكتسبات",
+      prompt: subjectId === "geography"
+        ? `انطلاقًا من عنوان «${content.title}» وإشكاليته، استحضر مكتسبين عن المجال أو الظاهرة، واقترح فرضية أولية للتفسير.`
+        : `انطلاقًا من عنوان «${content.title}» وإشكاليته، استحضر مكتسبين تاريخيين واقترح فرضية أولية للإجابة.`,
+      expected: `يستحضر المتعلم مكتسبين مرتبطين بموضوع «${content.title}»، ويصوغ فرضية قابلة للمراجعة بدل الاكتفاء بتكرار العنوان. ويمهّد ذلك لتحقيق الهدفين: ${objectiveFocus}.`,
+      support: "عرض الكلمات المفتاحية في العنوان، واسترجاع درس سابق أو خط زمني قريب، ثم تحويل الاسترجاع إلى سؤال.",
+    },
+  ];
+
+  content.sections.forEach((section, sectionIndex) => {
+    const firstBlock = section.blocks[0];
+    const sectionText = section.blocks
+      .map((block) => {
+        if (block.type === "p" || block.type === "callout") return block.text;
+        if (block.type === "ul") return `${block.title ?? ""} ${block.items.join("؛ ")}`;
+        return `${block.head.join("؛ ")} ${block.rows.flat().join("؛ ")}`;
+      })
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const isDefinitionCallout = firstBlock?.type === "callout" && firstBlock.tone === "def" && firstBlock.label.length < 70 && !/[؟?!]/.test(firstBlock.label);
+    const focus = isDefinitionCallout
+      ? `المفهوم «${firstBlock.label}» ومعناه في سياق الدرس`
+      : firstBlock?.type === "table"
+        ? `معطيات ${firstBlock.head.join(" و")}`
+        : `الفكرة الأساس في مقطع «${section.title}»`;
+    const prompt = firstBlock?.type === "table"
+      ? `استخرج من جدول مقطع «${section.title}» معطيين أساسيين، ثم اربط بينهما في استنتاج واحد.`
+      : isDefinitionCallout
+        ? `عرّف ${focus}، ثم وظّفه في جملة تفسر موضوع مقطع «${section.title}».`
+        : subjectId === "geography"
+          ? `صف الظاهرة أو المعطيات الواردة في مقطع «${section.title}»، ثم فسّر عاملًا واحدًا واستخلص نتيجة.`
+          : `استخرج الفكرة الأساس من مقطع «${section.title}»، وحدد عنصرين يثبتانها، ثم اربطها بإشكالية الدرس.`;
+    const expected = firstBlock?.type === "table"
+      ? `يقدم المتعلم معطيين صحيحين من الجدول ويصوغ استنتاجًا يربط بينهما: ${sectionText.slice(0, 260)}.`
+      : isDefinitionCallout
+        ? `${firstBlock.text.slice(0, 300)}.`
+        : `${sectionText.slice(0, 300)}.`;
+    assessments.push({
+      phase: "building",
+      sectionIndex,
+      title: `تقويم بنائي ${sectionIndex + 1}: ${section.title}`,
+      prompt,
+      expected,
+      support,
+    });
+  });
+
+  assessments.push(
+    {
+      phase: "checkpoint",
+      sectionIndex: null,
+      title: "تقويم مرحلي للتحقق من الفهم والتوظيف",
+      prompt: `${subjectId === "geography"
+        ? `وظّف مفهومين ومعطيين من محاور «${content.title}» في جواب منظم يصف الظاهرة ويفسرها.`
+        : `وظّف مفهومين ومحطتين من محاور «${content.title}» في جواب منظم يبرز العلاقة بين الأحداث والعوامل والنتائج.`} ${quizAnchor ? `وسؤال التوظيف المرتبط بالدرس: «${quizAnchor.q}»` : ""}`,
+      expected: `جواب يربط بين محاور الدرس لا مجرد تعدادها، ويستعمل مفاهيم ومعطيات صحيحة من المقاطع: ${content.summary.slice(0, 2).join("؛ ")}. ويظهر فيه تحقق الهدفين: ${objectiveFocus}.${quizAnchor ? ` ويقبل التصحيح جوابًا يحدد «${quizAnchor.options[quizAnchor.answer]}» ويعلله: ${quizAnchor.why}.` : ""}`,
+      support,
+    },
+    {
+      phase: "synthesis",
+      sectionIndex: null,
+      title: "التقويم التركيبي النهائي والمعالجة",
+      prompt: `أنجز خلاصة مركبة من 6 إلى 8 أسطر تجيب عن الإشكالية المركزية للدرس: «${content.coreQuestion}».`,
+      expected: `خلاصة تتضمن تعريف الموضوع وتأطيره، أفكار المحاور الأساسية، أمثلة أو معطيات دقيقة، ثم جوابًا صريحًا عن الإشكالية: ${content.summary.slice(0, 3).join("؛ ")}. وتترجم الهدفين التعلميين: ${objectiveFocus}.`,
+      support: "المعالجة المقترحة: تقديم خطاطة أو قائمة مفاهيم، إعادة تحليل مقطع واحد بتوجيه، ثم إعادة كتابة الخلاصة باستعمال روابط مثل لأن، لذلك، بينما، ومن جهة أخرى.",
+    },
+  );
+  return assessments;
+}
+
+function withBac2ArtsFormativeAssessments(content: LessonContent, key: string): LessonContent {
+  if (!key.startsWith("bac2-arts.") || content.formativeAssessments?.length) return content;
+  const subjectId = key.split(".")[1] as "history" | "geography";
+  if (subjectId !== "history" && subjectId !== "geography") return content;
+  return {
+    ...content,
+    formativeAssessments: buildBac2ArtsFormativeAssessments(content, subjectId),
+    quiz: buildBac2ArtsFinalQuiz(content, subjectId),
+  };
+}
 
 function foldAsil(subject: "history" | "geography", indexes: string[]) {
   const out: Record<string, { key: string }> = {};
@@ -378,6 +504,33 @@ LESSON_CONTENT["tc-sci.history.0.0"].application = {
   ],
 };
 
+LESSON_CONTENT["tc-sci.history.0.0"].externalVisuals = [
+  {
+    src: "/images/presentation/tc-sci-history-0-0/printing-towns-incunabula.png",
+    title: "انتشار المطابع في أوربا خلال القرن 15م",
+    sourceName: "Wikimedia Commons — File:Printing towns incunabula.svg",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Printing_towns_incunabula.svg",
+    sectionIndex: 1,
+    author: "NordNordWest؛ اعتمادًا على Incunabula Short Title Catalogue التابع للمكتبة البريطانية",
+    date: "الخريطة: 30 غشت 2011؛ المعطيات: 2 مارس 2011",
+    license: "CC BY-SA 3.0 DE — https://creativecommons.org/licenses/by-sa/3.0/de/deed.en؛ نسب NordNordWest/Wikipedia والمشاركة بالمثل",
+    concept: "انتشار الطباعة ودورها في تداول الكتب والأفكار",
+    guidingQuestion: "ما توزيع المدن التي ظهرت فيها المطابع؟ وماذا يوحي ذلك عن انتشار الأفكار؟",
+  },
+  {
+    src: "/images/presentation/tc-sci-history-0-0/leonardo-belle-ferronniere.jpg",
+    title: "La Belle Ferronnière — بورتريه من فن عصر النهضة",
+    sourceName: "Wikimedia Commons — File:Leonardo da Vinci (attrib)- la Belle Ferroniere.jpg",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Leonardo_da_Vinci_(attrib)-_la_Belle_Ferroniere.jpg",
+    sectionIndex: 2,
+    author: "ليوناردو دا فينشي (منسوبًا إليه)؛ مصدر الصورة: The Yorck Project (2002)",
+    date: "حوالي 1490–1498؛ محفوظة في متحف اللوفر، INV 778",
+    license: "ملكية عامة؛ Public Domain Mark 1.0 — https://creativecommons.org/publicdomain/mark/1.0/",
+    concept: "الاهتمام بالإنسان وتقنيات البورتريه في فن النهضة",
+    guidingQuestion: "ما العناصر التي تبرز حضور الإنسان في هذا البورتريه؟ وما الذي يمكن ملاحظته في الضوء والملامح؟",
+  },
+];
+
 LESSON_CONTENT["bac1-sci.history.3.0"].docs = [
   {
     label: "وثيقة 1: مقتطف مُصاغ من معاهدة فاس (30 مارس 1912)",
@@ -426,6 +579,12 @@ LESSON_CONTENT["bac1-sci.history.3.0"].application = {
   ],
 };
 
+const withBac2Source = (content: LessonContent, key: string): LessonContent => {
+  if (!key.startsWith("bac2-arts.") && !key.startsWith("bac2-sci.")) return content;
+  const sourceMaterial = getBac2SourceMaterial(key);
+  return sourceMaterial ? { ...content, sourceMaterial } : content;
+};
+
 /** هل يتوفر محتوى للدرس بالمفتاح المعطى؟ */
 export function hasLessonContent(key: string): boolean {
   return Boolean(getLessonContent(key));
@@ -433,12 +592,13 @@ export function hasLessonContent(key: string): boolean {
 
 export function getLessonContent(key: string): LessonContent | undefined {
   const direct = LESSON_CONTENT[key];
-  if (direct) return direct;
+  if (direct) return withBac2ArtsFormativeAssessments(withBac2Source(direct, key), key);
   const alias = ALIASES[key];
   if (!alias) return undefined;
   const base = LESSON_CONTENT[alias.key];
   if (!base) return undefined;
-  return alias.title ? { ...base, id: key, title: alias.title } : { ...base, id: key };
+  const content = alias.title ? { ...base, id: key, title: alias.title } : { ...base, id: key };
+  return withBac2ArtsFormativeAssessments(withBac2Source(content, key), key);
 }
 
 /** توليد مفتاح الدرس من موقعه في بنية المقرر */
@@ -452,6 +612,12 @@ export interface ResolvedLesson {
   branch: CurriculumBranch;
   subjectLabel: string;
   unit: CurriculumUnit;
+}
+
+/** هل محتوى الدرس مشتركًا مع درس آخر؟ (يُستعمل للتصريح بمصدر المحتوى في الجذاذات) */
+export function lessonAliasOf(key: string): { key: string; title?: string } | undefined {
+  if (LESSON_CONTENT[key]) return undefined;
+  return ALIASES[key];
 }
 
 /** استخراج الدرس ومساره الكامل من مفتاحه */
