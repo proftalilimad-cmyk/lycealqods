@@ -516,26 +516,178 @@ async function loadVisuals(visuals: VisualMaterial[]): Promise<{ visual: VisualM
   return loaded.filter((item): item is { visual: VisualMaterial; data: string } => Boolean(item.data));
 }
 
-function addPptMetadata(output: any, title: string, eyebrow?: string): void {
-  output.addText(title, { x: 0.55, y: 0.28, w: 12.25, h: 0.55, fontFace: "Arial", fontSize: 22, bold: true, color: "07553E", align: "right", rtlMode: true, margin: 0.03 });
-  if (eyebrow) output.addText(eyebrow, { x: 0.6, y: 0.9, w: 12.1, h: 0.3, fontFace: "Arial", fontSize: 9, color: "B17617", align: "right", rtlMode: true, margin: 0.02 });
+const PPT_FONT_BODY = "Readex Pro";
+const PPT_FONT_DISPLAY = "Cairo";
+const PPT_COLORS = {
+  paper: "F7F5EF",
+  paperWarm: "EFECE2",
+  white: "FFFFFF",
+  ink: "0B1D17",
+  ink700: "33473F",
+  ink500: "5B6E66",
+  brand50: "EDF7F2",
+  brand100: "D4EDE0",
+  brand200: "A9DCC4",
+  brand600: "0F7C5B",
+  brand700: "0C6147",
+  brand800: "0A4D3A",
+  brand900: "073828",
+  brand950: "04241A",
+  gold50: "FDF7E9",
+  gold100: "FBF0D8",
+  gold200: "F5DFAE",
+  gold300: "EFCB80",
+  gold400: "E6B457",
+  gold700: "8F5F1C",
+  sky50: "EFF8FF",
+  sky200: "BAE0FE",
+  sky700: "0369A1",
+  line: "DDE7E1",
+} as const;
+
+type PptTone = "paper" | "brand" | "gold" | "sky";
+
+function pptTone(tone: PptTone): { fill: string; line: string; label: string } {
+  if (tone === "brand") return { fill: PPT_COLORS.brand50, line: PPT_COLORS.brand200, label: PPT_COLORS.brand700 };
+  if (tone === "gold") return { fill: PPT_COLORS.gold50, line: PPT_COLORS.gold200, label: PPT_COLORS.gold700 };
+  if (tone === "sky") return { fill: PPT_COLORS.sky50, line: PPT_COLORS.sky200, label: PPT_COLORS.sky700 };
+  return { fill: PPT_COLORS.paperWarm, line: PPT_COLORS.line, label: PPT_COLORS.brand700 };
 }
 
 function addPptText(output: any, text: string, options: Record<string, unknown> = {}): void {
   output.addText(text, {
-    x: 0.65,
-    y: 1.35,
-    w: 11.7,
-    h: 5.65,
-    fontFace: "Arial",
-    fontSize: 13,
-    color: "24332D",
+    fontFace: PPT_FONT_BODY,
+    fontSize: 11,
+    color: PPT_COLORS.ink,
     align: "right",
     valign: "top",
     rtlMode: true,
-    margin: 0.1,
+    margin: 0.08,
+    fit: "shrink",
     breakLine: false,
     ...options,
+  });
+}
+
+function addPptCard(output: any, x: number, y: number, w: number, h: number, fill: string, line = fill): void {
+  output.addShape("roundRect", {
+    x,
+    y,
+    w,
+    h,
+    rectRadius: 0.12,
+    fill: { color: fill },
+    line: { color: line, width: 0.7 },
+  });
+}
+
+function addPptInfoCard(output: any, label: string, text: string, x: number, y: number, w: number, h: number, tone: PptTone = "paper", fontSize = 8.2): void {
+  const colors = pptTone(tone);
+  addPptCard(output, x, y, w, h, colors.fill, colors.line);
+  addPptText(output, label, { x: x + 0.16, y: y + 0.08, w: w - 0.32, h: Math.min(0.2, h * 0.32), fontFace: PPT_FONT_DISPLAY, fontSize: 6.8, bold: true, color: colors.label, margin: 0 });
+  addPptText(output, text, { x: x + 0.16, y: y + Math.min(0.28, h * 0.38), w: w - 0.32, h: Math.max(0.18, h - Math.min(0.3, h * 0.4) - 0.08), fontSize, color: PPT_COLORS.ink700, margin: 0.02 });
+}
+
+function addPptSlideFrame(output: any, item: PresentationSlide, index: number, total: number, meta: PresentationMeta, lesson: LessonContent): void {
+  if (item.kind === "title") {
+    output.background = { color: PPT_COLORS.brand900 };
+    output.addShape("rect", { x: 0, y: 0, w: 13.333, h: 7.5, fill: { color: PPT_COLORS.brand900 }, line: { color: PPT_COLORS.brand900 } });
+    output.addShape("rect", { x: 0, y: 0, w: 13.333, h: 0.11, fill: { color: PPT_COLORS.gold400 }, line: { color: PPT_COLORS.gold400 } });
+    output.addShape("roundRect", { x: 6.02, y: 0.78, w: 1.28, h: 1.28, fill: { color: PPT_COLORS.gold400, transparency: 82 }, line: { color: PPT_COLORS.gold300, transparency: 55, width: 1 } });
+    addPptText(output, "▶", { x: 6.02, y: 1.02, w: 1.28, h: 0.65, fontFace: "Arial", fontSize: 28, bold: true, color: PPT_COLORS.gold200, align: "center", valign: "mid", margin: 0 });
+    addPptText(output, item.title, { x: 0.8, y: 2.25, w: 11.75, h: 1.35, fontFace: PPT_FONT_DISPLAY, fontSize: 29, bold: true, color: PPT_COLORS.white, align: "center", valign: "mid", margin: 0.08 });
+    addPptText(output, `${meta.subjectLabel} · ${meta.levelLabel} · ${meta.branchLabel}`, { x: 0.9, y: 4.02, w: 11.55, h: 0.4, fontSize: 15, bold: true, color: "D4EDE0", align: "center", valign: "mid", margin: 0 });
+    addPptText(output, lesson.duration, { x: 1.2, y: 4.55, w: 10.95, h: 0.35, fontSize: 11, color: PPT_COLORS.gold200, align: "center", valign: "mid", margin: 0 });
+    output.addShape("line", { x: 5.15, y: 5.35, w: 3.03, h: 0, line: { color: PPT_COLORS.gold400, width: 1.5 } });
+    addPptText(output, `${index + 1} / ${total}`, { x: 11.65, y: 7.05, w: 1, h: 0.2, fontSize: 8, color: PPT_COLORS.brand100, align: "right", margin: 0 });
+    return;
+  }
+
+  output.background = { color: PPT_COLORS.paper };
+  addPptCard(output, 0.25, 0.18, 12.83, 7.12, PPT_COLORS.white, PPT_COLORS.brand200);
+  const glyphs: Record<SlideKind, string> = {
+    title: "▶",
+    objectives: "◎",
+    context: "◌",
+    problem: "؟",
+    concepts: "✦",
+    section: "✦",
+    paragraph: "▤",
+    list: "☷",
+    table: "▦",
+    callout: "❝",
+    document: "▤",
+    activity: "▤",
+    schema: "◇",
+    image: "▧",
+    timeline: "⌁",
+    summary: "✓",
+    assessment: "✓",
+    tips: "✓",
+  };
+  output.addShape("roundRect", { x: 0.64, y: 0.37, w: 0.58, h: 0.58, fill: { color: PPT_COLORS.brand50 }, line: { color: PPT_COLORS.brand100, width: 0.6 } });
+  addPptText(output, glyphs[item.kind], { x: 0.64, y: 0.47, w: 0.58, h: 0.3, fontFace: "Arial", fontSize: 17, bold: true, color: PPT_COLORS.brand700, align: "center", valign: "mid", margin: 0 });
+  addPptText(output, item.eyebrow ?? "", { x: 1.38, y: 0.4, w: 11, h: 0.22, fontFace: PPT_FONT_BODY, fontSize: 7.3, bold: true, color: PPT_COLORS.gold700, margin: 0 });
+  addPptText(output, item.title, { x: 1.38, y: 0.66, w: 11, h: 0.43, fontFace: PPT_FONT_DISPLAY, fontSize: 17, bold: true, color: PPT_COLORS.ink, margin: 0 });
+  output.addShape("line", { x: 0.65, y: 1.17, w: 12.02, h: 0, line: { color: PPT_COLORS.brand100, width: 0.8 } });
+  output.addShape("rect", { x: 0.65, y: 1.15, w: 1.2, h: 0.04, fill: { color: PPT_COLORS.gold400 }, line: { color: PPT_COLORS.gold400 } });
+  addPptText(output, `${index + 1} / ${total}`, { x: 11.65, y: 7.05, w: 1, h: 0.2, fontSize: 8, color: PPT_COLORS.ink500, align: "right", margin: 0 });
+}
+
+function addPptNumberedCards(output: any, items: string[], summary = false): void {
+  const gap = 0.11;
+  const y = 1.4;
+  const available = 5.45;
+  const cardH = Math.min(1.02, (available - gap * Math.max(0, items.length - 1)) / Math.max(1, items.length));
+  items.forEach((item, index) => {
+    const itemY = y + index * (cardH + gap);
+    addPptCard(output, 0.65, itemY, 12.02, cardH, summary ? PPT_COLORS.brand50 : PPT_COLORS.paperWarm, summary ? PPT_COLORS.brand100 : PPT_COLORS.paperWarm);
+    output.addShape("roundRect", { x: 11.87, y: itemY + Math.max(0.1, (cardH - 0.48) / 2), w: 0.56, h: 0.48, fill: { color: PPT_COLORS.brand700 }, line: { color: PPT_COLORS.brand700 } });
+    addPptText(output, String(index + 1), { x: 11.87, y: itemY + Math.max(0.19, (cardH - 0.25) / 2), w: 0.56, h: 0.18, fontFace: PPT_FONT_DISPLAY, fontSize: 8.5, bold: true, color: PPT_COLORS.white, align: "center", valign: "mid", margin: 0 });
+    addPptText(output, item, { x: 0.92, y: itemY + 0.12, w: 10.65, h: cardH - 0.22, fontSize: items.length >= 5 ? 8.8 : 10.2, color: PPT_COLORS.ink700, margin: 0.02 });
+  });
+}
+
+function addPptParagraphCards(output: any, paragraphs: string[]): void {
+  const gap = 0.14;
+  const y = 1.45;
+  const h = Math.min(1.45, (5.32 - gap * Math.max(0, paragraphs.length - 1)) / Math.max(1, paragraphs.length));
+  paragraphs.forEach((paragraph, index) => {
+    const itemY = y + index * (h + gap);
+    addPptCard(output, 0.65, itemY, 12.02, h, PPT_COLORS.paperWarm, PPT_COLORS.paperWarm);
+    addPptText(output, paragraph, { x: 0.95, y: itemY + 0.16, w: 11.42, h: h - 0.3, fontSize: paragraphs.length > 2 ? 9.6 : 12, color: PPT_COLORS.ink700, margin: 0.02 });
+  });
+}
+
+function addPptProblem(output: any, text: string): void {
+  addPptCard(output, 0.65, 1.62, 12.02, 4.8, PPT_COLORS.gold50, PPT_COLORS.gold200);
+  output.addShape("rect", { x: 12.58, y: 1.62, w: 0.09, h: 4.8, fill: { color: PPT_COLORS.gold400 }, line: { color: PPT_COLORS.gold400 } });
+  addPptText(output, text, { x: 1.15, y: 2.55, w: 11.02, h: 2.7, fontFace: PPT_FONT_DISPLAY, fontSize: 24, bold: true, align: "center", valign: "mid", color: PPT_COLORS.ink, margin: 0.15 });
+}
+
+function addPptCallout(output: any, callout: NonNullable<PresentationSlide["callout"]>): void {
+  const colors = callout.tone === "def" ? pptTone("brand") : callout.tone === "warn" ? pptTone("gold") : pptTone("sky");
+  addPptCard(output, 0.65, 1.55, 12.02, 4.85, colors.fill, colors.line);
+  addPptText(output, "❝", { x: 0.95, y: 1.85, w: 0.5, h: 0.45, fontFace: "Arial", fontSize: 25, bold: true, color: PPT_COLORS.brand600, margin: 0 });
+  addPptText(output, callout.label, { x: 0.95, y: 2.55, w: 11.3, h: 0.45, fontFace: PPT_FONT_DISPLAY, fontSize: 18, bold: true, color: PPT_COLORS.ink, margin: 0 });
+  addPptText(output, callout.text, { x: 0.95, y: 3.2, w: 11.3, h: 2.4, fontSize: 15, color: PPT_COLORS.ink700, margin: 0.05 });
+}
+
+function addPptTable(output: any, table: NonNullable<PresentationSlide["table"]>): void {
+  const header = table.head.map((cell) => ({ text: cell, options: { bold: true, color: PPT_COLORS.white, fill: { color: PPT_COLORS.brand700 }, align: "right", valign: "mid" } }));
+  const body = table.rows.map((row, rowIndex) => row.map((cell) => ({ text: cell, options: { color: PPT_COLORS.ink700, fill: { color: rowIndex % 2 ? PPT_COLORS.paperWarm : PPT_COLORS.white }, align: "right", valign: "top" } })));
+  output.addTable([header, ...body], {
+    x: 0.62,
+    y: 1.38,
+    w: 12.08,
+    h: 5.55,
+    fontFace: PPT_FONT_BODY,
+    fontSize: 9.2,
+    color: PPT_COLORS.ink700,
+    border: { type: "solid", color: PPT_COLORS.brand200, pt: 0.6 },
+    margin: 0.08,
+    valign: "top",
+    rtlMode: true,
   });
 }
 
@@ -550,28 +702,123 @@ function visualCitation(visual: VisualMaterial): string {
   ].filter(Boolean).join("\n");
 }
 
+function addPptVisualPlaceholder(output: any, x: number, y: number, w: number, h: number): void {
+  addPptCard(output, x, y, w, h, PPT_COLORS.gold50, PPT_COLORS.gold300);
+  addPptText(output, "▧", { x: x + w / 2 - 0.3, y: y + 0.55, w: 0.6, h: 0.5, fontFace: "Arial", fontSize: 25, color: PPT_COLORS.gold700, align: "center", margin: 0 });
+  addPptText(output, "لا توجد صورة موثقة متاحة لهذا النشاط", { x: x + 0.35, y: y + 1.2, w: w - 0.7, h: 0.35, fontFace: PPT_FONT_DISPLAY, fontSize: 11, bold: true, color: PPT_COLORS.gold700, align: "center", margin: 0 });
+  addPptText(output, "يُترك المورد فارغًا إلى حين التحقق من صورة أو خريطة أو مبيان مناسب.", { x: x + 0.45, y: y + 1.7, w: w - 0.9, h: 0.7, fontSize: 7.6, color: PPT_COLORS.gold700, align: "center", margin: 0 });
+}
+
 function addPptVisualCaptions(output: any, loaded: { visual: VisualMaterial; data: string }[], x: number, y: number, w: number, h: number): void {
   const selected = loaded.slice(0, 2);
-  if (selected.length === 1) {
-    const entry = selected[0];
-    output.addImage({ data: entry.data, x, y, w, h: h - 0.82 });
-    output.addText(visualCitation(entry.visual), { x, y: y + h - 0.78, w, h: 0.7, fontFace: "Arial", fontSize: 6.5, color: "5B6C64", align: "center", rtlMode: true, margin: 0, fit: "shrink", hyperlink: entry.visual.sourceUrl ? { url: entry.visual.sourceUrl } : undefined });
+  if (!selected.length) {
+    addPptVisualPlaceholder(output, x, y, w, h);
     return;
   }
+  if (selected.length === 1) {
+    const entry = selected[0];
+    addPptCard(output, x, y, w, h, PPT_COLORS.paperWarm, PPT_COLORS.line);
+    output.addImage({ data: entry.data, x: x + 0.12, y: y + 0.12, w: w - 0.24, h: h - 1.04 });
+    addPptText(output, visualCitation(entry.visual), { x: x + 0.16, y: y + h - 0.84, w: w - 0.32, h: 0.7, fontSize: 5.8, color: PPT_COLORS.ink500, align: "center", margin: 0, hyperlink: entry.visual.sourceUrl ? { url: entry.visual.sourceUrl } : undefined });
+    return;
+  }
+  const itemH = (h - 0.12) / 2;
   selected.forEach((entry, index) => {
-    const itemY = y + index * (h / 2);
-    output.addImage({ data: entry.data, x, y: itemY, w, h: h / 2 - 0.5 });
-    output.addText(visualCitation(entry.visual), { x, y: itemY + h / 2 - 0.46, w, h: 0.42, fontFace: "Arial", fontSize: 5.5, color: "5B6C64", align: "center", rtlMode: true, margin: 0, fit: "shrink", hyperlink: entry.visual.sourceUrl ? { url: entry.visual.sourceUrl } : undefined });
+    const itemY = y + index * (itemH + 0.12);
+    addPptCard(output, x, itemY, w, itemH, PPT_COLORS.paperWarm, PPT_COLORS.line);
+    output.addImage({ data: entry.data, x: x + 0.1, y: itemY + 0.08, w: w - 0.2, h: itemH - 0.62 });
+    addPptText(output, visualCitation(entry.visual), { x: x + 0.12, y: itemY + itemH - 0.49, w: w - 0.24, h: 0.4, fontSize: 4.5, color: PPT_COLORS.ink500, align: "center", margin: 0, hyperlink: entry.visual.sourceUrl ? { url: entry.visual.sourceUrl } : undefined });
   });
 }
 
-/** يبني ملف PowerPoint حقيقيًا من الشرائح، مع إدماج الوثيقة داخل نشاطها لا كرابط فقط. */
+function addPptLearningPath(output: any, y: number): void {
+  addPptCard(output, 0.65, y, 12.02, 0.62, PPT_COLORS.brand50, PPT_COLORS.brand200);
+  addPptText(output, "مسار بناء التعلمات", { x: 10.75, y: y + 0.11, w: 1.7, h: 0.2, fontFace: PPT_FONT_DISPLAY, fontSize: 6.8, bold: true, color: PPT_COLORS.brand700, margin: 0 });
+  addPptText(output, LEARNING_SEQUENCE.map((phase, index) => `${index + 1}. ${phase}`).join("  ←  "), { x: 0.9, y: y + 0.2, w: 9.7, h: 0.2, fontSize: 6.5, bold: true, color: PPT_COLORS.ink700, align: "center", valign: "mid", margin: 0 });
+}
+
+function addPptActivity(output: any, activity: ActivityMaterial, loaded: { visual: VisualMaterial; data: string }[]): void {
+  addPptLearningPath(output, 1.34);
+  const leftX = 0.65;
+  const leftW = 4.18;
+  const rightX = 5.05;
+  const rightW = 7.62;
+  if (loaded.length) addPptVisualCaptions(output, loaded, leftX, 2.08, leftW, 2.92);
+  else addPptVisualPlaceholder(output, leftX, 2.08, leftW, 2.92);
+  addPptInfoCard(output, "توجيه الأستاذ", activity.teacherGuidance ?? "يوجّه الأستاذ المتعلمين إلى الملاحظة والوصف وطرح الفرضيات، ثم يؤجل الأجوبة والخلاصة.", leftX, 5.12, leftW, 0.63, "gold", 5.9);
+  addPptInfoCard(output, "طبيعة الوثيقة / المصدر", `${activity.nature} · ${activity.source}`, leftX, 5.84, leftW, 0.7, "paper", 5.6);
+
+  const cardW = (rightW - 0.14) / 2;
+  addPptInfoCard(output, "المفهوم المستهدف", activity.concept, rightX, 2.08, cardW, 0.75, "brand", 6.5);
+  addPptInfoCard(output, "الهدف التعلمي", activity.objective, rightX + cardW + 0.14, 2.08, cardW, 0.75, "brand", 6.5);
+  addPptInfoCard(output, "مهمة المتعلم", activity.studentTask, rightX, 2.95, cardW, 0.82, "sky", 6.3);
+  addPptInfoCard(output, "الملاحظة والتحليل", activity.observation, rightX + cardW + 0.14, 2.95, cardW, 0.82, "paper", 6.3);
+
+  addPptCard(output, rightX, 3.93, rightW, 1.82, PPT_COLORS.white, PPT_COLORS.line);
+  addPptText(output, "أسئلة موجهة للمتعلمين", { x: rightX + 0.18, y: 4.08, w: rightW - 0.36, h: 0.2, fontFace: PPT_FONT_DISPLAY, fontSize: 7.2, bold: true, color: PPT_COLORS.brand700, margin: 0 });
+  addPptText(output, activity.questions.map((question, index) => `${index + 1}. ${question.q}`).join("\n"), { x: rightX + 0.18, y: 4.38, w: rightW - 0.36, h: 1.12, fontSize: 6.1, color: PPT_COLORS.ink, margin: 0.02 });
+  addPptText(output, "يناقش المتعلمون الفرضيات قبل إظهار الإجابة.", { x: rightX + 0.18, y: 5.49, w: rightW - 0.36, h: 0.15, fontSize: 5.2, color: PPT_COLORS.ink500, margin: 0 });
+  addPptCard(output, rightX, 5.91, rightW, 0.63, PPT_COLORS.gold50, PPT_COLORS.gold200);
+  addPptText(output, "الاستنتاج", { x: rightX + 0.18, y: 6.04, w: 1.0, h: 0.18, fontFace: PPT_FONT_DISPLAY, fontSize: 6.8, bold: true, color: PPT_COLORS.gold700, margin: 0 });
+  addPptText(output, activity.expectedConclusion ? activity.expectedConclusion : "يُصاغ الاستنتاج جماعيًا انطلاقًا من الأدلة أعلاه.", { x: rightX + 1.25, y: 6.02, w: rightW - 1.45, h: 0.25, fontSize: 5.8, bold: true, color: PPT_COLORS.ink700, margin: 0 });
+}
+
+function addPptDocument(output: any, doc: PresentationDocument, loaded: { visual: VisualMaterial; data: string }[]): void {
+  const gap = 0.1;
+  const metaW = (12.02 - gap * 3) / 4;
+  const meta = [
+    ["طبيعة الوثيقة", doc.nature],
+    ["المصدر / المؤلف", doc.source],
+    ["التاريخ", doc.date],
+    ["السياق", doc.context],
+  ];
+  meta.forEach(([label, text], index) => addPptInfoCard(output, label, text, 0.65 + index * (metaW + gap), 1.34, metaW, 0.68, "paper", 5.9));
+  if (loaded.length) addPptVisualCaptions(output, loaded, 0.65, 2.18, 4.58, 3.02);
+  else addPptVisualPlaceholder(output, 0.65, 2.18, 4.58, 3.02);
+  addPptCard(output, 5.42, 2.18, 7.25, 3.02, PPT_COLORS.brand50, PPT_COLORS.brand200);
+  addPptText(output, doc.label, { x: 5.68, y: 2.37, w: 6.7, h: 0.3, fontFace: PPT_FONT_DISPLAY, fontSize: 12, bold: true, color: PPT_COLORS.brand900, margin: 0 });
+  addPptText(output, doc.text, { x: 5.68, y: 2.82, w: 6.7, h: 2.05, fontSize: 9.1, color: PPT_COLORS.ink700, margin: 0.04 });
+  addPptCard(output, 0.65, 5.42, 12.02, 0.88, PPT_COLORS.paperWarm, PPT_COLORS.paperWarm);
+  addPptText(output, `أسئلة أجيب عنها:\n${doc.questions.map((item, index) => `${index + 1}. ${item.q}`).join("\n")}`, { x: 0.9, y: 5.55, w: 11.5, h: 0.58, fontSize: 6.5, color: PPT_COLORS.ink, margin: 0 });
+  addPptCard(output, 0.65, 6.46, 12.02, 0.43, PPT_COLORS.gold50, PPT_COLORS.gold200);
+  addPptText(output, "الخلاصة المرتبطة بالإشكالية: يكتب المتعلمون خلاصة قصيرة قبل عرض الصياغة المقترحة.", { x: 0.9, y: 6.56, w: 11.5, h: 0.18, fontSize: 6.2, color: PPT_COLORS.gold700, margin: 0 });
+}
+
+function addPptSchema(output: any, schema: NonNullable<PresentationSlide["schema"]>): void {
+  const gap = 0.16;
+  const w = (12.02 - gap) / 2;
+  const rows = Math.ceil(schema.rows.length / 2);
+  const h = Math.min(1.35, (5.35 - gap * Math.max(0, rows - 1)) / Math.max(1, rows));
+  schema.rows.forEach((row, index) => {
+    const col = index % 2;
+    const rowIndex = Math.floor(index / 2);
+    const x = col === 0 ? 0.65 : 0.65 + w + gap;
+    const y = 1.42 + rowIndex * (h + gap);
+    addPptInfoCard(output, row.label, row.value, x, y, w, h, "brand", rows >= 4 ? 7.5 : 9.2);
+  });
+}
+
+function addPptTimeline(output: any, timeline: { date: string; event: string }[]): void {
+  const gap = 0.12;
+  const h = Math.min(0.72, (5.35 - gap * Math.max(0, timeline.length - 1)) / Math.max(1, timeline.length));
+  output.addShape("line", { x: 11.88, y: 1.62, w: 0, h: Math.max(0.5, timeline.length * (h + gap) - gap - 0.2), line: { color: PPT_COLORS.brand200, width: 1.4 } });
+  timeline.forEach((item, index) => {
+    const y = 1.48 + index * (h + gap);
+    output.addShape("ellipse", { x: 11.72, y: y + 0.18, w: 0.32, h: 0.32, fill: { color: PPT_COLORS.gold400 }, line: { color: PPT_COLORS.gold300, width: 1 } });
+    addPptCard(output, 0.85, y, 10.65, h, PPT_COLORS.paperWarm, PPT_COLORS.paperWarm);
+    addPptText(output, item.date, { x: 1.1, y: y + 0.11, w: 2.1, h: h - 0.2, fontFace: PPT_FONT_DISPLAY, fontSize: 8.2, bold: true, color: PPT_COLORS.brand800, margin: 0 });
+    addPptText(output, item.event, { x: 3.25, y: y + 0.11, w: 7.9, h: h - 0.2, fontSize: 7.6, color: PPT_COLORS.ink700, margin: 0 });
+  });
+}
+
+/** يبني ملف PowerPoint حقيقيًا من الشرائح، بنفس لغة التصميم البصرية للعرض التفاعلي. */
 export async function createLessonPowerPointBlob(lesson: LessonContent, meta: PresentationMeta): Promise<Blob> {
   if (typeof window !== "undefined" && !isUnlocked()) throw new Error("تحميل PowerPoint متاح للأستاذ فقط.");
   const { default: PptxGenJS } = await import("pptxgenjs");
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE";
   pptx.rtlMode = true;
+  pptx.theme = { headFontFace: PPT_FONT_DISPLAY, bodyFontFace: PPT_FONT_BODY };
   pptx.author = "الأستاذ عماد طليل";
   pptx.company = "ثانوية القدس، القنيطرة";
   pptx.subject = `${meta.subjectLabel} — ${lesson.title}`;
@@ -580,40 +827,42 @@ export async function createLessonPowerPointBlob(lesson: LessonContent, meta: Pr
 
   for (const [index, item] of slides.entries()) {
     const output = pptx.addSlide();
-    output.background = { color: item.kind === "title" ? "063828" : "FFFFFF" };
+    addPptSlideFrame(output, item, index, slides.length, meta, lesson);
     if (item.kind === "title") {
-      output.addText(item.title, { x: 0.7, y: 1.55, w: 12, h: 1.3, fontFace: "Arial", fontSize: 29, bold: true, color: "FFFFFF", align: "center", valign: "middle", rtlMode: true, margin: 0.1 });
-      output.addText(`${meta.subjectLabel} · ${meta.levelLabel} · ${meta.branchLabel}\n${lesson.duration}`, { x: 1.1, y: 3.25, w: 11.2, h: 0.75, fontFace: "Arial", fontSize: 16, color: "F6D98B", align: "center", valign: "middle", rtlMode: true });
+      // العنوان والمعلومات وُضعت داخل إطار الغلاف في addPptSlideFrame.
+    } else if (item.kind === "section") {
+      output.addShape("roundRect", { x: 6.05, y: 2.18, w: 1.2, h: 1.2, fill: { color: PPT_COLORS.brand100 }, line: { color: PPT_COLORS.brand200, width: 0.6 } });
+      addPptText(output, "✦", { x: 6.05, y: 2.48, w: 1.2, h: 0.4, fontFace: "Arial", fontSize: 22, bold: true, color: PPT_COLORS.brand700, align: "center", margin: 0 });
+      addPptText(output, item.title, { x: 1.1, y: 3.75, w: 11.1, h: 0.85, fontFace: PPT_FONT_DISPLAY, fontSize: 25, bold: true, color: PPT_COLORS.ink, align: "center", valign: "mid", margin: 0.05 });
+      output.addShape("rect", { x: 6.15, y: 5.0, w: 1.03, h: 0.06, fill: { color: PPT_COLORS.gold400 }, line: { color: PPT_COLORS.gold400 } });
+    } else if ((item.kind === "objectives" || item.kind === "concepts" || item.kind === "list" || item.kind === "summary" || item.kind === "assessment" || item.kind === "tips") && item.items) {
+      addPptNumberedCards(output, item.items, item.kind === "summary");
+    } else if (item.kind === "context" || item.kind === "paragraph") {
+      addPptParagraphCards(output, item.paragraphs ?? []);
+    } else if (item.kind === "problem") {
+      addPptProblem(output, item.paragraphs?.[0] ?? "");
+    } else if (item.kind === "callout" && item.callout) {
+      addPptCallout(output, item.callout);
+    } else if (item.kind === "table" && item.table) {
+      addPptTable(output, item.table);
+    } else if (item.kind === "activity" && item.activity) {
+      const loaded = await loadVisuals(item.activity.visuals);
+      addPptActivity(output, item.activity, loaded);
+    } else if (item.kind === "document" && item.doc) {
+      const loaded = await loadVisuals(item.doc.visuals);
+      addPptDocument(output, item.doc, loaded);
+    } else if (item.kind === "schema" && item.schema) {
+      addPptSchema(output, item.schema);
+    } else if (item.kind === "image") {
+      const visuals = item.images ?? (item.image ? [item.image] : []);
+      const loaded = await loadVisuals(visuals);
+      addPptVisualCaptions(output, loaded, 0.65, 1.42, 12.02, 5.35);
+      if (item.paragraphs?.length) addPptText(output, item.paragraphs[0], { x: 1.0, y: 5.98, w: 11.3, h: 0.55, fontSize: 8.1, color: PPT_COLORS.gold700, align: "center", margin: 0 });
+    } else if (item.kind === "timeline" && item.timeline) {
+      addPptTimeline(output, item.timeline);
     } else {
-      addPptMetadata(output, item.title, item.eyebrow);
-      if (item.kind === "table" && item.table) {
-        const rows = [item.table.head, ...item.table.rows].map((row) => row.map((cell) => ({ text: cell })));
-        output.addTable(rows, { x: 0.45, y: 1.35, w: 12.4, h: 5.55, fontFace: "Arial", fontSize: 10, color: "24332D", border: { type: "solid", color: "C9DDD3", pt: 0.6 }, fill: { color: "FFFFFF" }, margin: 0.06, valign: "middle" });
-      } else if (item.kind === "activity" && item.activity) {
-        const loaded = await loadVisuals(item.activity.visuals);
-        if (loaded.length) {
-          addPptVisualCaptions(output, loaded, 0.55, 1.38, 5.15, 4.8);
-          addPptText(output, activityPlainText(item.activity), { x: 5.95, y: 1.28, w: 6.55, h: 5.75, fontSize: 10.5 });
-        } else {
-          addPptText(output, activityPlainText(item.activity), { fontSize: 12 });
-        }
-      } else if (item.kind === "document" && item.doc) {
-        const loaded = await loadVisuals(item.doc.visuals);
-        if (loaded.length) {
-          addPptVisualCaptions(output, loaded, 0.55, 1.38, 5.15, 4.8);
-          addPptText(output, documentPlainText(item.doc), { x: 5.95, y: 1.28, w: 6.55, h: 5.75, fontSize: 10.5 });
-        } else {
-          addPptText(output, documentPlainText(item.doc), { fontSize: 12 });
-        }
-      } else if (item.kind === "image" && item.images?.length) {
-        const loaded = await loadVisuals(item.images);
-        if (loaded.length) addPptVisualCaptions(output, loaded, 0.55, 1.35, 12, 5.45);
-        else addPptText(output, pptParagraphs(item), { fontSize: 15 });
-      } else {
-        addPptText(output, pptParagraphs(item), { fontSize: item.kind === "problem" ? 23 : item.kind === "assessment" ? 15 : 16 });
-      }
+      addPptText(output, pptParagraphs(item), { x: 0.9, y: 1.5, w: 11.5, h: 5.2, fontSize: 12 });
     }
-    output.addText(`${index + 1} / ${slides.length}`, { x: 11.75, y: 7.08, w: 1, h: 0.2, fontFace: "Arial", fontSize: 8, color: item.kind === "title" ? "CFE7DC" : "7A8C83", align: "right", rtlMode: true, margin: 0 });
     const note = item.activity ? `${activityPlainText(item.activity)}\n\n` : item.doc ? `${documentPlainText(item.doc)}\n\n` : "";
     output.addNotes(`${note}هذا العرض مبني على محتوى الدرس الأصلي والوثائق المرتبطة به داخل المشروع. لا تُعدّ الحقول غير المحددة مصدرًا جديدًا.`);
   }
