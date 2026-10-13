@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BadgeCheck, BookOpen, BookOpenCheck, FileText, FlaskConical, Globe2, History, Hourglass, Landmark, ListChecks, MonitorPlay, Scale, Sparkles, Wrench } from "lucide-react";
+import { BadgeCheck, BookOpen, BookOpenCheck, FileArchive, FileText, FlaskConical, Globe2, History, Hourglass, Landmark, ListChecks, MonitorPlay, Scale, Sparkles, Wrench } from "lucide-react";
 import { LEVELS } from "../data/curriculum";
 import { hasLessonContent, lessonKey } from "../data/lessonContent";
 import { getDeckForLesson } from "../data/decks";
@@ -140,6 +140,10 @@ function LessonRow({ lesson, index, ready, onOpen, onAssessment, deckId, onDeck,
             <span className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gold-300 bg-gold-50/60 px-3.5 py-1.5 text-[10px] font-extrabold text-gold-700" title="يُفتح العرض بعد نشر المحتوى التفصيلي للدرس">
               <MonitorPlay className="size-3.5" aria-hidden="true" />
               العرض قيد إعداد المحتوى
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-brand-300 bg-brand-50/60 px-3.5 py-1.5 text-[10px] font-extrabold text-brand-700" title="يتوفر PowerPoint بعد نشر محتوى الدرس">
+              <FileArchive className="size-3.5" aria-hidden="true" />
+              PowerPoint قيد إعداد المحتوى
             </span>
           </span>
         )}

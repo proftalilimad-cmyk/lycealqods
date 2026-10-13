@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GraduationCap, LayoutDashboard, Menu, X } from "lucide-react";
+import { FileArchive, GraduationCap, LayoutDashboard, Menu, X } from "lucide-react";
 import { NAV_LINKS, type Route } from "../routes";
 
 interface NavbarProps {
@@ -63,6 +63,20 @@ export default function Navbar({ route, go }: NavbarProps) {
           <div className="flex items-center gap-2.5">
             <button
               type="button"
+              onClick={() => go({ view: "dashboard", tab: "presentations" })}
+              aria-label="مكتبة PowerPoint — دخول الأستاذ"
+              title="مكتبة PowerPoint للأستاذ"
+              className={`hidden items-center gap-1.5 rounded-xl border px-2.5 py-2 text-xs font-extrabold transition-all sm:inline-flex ${
+                route.view === "dashboard" && route.tab === "presentations"
+                  ? "border-brand-500 bg-brand-50 text-brand-700"
+                  : "border-gold-300 bg-gold-50 text-gold-700 hover:border-gold-500 hover:bg-gold-100"
+              }`}
+            >
+              <FileArchive className="size-4" />
+              <span className="hidden xl:inline">PowerPoint</span>
+            </button>
+            <button
+              type="button"
               onClick={() => go({ view: "dashboard" })}
               aria-label="لوحة الأستاذ — دخول محمي باسم مستعمل وكلمة مرور"
               title="لوحة الأستاذ (محمية)"
@@ -105,6 +119,14 @@ export default function Navbar({ route, go }: NavbarProps) {
                     {link.label}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); go({ view: "dashboard", tab: "presentations" }); }}
+                  className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl border border-gold-300 bg-gold-50 px-5 py-3 text-sm font-bold text-gold-800"
+                >
+                  <FileArchive className="size-4" />
+                  مكتبة PowerPoint للأستاذ
+                </button>
                 <button
                   type="button"
                   onClick={() => { setOpen(false); go({ view: "dashboard" }); }}
