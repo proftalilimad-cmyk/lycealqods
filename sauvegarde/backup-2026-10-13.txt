@@ -1,0 +1,33 @@
+نسخة احتياطية دائمة مؤرخة — 13/10/2026
+
+المشروع: lycealqods / courstalil
+الفرع: arena/01a094f1-lycealqods
+النسخة المحفوظة: 909bd20 Expose PowerPoint entry point in site navigation
+النسخة السابقة المرجعية: d0945dc Match PowerPoint styling to web presentation
+
+ما تم تثبيته في هذه النسخة:
+- توحيد تصميم عروض PowerPoint مع التصميم البصري للعرض داخل الموقع.
+- استعمال ألوان وهوية الموقع نفسها، مع Cairo للعناوين وReadex Pro للنصوص.
+- الحفاظ على البطاقات والأنشطة والوثائق والصور والمصادر داخل ملفات PowerPoint.
+- إنشاء الأرشيفات الثابتة حسب المستوى:
+  - public/downloads/powerpoint/powerpoint-tc.zip — 70 عرضًا.
+  - public/downloads/powerpoint/powerpoint-bac1.zip — 33 عرضًا.
+  - public/downloads/powerpoint/powerpoint-bac2.zip — 72 عرضًا.
+- إظهار مدخل واضح إلى مكتبة PowerPoint في الشريط العلوي والقائمة الهاتفية.
+- إظهار زر PowerPoint بجانب الدرس عند توفر المحتوى.
+- إظهار «PowerPoint قيد إعداد المحتوى» للدروس التي لم يكتمل محتواها.
+- إبقاء إنشاء وتنزيل PowerPoint محصورًا بالأستاذ.
+
+التحقق:
+- npx tsc --noEmit: ناجح.
+- npm run build: ناجح.
+- git diff --check: ناجح.
+- فحص أرشيفات ZIP الثلاثة: ناجح.
+- فحص ملفات PPTX الداخلية وعددها 175 ملفًا: ناجح.
+
+الحفظ الدائم:
+- النسخة المصدرية محفوظة في تاريخ Git على الفرع المذكور أعلاه.
+- تم دفع commit 909bd20 إلى GitHub.
+- يمكن استرجاع هذه النسخة مستقبلًا عبر:
+  git checkout arena/01a094f1-lycealqods
+  git reset --hard 909bd20
