@@ -243,7 +243,10 @@ export default function TeacherPresentations({ go }: TeacherPresentationsProps) 
           </div>
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold-200 bg-gold-50 p-4">
             <div><p className="text-sm font-black text-gold-900">{activeLevel?.label}</p><p className="mt-1 text-[11px] leading-relaxed text-gold-800">يُجمع المستوى كاملًا، وليس نتائج البحث فقط، عند الضغط على زر ZIP.</p></div>
-            <button type="button" onClick={downloadLevelZip} disabled={busy !== null || !readyCount} className="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-3 text-xs font-extrabold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"><Archive className="size-4" aria-hidden="true" />{busy === `zip-${activeLevel?.id}` ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" /> جارٍ جمع الملفات {progress ? `(${progress.done}/${progress.total})` : "…"}</> : "تحميل كل عروض المستوى ZIP"}</button>
+            <div className="flex flex-wrap gap-2">
+              <a href={`/downloads/powerpoint/powerpoint-${activeLevel?.id}.zip`} download className="inline-flex items-center gap-2 rounded-xl border border-brand-300 bg-white px-4 py-3 text-xs font-extrabold text-brand-700 transition-all hover:-translate-y-0.5 hover:bg-brand-50"><FileArchive className="size-4" aria-hidden="true" /> تحميل الأرشيف الجاهز من GitHub</a>
+              <button type="button" onClick={downloadLevelZip} disabled={busy !== null || !readyCount} className="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-3 text-xs font-extrabold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"><Archive className="size-4" aria-hidden="true" />{busy === `zip-${activeLevel?.id}` ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" /> جارٍ جمع الملفات {progress ? `(${progress.done}/${progress.total})` : "…"}</> : "إنشاء ZIP جديد"}</button>
+            </div>
           </div>
           {notice && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold leading-relaxed text-emerald-800" role="status">{notice}</p>}
         </section>
